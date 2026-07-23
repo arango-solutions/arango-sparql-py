@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 07.1 context gathered
-last_updated: "2026-07-23T19:44:15.064Z"
-last_activity: 2026-07-23 -- Phase 07.3 planning complete
+last_updated: "2026-07-23T20:11:59.879Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 13
   completed_phases: 6
   total_plans: 30
-  completed_plans: 24
+  completed_plans: 25
   percent: 46
 ---
 
@@ -21,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 07.3 — NL→SPARQL entity/instance grounding (accuracy lever)
+**Current focus:** Phase 07.3 — nl-to-sparql-entity-instance-grounding
 
 ## Current Position
 
-Phase: 07.3
-Plan: Not started
+Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-07-23 -- Phase 07.3 planning complete
+Last activity: 2026-07-23
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -67,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 07 P02 | 10min | 2 tasks | 2 files |
 | Phase 07 P03 | 20min | 3 tasks | 6 files |
 | Phase 07 P04 | ~35min | 4 tasks | 9 files |
+| Phase 07.3 P01 | 20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -121,6 +121,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07-04]: Lexical BM25 outperformed dense embeddings in all 3 model tiers (gpt-4o-mini/gpt-5-mini/gpt-5) -- contradicts the phase's founding SOTA-survey dense-#1 thesis; documented as a genuine finding
 - [Phase 07-04]: sweep results folded into baseline.json as a sibling phase07_dense_few_shot_sweep top-level key (aggregate-only) rather than configs['*-dense'] BaselineConfig entries, since only aggregate pass-rates + single-pairing McNemar were captured (not full per-case dicts) and BaselineConfig.cases is a required field
 - [Phase 07-04]: resolved model snapshot ids were not captured this sweep, so the M2 dense-vs-committed-0.32 continuity check is flagged inapplicable/invalid rather than silently compared
+- [Phase 07.3-01]: arango-query-core bumped locally to commit 11b71d584769108e6c3c926049e0a3f359c92037 (seam 6 grounding_index, LabelIndex/GroundedEntity) — NOT pushed, NOT pin-bumped; Plan 02 owns push + pyproject.toml pin bump
+- [Phase 07.3-01]: grounding.py has zero production default/memoization; construction is fully caller-owned (no lru_cache factory), since there is no canonical grounding-data bank path the way there is for few-shot
+- [Phase 07.3-01]: Label sanitization (_sanitize_label) applied at render time strips C0 control chars/newlines, collapses whitespace, caps length at 200 chars; proven no-op on clean labels (T-07.3-01 mitigation)
 
 ### Pending Todos
 
@@ -143,6 +146,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-22T16:01:18.823Z
-Stopped at: Phase 07.1 context gathered
-Resume file: .planning/phases/07.1-nl-to-sparql-synthetic-eval-corpus-growth-ontology-driven-ge/07.1-CONTEXT.md
+Last session: 2026-07-23T20:11:59.874Z
+Stopped at: Completed 07.3-01-PLAN.md (engine-side grounding seam in arango-query-core, committed locally at 11b71d5, unpushed)
+Resume file: None

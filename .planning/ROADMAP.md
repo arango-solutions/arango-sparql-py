@@ -265,12 +265,12 @@ columns). Retrieval must run against the target instance data / a schema-agnosti
 SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
 in CI); each eval set stays independently reported (never blended).
 
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 07.3-01-PLAN.md — Engine-side grounding seam in arango-query-core: grounding.py (GroundedEntity/LabelIndex, verbatim spike port + label sanitization) + seam 6 + engine _system_prompt splice + barrel export + engine unit tests [NL-ACC-01]
+- [x] 07.3-01-PLAN.md — Engine-side grounding seam in arango-query-core: grounding.py (GroundedEntity/LabelIndex, verbatim spike port + label sanitization) + seam 6 + engine _system_prompt splice + barrel export + engine unit tests [NL-ACC-01]
 
 **Wave 2**
 
