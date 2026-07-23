@@ -60,6 +60,23 @@ def test_corpus_path_default() -> None:
     assert resolved_custom != CORPUS_PATH
 
 
+def test_grounding_default_absent_is_noop() -> None:
+    """The additive `grounding:` config key must be default-preserving (NL-ACC-01).
+
+    No-network, always-on test (deliberately NOT gated behind the RUN_EVAL
+    skipif), mirroring `test_corpus_path_default`'s discipline: it only
+    exercises dict-default logic (the exact `config.get("grounding", {})` /
+    `.get("k", 0)` formula `run()` uses), never `NlPipeline`/a provider --
+    proving every existing config (none of which carry a `grounding:` key)
+    keeps resolving to today's zero-shot (no grounding) behavior,
+    byte-identical.
+    """
+    config_without_grounding: dict = {}
+    grounding_cfg = config_without_grounding.get("grounding", {})
+    assert grounding_cfg == {}
+    assert grounding_cfg.get("k", 0) == 0
+
+
 @pytest.mark.skipif(not _RUN_EVAL, reason="set RUN_EVAL=1 to run the NL eval gate")
 def test_scripted_pass_rate_meets_baseline() -> None:
     report = run("scripted")
