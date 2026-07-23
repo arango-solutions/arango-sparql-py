@@ -265,7 +265,7 @@ columns). Retrieval must run against the target instance data / a schema-agnosti
 SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
 in CI); each eval set stays independently reported (never blended).
 
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 
 Plans:
 **Wave 1**
@@ -274,7 +274,7 @@ Plans:
 
 **Wave 2**
 
-- [ ] 07.3-02-PLAN.md — Publish engine commit to the pinned remote (dual-remote git ls-remote verify) + bump pyproject pin (both extras) + uv lock [NL-ACC-01]
+- [x] 07.3-02-PLAN.md — Publish engine commit to the pinned remote (dual-remote git ls-remote verify) + bump pyproject pin (both extras) + uv lock [NL-ACC-01]
 
 **Wave 3** *(parallel — no file overlap)*
 

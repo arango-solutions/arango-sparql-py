@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-23T20:11:59.879Z"
+last_updated: "2026-07-23T20:45:47.252Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 13
   completed_phases: 6
   total_plans: 30
-  completed_plans: 25
+  completed_plans: 26
   percent: 46
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-07-23
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 83%
 | Phase 07 P03 | 20min | 3 tasks | 6 files |
 | Phase 07 P04 | ~35min | 4 tasks | 9 files |
 | Phase 07.3 P01 | 20min | 3 tasks | 6 files |
+| Phase 07.3 P02 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.3-01]: arango-query-core bumped locally to commit 11b71d584769108e6c3c926049e0a3f359c92037 (seam 6 grounding_index, LabelIndex/GroundedEntity) — NOT pushed, NOT pin-bumped; Plan 02 owns push + pyproject.toml pin bump
 - [Phase 07.3-01]: grounding.py has zero production default/memoization; construction is fully caller-owned (no lru_cache factory), since there is no canonical grounding-data bank path the way there is for few-shot
 - [Phase 07.3-01]: Label sanitization (_sanitize_label) applied at render time strips C0 control chars/newlines, collapses whitespace, caps length at 200 chars; proven no-op on clean labels (T-07.3-01 mitigation)
+- [Phase 07.3-02]: arango-query-core pin bumped to 3ff0d53d0eb39aca80b4ec01a93deae7939569e9 (not the 11b71d5 recorded in 07.3-01), verified fetchable via git ls-remote refs/heads/main on both ArthurKeen and arango-solutions remotes — 11b71d5 failed mypy+ruff CI upstream; 3ff0d53 is the CI-clean fix commit both remotes now carry
+- [Phase 07.3-02]: uv lock also caught up pre-existing lock staleness (mypy, ruff==0.15.22, arangodb-schema-analyzer[anthropic]) from commit c2fafe7 that was never re-locked — mechanically necessary for uv lock to succeed against current pyproject.toml; not new churn from this plan's SHA bump
 
 ### Pending Todos
 
@@ -146,6 +149,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-23T20:11:59.874Z
-Stopped at: Completed 07.3-01-PLAN.md (engine-side grounding seam in arango-query-core, committed locally at 11b71d5, unpushed)
+Last session: 2026-07-23T20:45:47.246Z
+Stopped at: Completed 07.3-02-PLAN.md (arango-query-core pin bumped to 3ff0d53, grounding seam importable)
 Resume file: None
