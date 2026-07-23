@@ -265,7 +265,7 @@ columns). Retrieval must run against the target instance data / a schema-agnosti
 SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
 in CI); each eval set stays independently reported (never blended).
 
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -278,7 +278,7 @@ Plans:
 
 **Wave 3** *(parallel — no file overlap)*
 
-- [ ] 07.3-03-PLAN.md — SparqlAdapter seam 6 (injection-only) + verbatim SPARQL wording + NlPipeline passthrough + SC-gate (block in engine prompt, not grammar section) + adapter unit tests [NL-ACC-01]
+- [x] 07.3-03-PLAN.md — SparqlAdapter seam 6 (injection-only) + verbatim SPARQL wording + NlPipeline passthrough + SC-gate (block in engine prompt, not grammar section) + adapter unit tests [NL-ACC-01]
 - [ ] 07.3-04-PLAN.md — Eval-only pyoxigraph→LabelIndex builder + deterministic gold-IRI retrieval-recall guard (CI-visible, >=0.90) + grounding: config-default structural test [NL-ACC-01]
 
 **Wave 4**
