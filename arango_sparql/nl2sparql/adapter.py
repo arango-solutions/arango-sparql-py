@@ -21,6 +21,12 @@ inventing parallel ones:
   inside ``translate()`` (``CrossTenantJoinError``). A SPARQL-algebra
   tenant-scope validator (the analog of cypher-py's ``tenant_ast_*``)
   slots in here when multi-tenant NL arrives.
+* **Entity/instance grounding** (seam 6) — explicit-injection-only, same
+  design as :class:`~arango_sparql.nl2sparql.engine_adapter.SparqlAdapter`
+  (07.3): no production-default source of instance/entity label data
+  exists yet, so this adapter defaults to ungrounded (``None``) unless a
+  caller injects a ``LabelIndex``. The prompt wording is the verbatim
+  spike text, kept byte-identical to ``engine_adapter.SparqlAdapter``'s.
 
 This module is why the adapter lives in THIS repo and not in
 arango-query-core: seam 3 needs the whole transpiler stack.
@@ -33,6 +39,7 @@ from pathlib import Path
 from typing import Any
 
 from arango_query_core.nl import FewShotIndex, GuardrailVerdict, ValidationResult
+from arango_query_core.nl.grounding import LabelIndex
 
 from ..errors import SparqlError
 from ..translate.resolver import SchemaResolver
@@ -57,6 +64,7 @@ class SparqlLanguageAdapter:
     ontology_ttl: str = ""
     tenant_id: str | None = None
     corpus_paths: list[Path] = field(default_factory=lambda: sorted(_CORPORA_DIR.glob("*.yml")))
+    _grounding_index: LabelIndex | None = field(default=None, repr=False)
 
     language: str = "sparql"
     _few_shot: FewShotIndex | None = field(default=None, repr=False)
@@ -91,3 +99,27 @@ class SparqlLanguageAdapter:
 
     def guardrails(self, query: str, context: dict[str, Any]) -> GuardrailVerdict:
         return GuardrailVerdict(allowed=True)
+
+    def grounding_index(self) -> LabelIndex | None:  # seam 6
+        # Explicit injection only — mirrors engine_adapter.SparqlAdapter's
+        # seam 6 (07.3): no production-default source of instance/entity
+        # label data exists yet, so a caller that never injects one runs
+        # ungrounded.
+        return self._grounding_index
+
+    def grounding_prompt_section(self, question: str, index: LabelIndex, k: int = 20) -> str:  # seam 6 (renderer)
+        # Verbatim wording from the spike's entity_block, byte-identical to
+        # engine_adapter.SparqlAdapter.grounding_prompt_section — do not
+        # paraphrase (empirically measured +12.2pt lift).
+        return index.format_prompt_section(
+            question,
+            k=k,
+            header="## Known entities (use these EXACT IRIs)",
+            instruction=(
+                "The question may refer to specific named individuals/things below. When it "
+                "does, use the entity's EXACT IRI directly in your query (e.g. `<IRI> pv:... ?x`) "
+                "instead of matching on a name literal. Not all listed entities are relevant."
+            ),
+            id_prefix="<",
+            id_suffix=">",
+        )

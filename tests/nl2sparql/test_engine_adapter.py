@@ -22,6 +22,7 @@ import pytest
 import yaml
 from arango_query_core.nl import FewShotIndex
 from arango_query_core.nl.engine import NLQueryEngine
+from arango_query_core.nl.grounding import GroundedEntity, LabelIndex
 from arango_query_core.nl.providers import LLMProvider
 from arango_query_core.nl.seams import QueryLanguageAdapter
 
@@ -193,6 +194,21 @@ class TestSparqlAdapterSeams:
         index = adapter.few_shot_index()
         assert index is not None
         assert isinstance(index, FewShotIndex)
+
+    def test_grounding_index_returns_injected_index(self) -> None:
+        grounding_index = LabelIndex.from_items(
+            [GroundedEntity(id="http://ex.org/p1", labels=("Alice",), type="Person")]
+        )
+        adapter = SparqlAdapter(
+            resolver=SchemaResolver.from_turtle(ONTOLOGY),
+            ontology_ttl=ONTOLOGY,
+            grounding_index=grounding_index,
+        )
+        assert adapter.grounding_index() is grounding_index
+
+    def test_grounding_index_defaults_to_none(self) -> None:
+        adapter = SparqlAdapter(resolver=SchemaResolver.from_turtle(ONTOLOGY), ontology_ttl=ONTOLOGY)
+        assert adapter.grounding_index() is None
 
 
 # ---------------------------------------------------------------------------
