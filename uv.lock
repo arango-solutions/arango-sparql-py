@@ -60,7 +60,7 @@ wheels = [
 [[package]]
 name = "arango-query-core"
 version = "0.1.0"
-source = { git = "https://github.com/ArthurKeen/arango-query-core?rev=3ff0d53d0eb39aca80b4ec01a93deae7939569e9#3ff0d53d0eb39aca80b4ec01a93deae7939569e9" }
+source = { git = "https://github.com/ArthurKeen/arango-query-core?rev=c6ae5e14360699618ba4a38c109d54d8173633ab#c6ae5e14360699618ba4a38c109d54d8173633ab" }
 
 [package.optional-dependencies]
 dense = [
@@ -122,8 +122,8 @@ service = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'nl'", specifier = ">=0.20.0" },
-    { name = "arango-query-core", marker = "extra == 'nl'", git = "https://github.com/ArthurKeen/arango-query-core?rev=3ff0d53d0eb39aca80b4ec01a93deae7939569e9" },
-    { name = "arango-query-core", extras = ["dense"], marker = "extra == 'dense'", git = "https://github.com/ArthurKeen/arango-query-core?rev=3ff0d53d0eb39aca80b4ec01a93deae7939569e9" },
+    { name = "arango-query-core", marker = "extra == 'nl'", git = "https://github.com/ArthurKeen/arango-query-core?rev=c6ae5e14360699618ba4a38c109d54d8173633ab" },
+    { name = "arango-query-core", extras = ["dense"], marker = "extra == 'dense'", git = "https://github.com/ArthurKeen/arango-query-core?rev=c6ae5e14360699618ba4a38c109d54d8173633ab" },
     { name = "arango-sparql-py", extras = ["analyzer"], marker = "extra == 'dev'" },
     { name = "arango-sparql-py", extras = ["analyzer"], marker = "extra == 'service'" },
     { name = "arango-sparql-py", extras = ["nl"], marker = "extra == 'dense'" },
