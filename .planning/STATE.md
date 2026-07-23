@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-23T21:26:10.052Z"
+last_updated: "2026-07-23T21:33:18.401Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 13
   completed_phases: 6
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
   percent: 46
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-07-23
 
-Progress: [█████████░] 90%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [█████████░] 90%
 | Phase 07.3 P01 | 20min | 3 tasks | 6 files |
 | Phase 07.3 P02 | 10min | 2 tasks | 2 files |
 | Phase 07.3 P03 | 35min | 3 tasks | 5 files |
+| Phase 07.3 P04 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.3-02]: uv lock also caught up pre-existing lock staleness (mypy, ruff==0.15.22, arangodb-schema-analyzer[anthropic]) from commit c2fafe7 that was never re-locked — mechanically necessary for uv lock to succeed against current pyproject.toml; not new churn from this plan's SHA bump
 - [Phase 07.3]: [Phase 07.3-03]: grounding_index() has no production-default fallback (explicit-injection-only) -- no canonical instance/entity label-data source exists yet, matching grounding.py's own design
 - [Phase 07.3]: [Phase 07.3-03]: fixed a pre-existing Rule-3 regression in legacy SparqlLanguageAdapter (arango_sparql/nl2sparql/adapter.py, used by nl_to_sparql) -- the 07.3-02 pin bump made seam 6 mandatory in QueryLanguageAdapter, breaking that adapter with AttributeError (3 pre-existing test_adapter.py failures, verified broken at 07.3-02 HEAD before Plan 03 started); fixed with the same seam 6 impl mirrored from engine_adapter.SparqlAdapter
+- [Phase 07.3-04]: build_label_index expands prefixed label_predicates (rdfs:/pv:) against a small hardcoded prefix map, not a parsed PREFIX preamble — CK25's prefixes are fixed; keeps the builder self-contained and dependency-free of ontology-text parsing
+- [Phase 07.3-04]: Measured gold-IRI retrieval recall = 24/25 = 0.96, exactly matching the spike; recall guard runs in the always-on pytest tier (no RUN_EVAL) — Provides deterministic offline CI evidence for NL-ACC-01 independent of the human-run live sweep
 
 ### Pending Todos
 
@@ -152,6 +155,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-23T21:26:10.046Z
-Stopped at: Completed 07.3-03-PLAN.md (SparqlAdapter seam 6 + NlPipeline grounding passthrough + SC-gate; also fixed pre-existing legacy adapter.py seam-6 regression)
+Last session: 2026-07-23T21:33:18.395Z
+Stopped at: Completed 07.3-04-PLAN.md (eval-only grounding index builder + recall/default guards)
 Resume file: None
