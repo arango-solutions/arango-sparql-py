@@ -37,6 +37,7 @@ import time
 from pathlib import Path
 
 from arango_query_core.nl import FewShotIndex, cached_few_shot_index
+from arango_query_core.nl.grounding import LabelIndex
 from arango_query_core.nl.seams import GuardrailVerdict, ValidationResult
 
 from ..api import translate as _api_translate
@@ -148,6 +149,8 @@ class SparqlAdapter:
     ``validate``                :func:`arango_sparql.api.translate`
     ``repair_hint``             :func:`format_repair_context`
     ``guardrails``              allow-all (no tenant/write-op checks yet)
+    ``grounding_index``         injected ``LabelIndex`` (explicit-injection
+                                 only this phase — no production default)
     ==========================  ============================================
 
     The constructor takes the caller's **already-built** ``resolver`` (in
@@ -169,11 +172,13 @@ class SparqlAdapter:
         ontology_ttl: str = "",
         few_shot_index: FewShotIndex | None = None,
         few_shot_mode: str = "auto",
+        grounding_index: LabelIndex | None = None,
     ) -> None:
         self.resolver = resolver
         self.ontology_ttl = ontology_ttl
         self._few_shot_index = few_shot_index
         self._few_shot_mode = few_shot_mode
+        self._grounding_index = grounding_index
 
     def grammar_prompt_section(self, schema_context: str) -> str:  # seam 1
         # Reuse the shipped system-prompt template so the grammar + ontology
@@ -225,3 +230,36 @@ class SparqlAdapter:
     def guardrails(self, query: str, context: dict) -> GuardrailVerdict:  # seam 5
         # Allow-all — no tenant/write-op checks this phase.
         return GuardrailVerdict(allowed=True)
+
+    def grounding_index(self) -> LabelIndex | None:  # seam 6
+        # Explicit injection only this phase — no cached-default fallback
+        # exists yet (unlike few_shot_index's cached_few_shot_index branch):
+        # there is no canonical, production-owned source of instance/entity
+        # label data the way there is a curated few-shot bank (RESEARCH Open
+        # Question 2). A deployment that never injects a LabelIndex runs
+        # ungrounded (grounding_index() -> None), which the engine treats
+        # identically to seam 2's "no index" case.
+        return self._grounding_index
+
+    def grounding_prompt_section(self, question: str, index: LabelIndex, k: int = 20) -> str:  # seam 6 (renderer)
+        # Verbatim wording from the spike's entity_block
+        # (scratchpad/nl-grounding-spike/grounding_spike.py::entity_block) —
+        # this exact header + instruction text is what was empirically
+        # measured to lift CK25 execution-graded accuracy 12.2% -> 24.5%
+        # (McNemar p=0.031). Do NOT paraphrase; rephrasing invalidates the
+        # measured lift. The retrieval/rendering machinery (sanitization,
+        # ranking, "no matches -> empty string") lives in LabelIndex
+        # (Plan 01) — this method only supplies the fixed SPARQL-specific
+        # header/instruction/id_prefix/id_suffix constants.
+        return index.format_prompt_section(
+            question,
+            k=k,
+            header="## Known entities (use these EXACT IRIs)",
+            instruction=(
+                "The question may refer to specific named individuals/things below. When it "
+                "does, use the entity's EXACT IRI directly in your query (e.g. `<IRI> pv:... ?x`) "
+                "instead of matching on a name literal. Not all listed entities are relevant."
+            ),
+            id_prefix="<",
+            id_suffix=">",
+        )
