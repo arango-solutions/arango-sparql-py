@@ -228,6 +228,67 @@ Plans:
 
 - [x] 07-04-PLAN.md — 3-arm x 3-model lift sweep: temperature fix + configs/runner extension + D-06 guard + D-04 provenance + W3C non-regression [NL-FEW-02] — complete (7ce312e, b2aa008, f1c327e, 3136c17, ac19edc); the credentialed human's live sweep returned a documented null on the pre-registered confirmatory test, closed per the plan's human-accepted-documented-null path — see 07-04-SUMMARY.md
 
+### Phase 07.3: NL to SPARQL entity/instance grounding (INSERTED)
+
+**Goal:** Productionize **entity/instance grounding** as a language-agnostic seam in the
+shared `arango-query-core` NL engine (so the sister Cypher project inherits it), and prove
+a statistically significant NL→SPARQL accuracy lift on the CK25 corporate-domain anchor via
+the existing execution-graded eval. The `07.2` live run confirmed the model cannot invent
+opaque instance IRIs (e.g. `Ms. Brant` → `empl-Karen.Brant%40company.org`) from the
+vocabulary alone; grounding retrieves candidate instance IRIs from the target data and
+injects them into the prompt so the model can bind to real entities.
+
+**Requirements**: NL-ACC-01 (NL→SPARQL entity/instance grounding lift, execution-graded).
+
+**Depends on:** Phase 07.2 (execution judge + vendored CK25 instance graph), Phase 06.1
+(NL layer on the shared `NLQueryEngine`).
+
+**Spike evidence (2026-07-23, live gpt-4o-mini, CK25 49-case execution judge):**
+
+- Grounding **doubled** CK25: 6/49 (12.2%) → 12/49 (24.5%); Δ +12.2pt, 95% CI [+4.1, +22.4],
+  McNemar b=6/c=0, **p=0.031, zero regressions**; retrieval recall of gold IRIs = 96%.
+  Prototype in `scratchpad/nl-grounding-spike/` + findings in the phase dir
+  (`07.3-SPIKE-FINDINGS.md`); label index over `rdfs:label|pv:name`, top-k by token match,
+  inject "use these EXACT IRIs" block.
+- Execution-guided **selection** (the former v1.1 lever) is **empirically dead** for CK25
+  (p=1.0): the model reaches full consensus on systematically-wrong queries, so best-of-N /
+  MBR has no correct sample to select. Superseded by this phase.
+
+**Scope:** lever #1 (grounding) ONLY. Explicitly OUT of scope (own later phases):
+(2) in-domain few-shot for schema-convention failures (~15 residual cases: `subClassOf*`,
+OPTIONAL, indirect-manager idioms); (3) loosening the execution judge's projection-shape
+strictness (some true accuracy is deflated by the answer-set judge keying on all projected
+columns). Retrieval must run against the target instance data / a schema-agnostic index
+(not CK25-specific hand-curation) so it transfers to the CDF project unchanged.
+
+**Non-regression invariants (hard):** W3C DAWG query-eval coverage ≥ 96.4%; the deterministic
+SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
+in CI); each eval set stays independently reported (never blended).
+
+**Plans:** 6 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 07.3-01-PLAN.md — Engine-side grounding seam in arango-query-core: grounding.py (GroundedEntity/LabelIndex, verbatim spike port + label sanitization) + seam 6 + engine _system_prompt splice + barrel export + engine unit tests [NL-ACC-01]
+
+**Wave 2**
+
+- [ ] 07.3-02-PLAN.md — Publish engine commit to the pinned remote (dual-remote git ls-remote verify) + bump pyproject pin (both extras) + uv lock [NL-ACC-01]
+
+**Wave 3** *(parallel — no file overlap)*
+
+- [ ] 07.3-03-PLAN.md — SparqlAdapter seam 6 (injection-only) + verbatim SPARQL wording + NlPipeline passthrough + SC-gate (block in engine prompt, not grammar section) + adapter unit tests [NL-ACC-01]
+- [ ] 07.3-04-PLAN.md — Eval-only pyoxigraph→LabelIndex builder + deterministic gold-IRI retrieval-recall guard (CI-visible, >=0.90) + grounding: config-default structural test [NL-ACC-01]
+
+**Wave 4**
+
+- [ ] 07.3-05-PLAN.md — runner.py additive grounding: read + build-once + passthrough + configs.yml CK25-grounded entries (pv:name config-only) + scripted-ck25-grounded plumbing gate [NL-ACC-01]
+
+**Wave 5**
+
+- [ ] 07.3-06-PLAN.md — Human-run live CK25 grounded-vs-fresh-zero McNemar sweep + baseline.json fold-in (reported, not gated) + README §7 runbook + W3C/transpiler non-regression re-check [NL-ACC-01]
+
 ### Phase 07.2: Execution-based eval judging for adopted benchmarks (CK25) (INSERTED)
 
 **Goal:** Make adopted-benchmark eval meaningful by grading on ANSWERS, not query
