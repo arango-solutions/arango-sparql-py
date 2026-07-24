@@ -21,10 +21,13 @@ import path -- mirroring ``runner.py::_build_label_map``'s own
 
 from __future__ import annotations
 
-# Known ontology prefixes used by CK25's corpus.yml (and the spike's literal
-# PREFIX preamble) -- expanding prefixed label_predicates against this map
-# keeps the query construction independent of any particular Turtle prefix
-# declaration order.
+# WR-01: built-in prefixes for CK25's own vocabulary (and the ``rdfs``
+# prefix every corpus needs). This is a DEFAULT, not the only place a
+# dataset can register a prefix: `build_label_index`'s `prefixes` parameter
+# lets a corpus config (`grounding.prefixes:` in configs.yml) extend/
+# override this map without a code change here, so a future corpus (CDF or
+# otherwise) that lists a prefixed predicate under a prefix this file
+# doesn't know is a config-only edit, not a code-only one.
 _PREFIXES = {
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "pv": "http://ld.company.org/prod-vocab/",
@@ -32,18 +35,22 @@ _PREFIXES = {
 }
 
 
-def _expand_predicate(predicate: str) -> str:
+def _expand_predicate(predicate: str, prefixes: dict[str, str] | None = None) -> str:
     """Expand a prefixed name (``"rdfs:label"``) to a full IRI.
 
     Predicates already given as full IRIs (``<...>`` or ``http://...``) pass
-    through unchanged.
+    through unchanged. ``prefixes`` (WR-01), if given, is merged over the
+    built-in ``_PREFIXES`` default -- letting a caller (e.g. a corpus's
+    ``grounding.prefixes:`` config entry) register additional/overriding
+    prefixes without editing this file.
     """
     if predicate.startswith("<") or predicate.startswith("http://") or predicate.startswith("https://"):
         return predicate.strip("<>")
+    effective_prefixes = {**_PREFIXES, **(prefixes or {})}
     prefix, _, local = predicate.partition(":")
-    if not local or prefix not in _PREFIXES:
+    if not local or prefix not in effective_prefixes:
         raise ValueError(f"unknown label predicate prefix: {predicate!r}")
-    return f"{_PREFIXES[prefix]}{local}"
+    return f"{effective_prefixes[prefix]}{local}"
 
 
 # CR-01: W3C-standard ontology-header vocabulary terms (RDFS/OWL/void) used
@@ -66,13 +73,21 @@ _SCHEMA_TYPES = (
 )
 
 
-def build_label_index(data_ttl: str, label_predicates: list[str]):
+def build_label_index(
+    data_ttl: str,
+    label_predicates: list[str],
+    prefixes: dict[str, str] | None = None,
+):
     """Build a ``LabelIndex`` from a Turtle instance graph.
 
     ``data_ttl`` is the raw Turtle text (e.g. CK25's ``raw/prod-inst.ttl``
     contents); ``label_predicates`` is a list of prefixed or full-IRI
     predicates whose objects are treated as human-readable labels (e.g.
-    ``["rdfs:label", "pv:name"]``).
+    ``["rdfs:label", "pv:name"]``). ``prefixes`` (WR-01) optionally extends/
+    overrides the built-in ``_PREFIXES`` default used to resolve those
+    prefixed predicates -- e.g. a future corpus's ``grounding.prefixes:``
+    config entry -- so a new vocabulary prefix is a config-only edit, not a
+    code change to this file.
 
     Aggregates by subject IRI into ``{labels: set, type: local-name}``, then
     returns ``LabelIndex.from_items([GroundedEntity(...), ...])``.
@@ -92,7 +107,7 @@ def build_label_index(data_ttl: str, label_predicates: list[str]):
     from tests.helpers.oxi import load_store_from_string, oxi_query
 
     store = load_store_from_string(data_ttl)
-    predicate_union = "|".join(f"<{_expand_predicate(p)}>" for p in label_predicates)
+    predicate_union = "|".join(f"<{_expand_predicate(p, prefixes)}>" for p in label_predicates)
     schema_type_filters = "\n      ".join(f"FILTER NOT EXISTS {{ ?s a <{t}> }}" for t in _SCHEMA_TYPES)
     query = f"""
     SELECT ?s ?label ?type WHERE {{

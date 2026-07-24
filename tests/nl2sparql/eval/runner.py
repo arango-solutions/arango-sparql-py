@@ -558,7 +558,13 @@ def run(config_name: str) -> Report:
         from tests.nl2sparql.eval.grounding_index_builder import build_label_index
 
         label_predicates = grounding_cfg.get("label_predicates", ["rdfs:label"])
-        grounding_index = build_label_index(data_ttl, label_predicates)
+        # WR-01: `grounding.prefixes:` (optional) lets a corpus config
+        # register/override prefix->IRI mappings for its own
+        # `label_predicates:` entries without a code change to
+        # grounding_index_builder.py — absent, `build_label_index` falls
+        # back to its built-in CK25-shaped default.
+        prefixes = grounding_cfg.get("prefixes")
+        grounding_index = build_label_index(data_ttl, label_predicates, prefixes=prefixes)
 
     cases: list[CaseResult] = []
     for case in corpus["cases"]:
