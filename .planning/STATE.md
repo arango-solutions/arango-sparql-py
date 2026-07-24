@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-24T00:44:45.053Z"
+status: verifying
+last_updated: "2026-07-24T14:23:31.222Z"
 last_activity: 2026-07-24
 progress:
   total_phases: 13
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 30
-  completed_plans: 29
-  percent: 46
+  completed_plans: 30
+  percent: 54
 ---
 
 # Project State
@@ -24,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 
 ## Current Position
 
-Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — EXECUTING
+Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — COMPLETE
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-24
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [██████████] 97%
 | Phase 07.3 P03 | 35min | 3 tasks | 5 files |
 | Phase 07.3 P04 | 15min | 3 tasks | 3 files |
 | Phase 07.3 P05 | 12min | 2 tasks | 2 files |
+| Phase 07.3 P06 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.3-05]: grounding_cfg guarded on grounding_cfg AND data_ttl (not grounding_cfg alone) so a grounding: block with no corpus-level data_path stays a safe no-op
 - [Phase 07.3-05]: build_label_index imported function-locally inside the guarded branch, keeping pyoxigraph off runner.py's module import path
 - [Phase 07.3-05]: scripted-ck25-grounded verified green as a plumbing gate (pass_rate 1.0, 49/49) under RUN_EVAL=1 -- config -> build_label_index -> seam 6 -> prompt -> execution judge does not crash; explicitly documented as plumbing evidence, not accuracy evidence
+- [Phase 07.3-06]: NL-ACC-01 closed via the SIGNIFICANT-LIFT path (not documented-null) -- credentialed live grounded-vs-fresh-same-session-zero CK25 sweep: 14/49 (0.2857) vs 5/49 (0.1020), McNemar b=9/c=0/p=0.0039, bootstrap delta+0.1837 CI[0.0816,0.3061], zero regressions, temperature=0.1, corpus_sha=814d227 -- stronger than the pre-planning spike (6/49->12/49, p=0.031)
+- [Phase 07.3-06]: baseline.json's new openai-gpt4o-mini-ck25-grounded entry is kept fully separate from the existing openai-gpt4o-mini-ck25 entry (a stale prior-session 07.2-04 number, 6/49); the confirmatory McNemar pairing uses only the fresh same-session zero arm run this checkpoint, never the committed historical entry
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-24T00:44:45.047Z
-Stopped at: Completed 07.3-05-PLAN.md (additive grounding: config wired through the eval runner + configs.yml CK25-grounded entries + green plumbing gate)
+Last session: 2026-07-24T14:23:31.215Z
+Stopped at: Completed 07.3-06-PLAN.md (final plan, phase 07.3 complete -- NL-ACC-01 closed via significant-lift path)
 Resume file: None

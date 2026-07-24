@@ -265,7 +265,7 @@ columns). Retrieval must run against the target instance data / a schema-agnosti
 SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
 in CI); each eval set stays independently reported (never blended).
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -287,7 +287,7 @@ Plans:
 
 **Wave 5**
 
-- [ ] 07.3-06-PLAN.md — Human-run live CK25 grounded-vs-fresh-zero McNemar sweep + baseline.json fold-in (reported, not gated) + README §7 runbook + W3C/transpiler non-regression re-check [NL-ACC-01]
+- [x] 07.3-06-PLAN.md — Human-run live CK25 grounded-vs-fresh-zero McNemar sweep + baseline.json fold-in (reported, not gated) + README §7 runbook + W3C/transpiler non-regression re-check [NL-ACC-01]
 
 ### Phase 07.2: Execution-based eval judging for adopted benchmarks (CK25) (INSERTED)
 
