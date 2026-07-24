@@ -113,6 +113,23 @@ configs:
   # Live CK25 grounded sweep — same discipline as openai-gpt4o-mini-ck25
   # above. Not run in CI — gated behind RUN_EVAL=1 + NL2SPARQL_API_KEY,
   # human-run.
+  #
+  # Plan 07.3-06 Task 1 (RESEARCH Open Question 1) — temperature provenance:
+  # this config has no `temperature:` key (none is read anywhere in this
+  # file); runner.py::_client_for() constructs OpenAICompatibleClient(
+  # provider=ptype, model=provider.get("model")) with no explicit
+  # `temperature=` argument, so it falls through to
+  # OpenAICompatibleClient.__init__'s hardcoded default `temperature: float
+  # = 0.1` (arango_sparql/nl2sparql/client.py). gpt-4o-mini is not a
+  # _is_reasoning_model() match, so 0.1 IS sent explicitly on every call.
+  # This is the SAME 0.1 already recorded in baseline.json's committed
+  # openai-gpt4o-mini-ck25 entry -- so a live re-run of that config this
+  # session (the fresh zero arm) and this grounded config both run at 0.1,
+  # not the spike's temperature=0 (grounding_spike.py hardcoded 0 in its raw
+  # HTTP call). A non-reproduction of the spike's exact 6/49->12/49 numbers
+  # is therefore attributable to this temperature delta, not to grounding
+  # failing -- record `"temperature": 0.1` in the baseline.json fold-in
+  # (Task 3), not the spike's 0.
   openai-gpt4o-mini-ck25-grounded:
     provider:
       type: openai
