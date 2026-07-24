@@ -250,6 +250,7 @@ injects them into the prompt so the model can bind to real entities.
   Prototype in `scratchpad/nl-grounding-spike/` + findings in the phase dir
   (`07.3-SPIKE-FINDINGS.md`); label index over `rdfs:label|pv:name`, top-k by token match,
   inject "use these EXACT IRIs" block.
+
 - Execution-guided **selection** (the former v1.1 lever) is **empirically dead** for CK25
   (p=1.0): the model reaches full consensus on systematically-wrong queries, so best-of-N /
   MBR has no correct sample to select. Superseded by this phase.
