@@ -15,6 +15,14 @@
 # (added Phase 7 07-04) is likewise config-only data (mode + k) — it never
 # carries a bank path override or any credential; the bank file itself lives
 # at tests/nl2sparql/eval/fewshot_bank.yml (07-02), trusted repo data.
+#
+# The optional `grounding:` block (added Phase 07.3-05) is the entity/instance
+# grounding seam's config-only data (k + label_predicates) — runner.py builds
+# a LabelIndex from the corpus's `data_path:` instance graph ONCE per run and
+# threads it into every case's NlPipeline. Absent `grounding:` == today's
+# ungrounded behavior. `label_predicates:` is declarative, reviewable config
+# — any dataset-specific predicate (e.g. CK25's product-vocab name predicate)
+# lives ONLY here, never hardcoded in runner.py.
 
 configs:
   # The CI default: no network, deterministic, gates baseline.json.
@@ -80,6 +88,41 @@ configs:
     judge: execution
     max_repairs: 2
     corpus: vendored/ck25/corpus.yml
+
+  # --------------------------------------------------------------------
+  # Phase 07.3-05: entity/instance grounding (seam 6) additive `grounding:`
+  # block on top of the CK25 execution-judged configs above. `pv:name`
+  # appears ONLY in this `label_predicates:` list (declarative, reviewable
+  # config) — never hardcoded in runner.py (grep gate == 0). scripted-
+  # ck25-grounded is a PLUMBING gate only (config -> build_label_index ->
+  # seam -> prompt -> judge does not crash) — it is NOT accuracy evidence
+  # (RESEARCH Pitfall 5); scripted stays the CI default regardless.
+  # --------------------------------------------------------------------
+
+  # CK25 grounded — no network, deterministic; plumbing gate (Pitfall 5).
+  scripted-ck25-grounded:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates: ["rdfs:label", "pv:name"]
+
+  # Live CK25 grounded sweep — same discipline as openai-gpt4o-mini-ck25
+  # above. Not run in CI — gated behind RUN_EVAL=1 + NL2SPARQL_API_KEY,
+  # human-run.
+  openai-gpt4o-mini-ck25-grounded:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates: ["rdfs:label", "pv:name"]
 
   # --------------------------------------------------------------------
   # Phase 7 07-04: 3-arm (zero/dense/bm25) x 3-model (gpt-4o-mini anchor,
