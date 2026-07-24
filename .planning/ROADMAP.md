@@ -265,7 +265,7 @@ columns). Retrieval must run against the target instance data / a schema-agnosti
 SPARQL→AQL transpiler package untouched; scripted configs stay the CI default (no live calls
 in CI); each eval set stays independently reported (never blended).
 
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -283,7 +283,7 @@ Plans:
 
 **Wave 4**
 
-- [ ] 07.3-05-PLAN.md — runner.py additive grounding: read + build-once + passthrough + configs.yml CK25-grounded entries (pv:name config-only) + scripted-ck25-grounded plumbing gate [NL-ACC-01]
+- [x] 07.3-05-PLAN.md — runner.py additive grounding: read + build-once + passthrough + configs.yml CK25-grounded entries (pv:name config-only) + scripted-ck25-grounded plumbing gate [NL-ACC-01]
 
 **Wave 5**
 

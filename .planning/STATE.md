@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-23T21:33:18.401Z"
-last_activity: 2026-07-23
+last_updated: "2026-07-24T00:44:45.053Z"
+last_activity: 2026-07-24
 progress:
   total_phases: 13
   completed_phases: 6
   total_plans: 30
-  completed_plans: 28
+  completed_plans: 29
   percent: 46
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.3 (nl-to-sparql-entity-instance-grounding) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
-Last activity: 2026-07-23
+Last activity: 2026-07-24
 
-Progress: [█████████░] 93%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [█████████░] 93%
 | Phase 07.3 P02 | 10min | 2 tasks | 2 files |
 | Phase 07.3 P03 | 35min | 3 tasks | 5 files |
 | Phase 07.3 P04 | 15min | 3 tasks | 3 files |
+| Phase 07.3 P05 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.3]: [Phase 07.3-03]: fixed a pre-existing Rule-3 regression in legacy SparqlLanguageAdapter (arango_sparql/nl2sparql/adapter.py, used by nl_to_sparql) -- the 07.3-02 pin bump made seam 6 mandatory in QueryLanguageAdapter, breaking that adapter with AttributeError (3 pre-existing test_adapter.py failures, verified broken at 07.3-02 HEAD before Plan 03 started); fixed with the same seam 6 impl mirrored from engine_adapter.SparqlAdapter
 - [Phase 07.3-04]: build_label_index expands prefixed label_predicates (rdfs:/pv:) against a small hardcoded prefix map, not a parsed PREFIX preamble — CK25's prefixes are fixed; keeps the builder self-contained and dependency-free of ontology-text parsing
 - [Phase 07.3-04]: Measured gold-IRI retrieval recall = 24/25 = 0.96, exactly matching the spike; recall guard runs in the always-on pytest tier (no RUN_EVAL) — Provides deterministic offline CI evidence for NL-ACC-01 independent of the human-run live sweep
+- [Phase 07.3-05]: grounding_cfg guarded on grounding_cfg AND data_ttl (not grounding_cfg alone) so a grounding: block with no corpus-level data_path stays a safe no-op
+- [Phase 07.3-05]: build_label_index imported function-locally inside the guarded branch, keeping pyoxigraph off runner.py's module import path
+- [Phase 07.3-05]: scripted-ck25-grounded verified green as a plumbing gate (pass_rate 1.0, 49/49) under RUN_EVAL=1 -- config -> build_label_index -> seam 6 -> prompt -> execution judge does not crash; explicitly documented as plumbing evidence, not accuracy evidence
 
 ### Pending Todos
 
@@ -155,6 +159,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-23T21:33:18.395Z
-Stopped at: Completed 07.3-04-PLAN.md (eval-only grounding index builder + recall/default guards)
+Last session: 2026-07-24T00:44:45.047Z
+Stopped at: Completed 07.3-05-PLAN.md (additive grounding: config wired through the eval runner + configs.yml CK25-grounded entries + green plumbing gate)
 Resume file: None
