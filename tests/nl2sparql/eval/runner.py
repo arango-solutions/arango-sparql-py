@@ -537,6 +537,29 @@ def run(config_name: str) -> Report:
                 "never record this as a dense-mode measurement."
             )
 
+    # Additive `grounding:` config read (07.3-05 / RESEARCH Pattern 3): entity/
+    # instance grounding (seam 6) mirrors the `few_shot:` precedent exactly.
+    # Absent `grounding:` == today's ungrounded behavior (`grounding_index=None`
+    # is the honest no-op NlPipeline already understands). The global default
+    # `label_predicates` MUST stay schema-agnostic (`rdfs:label`) so the
+    # mechanism transfers to CDF unchanged — any dataset-specific predicate
+    # lives ONLY in that config entry's `label_predicates:` list, never
+    # hardcoded here (Pitfall 2).
+    grounding_cfg = config.get("grounding", {})
+    grounding_k = grounding_cfg.get("k", 0)
+    grounding_index = None
+    if grounding_cfg and data_ttl:
+        # Build the LabelIndex ONCE here, outside the per-case loop below
+        # (Pitfall 3 — never per-case; mirrors the few_shot_index build-once
+        # block above). Imported function-locally so pyoxigraph stays off
+        # runner.py's module import path (mirrors the existing lazy
+        # `from tests.helpers.oxi import ...` pattern used elsewhere in this
+        # file).
+        from tests.nl2sparql.eval.grounding_index_builder import build_label_index
+
+        label_predicates = grounding_cfg.get("label_predicates", ["rdfs:label"])
+        grounding_index = build_label_index(data_ttl, label_predicates)
+
     cases: list[CaseResult] = []
     for case in corpus["cases"]:
         ontology_ttl = case.get("ontology", shared_ontology)
@@ -549,6 +572,8 @@ def run(config_name: str) -> Report:
             max_repairs=max_repairs,
             few_shot_k=few_shot_k,
             few_shot_index=few_shot_index,
+            grounding_k=grounding_k,
+            grounding_index=grounding_index,
         )
 
         t0 = time.perf_counter()
