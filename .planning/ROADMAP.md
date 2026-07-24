@@ -231,12 +231,21 @@ Plans:
 ### Phase 07.4: NL→SPARQL predicate/schema-convention grounding (INSERTED)
 
 **Goal:** Extend the grounding seam (seam 6) from instance-entity grounding to predicate/schema-convention grounding: walk the OWL/RDFS TBox to surface schema predicates with label, domain, range, and a shape classification (value-object range → emit the join pattern; class-typed range → filter by a category-instance IRI), and inject them so the model binds to real predicates and follows schema conventions instead of inventing nonexistent classes or flat predicates. Language-agnostic seam so the Cypher sister repo inherits it. Prove a statistically-graded CK25 accuracy lift over the 07.3 entity-grounded baseline, targeting the 17 convention-bound still-failing cases (dominated by the price value-object and hasCategory product-typing patterns, both mechanically derivable from the TBox).
-**Requirements**: TBD (new NL-ACC id — predicate/schema-convention grounding lift)
+**Requirements**: NL-ACC-02 (predicate/schema-convention grounding lift, execution-graded).
 **Depends on:** Phase 07.3 (entity grounding — seam 6, LabelIndex, grounded eval configs)
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 07.4 to break down)
+**Wave 1**
+- [ ] 07.4-01-PLAN.md — Engine-side seam 7 in arango-query-core (GroundedPredicate/PredicateIndex + shared scorer + seam 7 Protocol + engine composition) + author NL-ACC-02 [NL-ACC-02]
+**Wave 2** *(atomic: pin bump never precedes adapters — Pitfall 1)*
+- [ ] 07.4-02-PLAN.md — Seam 7 on BOTH SPARQL adapters + NlPipeline passthrough + PREDICATE_DUMP_THRESHOLD, then bump arango-query-core pin (both extras) + uv lock [NL-ACC-02]
+**Wave 3**
+- [ ] 07.4-03-PLAN.md — Eval-only build_predicate_index() TBox walk + corrected 3-way shape rule + shape precision/purity tests (Price/ProductCategory/Manager/literal) [NL-ACC-02]
+**Wave 4**
+- [ ] 07.4-04-PLAN.md — runner.py predicate_grounding read + build-once + D-05 query capture + configs.yml entries + predicate SC-gate/parity/recall guards [NL-ACC-02]
+**Wave 5** *(human-run, credentialed)*
+- [ ] 07.4-05-PLAN.md — README §10 runbook + live CK25 hard-gate McNemar sweep + first live QALD directional run + baseline.json fold-in + close NL-ACC-02 [NL-ACC-02]
 
 ### Phase 07.3: NL to SPARQL entity/instance grounding (INSERTED)
 
