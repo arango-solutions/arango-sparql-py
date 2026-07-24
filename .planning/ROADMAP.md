@@ -228,6 +228,16 @@ Plans:
 
 - [x] 07-04-PLAN.md — 3-arm x 3-model lift sweep: temperature fix + configs/runner extension + D-06 guard + D-04 provenance + W3C non-regression [NL-FEW-02] — complete (7ce312e, b2aa008, f1c327e, 3136c17, ac19edc); the credentialed human's live sweep returned a documented null on the pre-registered confirmatory test, closed per the plan's human-accepted-documented-null path — see 07-04-SUMMARY.md
 
+### Phase 07.4: NL→SPARQL predicate/schema-convention grounding (INSERTED)
+
+**Goal:** Extend the grounding seam (seam 6) from instance-entity grounding to predicate/schema-convention grounding: walk the OWL/RDFS TBox to surface schema predicates with label, domain, range, and a shape classification (value-object range → emit the join pattern; class-typed range → filter by a category-instance IRI), and inject them so the model binds to real predicates and follows schema conventions instead of inventing nonexistent classes or flat predicates. Language-agnostic seam so the Cypher sister repo inherits it. Prove a statistically-graded CK25 accuracy lift over the 07.3 entity-grounded baseline, targeting the 17 convention-bound still-failing cases (dominated by the price value-object and hasCategory product-typing patterns, both mechanically derivable from the TBox).
+**Requirements**: TBD (new NL-ACC id — predicate/schema-convention grounding lift)
+**Depends on:** Phase 07.3 (entity grounding — seam 6, LabelIndex, grounded eval configs)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 07.4 to break down)
+
 ### Phase 07.3: NL to SPARQL entity/instance grounding (INSERTED)
 
 **Goal:** Productionize **entity/instance grounding** as a language-agnostic seam in the
