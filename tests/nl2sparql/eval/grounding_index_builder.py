@@ -46,6 +46,26 @@ def _expand_predicate(predicate: str) -> str:
     return f"{_PREFIXES[prefix]}{local}"
 
 
+# CR-01: W3C-standard ontology-header vocabulary terms (RDFS/OWL/void) used
+# to recognize SCHEMA-level subjects (classes/properties/ontology headers)
+# so they can be excluded from the instance-level "Known entities" index
+# below. These are well-known, dataset-INDEPENDENT RDF vocabulary IRIs --
+# never a CK25- (or any corpus-) specific term -- so hardcoding them here
+# does not reintroduce the "dataset-specific stuff hardcoded outside
+# label_predicates" pitfall WR-01 warns about; it keeps the exclusion
+# schema-agnostic (works for CDF too).
+_SCHEMA_TYPES = (
+    "http://www.w3.org/2002/07/owl#Class",
+    "http://www.w3.org/2000/01/rdf-schema#Class",
+    "http://www.w3.org/2002/07/owl#ObjectProperty",
+    "http://www.w3.org/2002/07/owl#DatatypeProperty",
+    "http://www.w3.org/2002/07/owl#AnnotationProperty",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property",
+    "http://www.w3.org/2002/07/owl#Ontology",
+    "http://rdfs.org/ns/void#Dataset",
+)
+
+
 def build_label_index(data_ttl: str, label_predicates: list[str]):
     """Build a ``LabelIndex`` from a Turtle instance graph.
 
@@ -56,14 +76,30 @@ def build_label_index(data_ttl: str, label_predicates: list[str]):
 
     Aggregates by subject IRI into ``{labels: set, type: local-name}``, then
     returns ``LabelIndex.from_items([GroundedEntity(...), ...])``.
+
+    CR-01: the query excludes SCHEMA-level subjects (ontology classes,
+    properties, and the ontology/dataset header itself) from the result --
+    those carry ``rdfs:label``/``pv:name`` too (e.g. CK25's vocab header
+    ``pv:`` labeled ``"pv: Products - Vocab"@en``, or ``pv:Manager``/
+    ``pv:hasManager``) but are not groundable named individuals. A subject
+    is excluded if (a) it is explicitly typed as one of the well-known
+    ``_SCHEMA_TYPES`` above, (b) it is ever used as an ``rdf:type`` object
+    (i.e. something is declared an instance of it -- the hallmark of a
+    class), or (c) it is ever used as a predicate (the hallmark of a
+    property) -- (b)/(c) are structural, so they also catch schema terms
+    typed with a vocabulary this file doesn't enumerate.
     """
     from tests.helpers.oxi import load_store_from_string, oxi_query
 
     store = load_store_from_string(data_ttl)
     predicate_union = "|".join(f"<{_expand_predicate(p)}>" for p in label_predicates)
+    schema_type_filters = "\n      ".join(f"FILTER NOT EXISTS {{ ?s a <{t}> }}" for t in _SCHEMA_TYPES)
     query = f"""
     SELECT ?s ?label ?type WHERE {{
       ?s ({predicate_union}) ?label .
+      {schema_type_filters}
+      FILTER NOT EXISTS {{ ?anyInstance a ?s }}
+      FILTER NOT EXISTS {{ ?anySubject ?s ?anyObject }}
       OPTIONAL {{ ?s a ?type }}
     }}"""
 
