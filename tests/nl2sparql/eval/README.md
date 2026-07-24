@@ -637,3 +637,51 @@ only aggregate numbers + provenance cross into `baseline.json`.
   (`test_ci_gate_only_ever_runs_scripted`); the grounded config is reachable
   only via an explicit, human-run `run("openai-gpt4o-mini-ck25-grounded")`
   call, never from the default test path.
+
+### 9.6 Post-review builder correction + clean-builder re-sweep (07.3-REVIEW.md CR-01/CR-02)
+
+Code review (`07.3-REVIEW.md`) of this phase found 2 **blocker-level** bugs in
+`tests/nl2sparql/eval/grounding_index_builder.py` — the eval-only helper that
+built the `LabelIndex` behind the §9 sweep above — neither caught by the
+existing recall-only test:
+
+- **CR-01** — `build_label_index()`'s SPARQL query had no filter excluding
+  ontology-level subjects, so CK25's OWL vocabulary header (classes/
+  properties, each carrying its own `rdfs:label`) leaked into the "Known
+  entities" prompt block as if they were groundable instances: 45/2618
+  indexed "entities" were schema terms, retrieved by 43/49 (88%) of CK25
+  questions.
+- **CR-02** — label-literal stripping stripped quotes *before* splitting off
+  the `^^<datatype>`/`@lang` suffix, corrupting every language-tagged label
+  (e.g. `"Manager"@en` → `'Manager"@en'` instead of `'Manager'`) that
+  survived verbatim into the LLM prompt.
+
+Both were **fixed** (commits `f932360` CR-01, `6c72b37` CR-02): the index
+now excludes `owl:Class`/`owl:ObjectProperty`/`owl:DatatypeProperty`/
+`owl:AnnotationProperty`/`rdf:Property`/`rdfs:Class`/`owl:Ontology`/
+`void:Dataset`-typed subjects plus structurally-schema subjects (used as an
+`rdf:type` object or as a predicate anywhere), and label normalization now
+mirrors `runner.py::_strip_execution_literal`'s split-then-strip order.
+Verified against the real vendored CK25 corpus: index size drops
+2618 → 2573 (the 45 schema terms), zero entities carry a stray `"` in their
+label, and the offline recall guard (`test_grounding_recall.py`) still
+passes at 0.96 (≥ the 0.90 spike floor).
+
+The full §9.3 grounded-vs-fresh-zero same-session sweep was **re-run in
+full on the corrected builder**. Result — the aggregate reproduces
+**identically**: 14/49 (28.6%) grounded vs 5/49 (10.2%) fresh zero,
+McNemar b=9/c=0/p=0.0039, bootstrap paired delta +0.1837 (95% CI
+[0.0816, 0.3061]) — but the per-case **gained-case set shifted**: the
+pre-fix sweep gained `ck25-9`/`ck25-46`; the clean-builder sweep instead
+gained `ck25-10`/`ck25-11` (both sets still 9 cases, still zero
+regressions). This is the headline evidence: removing the schema-IRI
+noise and the label corruption did **not** inflate or manufacture the
+measured lift — the same conclusion holds on a demonstrably cleaner index.
+
+`baseline.json`'s `openai-gpt4o-mini-ck25-grounded` entry (`cases` map and
+`confirmatory_test.gained_0_to_1`) has been updated in place to these
+clean-builder values, superseding the pre-fix per-case data; the full
+before/after comparison is recorded in
+`confirmatory_test.clean_builder_reconfirmation`. NL-ACC-01 remains closed
+via the significant-lift path — this re-sweep *strengthens*, not weakens,
+that disposition.

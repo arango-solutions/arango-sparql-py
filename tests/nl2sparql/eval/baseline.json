@@ -742,9 +742,9 @@
         "ck25-6": true,
         "ck25-7": false,
         "ck25-8": false,
-        "ck25-9": true,
-        "ck25-10": false,
-        "ck25-11": false,
+        "ck25-9": false,
+        "ck25-10": true,
+        "ck25-11": true,
         "ck25-12": true,
         "ck25-13": false,
         "ck25-14": false,
@@ -778,7 +778,7 @@
         "ck25-43": false,
         "ck25-44": false,
         "ck25-45": false,
-        "ck25-46": true,
+        "ck25-46": false,
         "ck25-47": false,
         "ck25-48": false,
         "ck25-49": true,
@@ -800,12 +800,18 @@
         "p_value": 0.0039,
         "paired_delta": 0.1837,
         "ci_95": [0.0816, 0.3061],
-        "gained_0_to_1": ["ck25-1", "ck25-2", "ck25-6", "ck25-9", "ck25-12", "ck25-17", "ck25-22", "ck25-46", "ck25-49"],
+        "gained_0_to_1": ["ck25-1", "ck25-2", "ck25-6", "ck25-10", "ck25-11", "ck25-12", "ck25-17", "ck25-22", "ck25-49"],
         "regressed_1_to_0": [],
         "verdict": "SIGNIFICANT -- clears p<0.05 with ZERO regressions",
-        "nl_acc_01_disposition": "NL-ACC-01 closes via the SIGNIFICANT-LIFT path (McNemar p<0.05, 0 regressions), NOT the documented-null path. This is a stronger result than the pre-planning spike (07.3-SPIKE-FINDINGS.md: 6/49->12/49, p=0.031) -- same direction, larger magnitude, still zero regressions."
+        "nl_acc_01_disposition": "NL-ACC-01 closes via the SIGNIFICANT-LIFT path (McNemar p<0.05, 0 regressions), NOT the documented-null path. This is a stronger result than the pre-planning spike (07.3-SPIKE-FINDINGS.md: 6/49->12/49, p=0.031) -- same direction, larger magnitude, still zero regressions.",
+        "clean_builder_reconfirmation": {
+          "description": "Post-hoc code review (07.3-REVIEW.md) found 2 blocker-level bugs in tests/nl2sparql/eval/grounding_index_builder.py used to build the grounding index that produced the numbers above: CR-01 (no filter excluding ontology-level owl:Class/owl:ObjectProperty/owl:DatatypeProperty subjects, so 45/2618 indexed 'entities' were schema terms retrievable by 43/49 (88%) of CK25 questions) and CR-02 (label literal-stripping stripped quotes before splitting the '^^'/'@lang' suffix, corrupting every language-tagged label, e.g. 'has manager\"@en' instead of 'has manager'). Both fixed (commits f932360 CR-01, 6c72b37 CR-02; index 2618->2573 entities, schema IRIs excluded, zero stray-quote labels remain, offline recall guard unchanged at 0.96) and the full grounded-vs-fresh-zero same-session sweep was re-run on the corrected builder.",
+          "builder_fix_commits": ["f932360", "6c72b37"],
+          "result": "Aggregate reproduces IDENTICALLY on the clean builder (14/49 vs 5/49, b=9/c=0/p=0.0039, paired_delta=0.1837, ci_95=[0.0816, 0.3061]) -- but the gained-case SET shifted: pre-fix gained ck25-9 and ck25-46; clean-builder gained ck25-10 and ck25-11 instead (both sets still 9 cases, still zero regressions). The `cases`/`gained_0_to_1` fields above have been updated in place to the clean-builder values, superseding the pre-fix per-case data.",
+          "interpretation": "Removing the schema-IRI noise (CR-01) and the label corruption (CR-02) did NOT inflate or manufacture the measured lift -- the identical aggregate on a demonstrably cleaner index is stronger evidence for the NL-ACC-01 significant-lift disposition, not weaker."
+        }
       },
-      "note": "Second real execution-graded CK25 live accuracy number (Plan 07.3-06): gpt-4o-mini-generated SPARQL with entity/instance grounding (Seam 6 -- retrieved instance IRIs+labels for named entities injected into the prompt so the model binds to real IRIs instead of inventing them) judged via answer-set execution against the vendored CK25 instance graph (judge: execution, same as scripted-ck25/openai-gpt4o-mini-ck25). Reported, NOT gated -- same achieved_mde caveat as openai-gpt4o-mini-ck25 above (N=49, ~18-20pt), so CI/promotion decisions must never be gated on this number alone; the confirmatory evidence for NL-ACC-01 is the paired McNemar test above (`confirmatory_test`), not the raw pass_rate delta. Per-case `judge_note` D-05 buckets (candidate_engine_rejected / gold_engine_limitation) were NOT captured in this sweep's paste-back (only name/passed/elapsed_ms per case) -- a documented limitation, not a fabricated zero; a future re-sweep could capture judge_note for a finer failure breakdown. This entry is kept SEPARATE from and never blended with the existing openai-gpt4o-mini-ck25 entry (RESEARCH Pitfall 3) -- that entry stays as historical record of its own session's run; the confirmatory comparison always uses the freshly-run zero arm captured in `confirmatory_test` above, not this file's committed openai-gpt4o-mini-ck25 number."
+      "note": "Second real execution-graded CK25 live accuracy number (Plan 07.3-06): gpt-4o-mini-generated SPARQL with entity/instance grounding (Seam 6 -- retrieved instance IRIs+labels for named entities injected into the prompt so the model binds to real IRIs instead of inventing them) judged via answer-set execution against the vendored CK25 instance graph (judge: execution, same as scripted-ck25/openai-gpt4o-mini-ck25). Reported, NOT gated -- same achieved_mde caveat as openai-gpt4o-mini-ck25 above (N=49, ~18-20pt), so CI/promotion decisions must never be gated on this number alone; the confirmatory evidence for NL-ACC-01 is the paired McNemar test above (`confirmatory_test`), not the raw pass_rate delta. Per-case `judge_note` D-05 buckets (candidate_engine_rejected / gold_engine_limitation) were NOT captured in this sweep's paste-back (only name/passed/elapsed_ms per case) -- a documented limitation, not a fabricated zero; a future re-sweep could capture judge_note for a finer failure breakdown. This entry is kept SEPARATE from and never blended with the existing openai-gpt4o-mini-ck25 entry (RESEARCH Pitfall 3) -- that entry stays as historical record of its own session's run; the confirmatory comparison always uses the freshly-run zero arm captured in `confirmatory_test` above, not this file's committed openai-gpt4o-mini-ck25 number. UPDATED post-review: code review (07.3-REVIEW.md) found 2 blockers (CR-01 schema-IRI leakage, CR-02 label corruption) in the eval's grounding_index_builder.py; both fixed (commits f932360/6c72b37) and this sweep re-run in full on the corrected builder. The `cases` map and `confirmatory_test.gained_0_to_1` above are the CORRECTED-builder values (superseding the pre-fix per-case data); see `confirmatory_test.clean_builder_reconfirmation` for the full before/after comparison. The aggregate (14/49 vs 5/49, p=0.0039) is unchanged between pre-fix and post-fix runs."
     }
   },
   "phase07_dense_few_shot_sweep": {
