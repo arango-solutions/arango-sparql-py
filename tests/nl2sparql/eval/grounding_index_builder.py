@@ -109,7 +109,13 @@ def build_label_index(data_ttl: str, label_predicates: list[str]):
         if not subj:
             continue
         iri = subj[1:-1] if subj.startswith("<") and subj.endswith(">") else subj
-        label = (row.get("label") or "").strip('"').split('"^^')[0]
+        # CR-02: split off the "^^<datatype>"/"@lang envelope BEFORE
+        # stripping the surrounding quotes (mirrors runner.py's
+        # `_strip_execution_literal`) -- stripping quotes first corrupts
+        # language-tagged labels, e.g. '"Country"@en' -> 'Country"@en'
+        # (the trailing quote survives because `n` is the string's last
+        # character, not `"`).
+        label = (row.get("label") or "").split('"^^')[0].strip('"').split('"@')[0]
         entity = by_iri.setdefault(iri, {"labels": set(), "type": ""})
         if label:
             entity["labels"].add(label)
