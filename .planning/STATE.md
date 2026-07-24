@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 07.3-06-PLAN.md (final plan, phase 07.3 complete -- NL-ACC-01 closed via significant-lift path)
-last_updated: "2026-07-24T15:14:31.818Z"
+status: Not planned yet — ready for discuss-phase
+last_updated: "2026-07-24T21:51:17.191Z"
 last_activity: 2026-07-24
 progress:
-  total_phases: 13
+  total_phases: 14
   completed_phases: 7
   total_plans: 30
   completed_plans: 30
-  percent: 54
+  percent: 50
 ---
 
 # Project State
@@ -21,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 07.3 — nl-to-sparql-entity-instance-grounding
+**Current focus:** Phase 07.4 — nl-sparql-predicate-schema-convention-grounding
 
 ## Current Position
 
-Phase: 8
+Phase: 07.4
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Not planned yet — ready for discuss-phase
 Last activity: 2026-07-24
 
 Progress: [██████████] 100%
@@ -83,6 +82,7 @@ Progress: [██████████] 100%
 - Phase 06.2 inserted after Phase 6: harder corpus + genuine live-model baseline (unblocks measurable few-shot lift) (URGENT)
 - Phase 07.1 inserted after Phase 7: NL→SPARQL synthetic eval-corpus growth to reach statistical power (MDE ≤ 5pt); corpus+bank only, heavy levers deferred to v1.1 (URGENT)
 - Phase 07.2 inserted after Phase 7: Execution-based (answer-set) eval judging for adopted benchmarks; CK25 first, QALD later — surfaced by 07.1 live-eval finding that the canonical judge floors real LLM output at 0% (URGENT)
+- Phase 07.4 inserted after Phase 7: NL→SPARQL predicate/schema-convention grounding — next grounding lever after 07.3 entity grounding, targeting the 17 convention-bound CK25 failures (URGENT)
 
 ### Decisions
 
@@ -164,6 +164,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-24T14:23:31.215Z
-Stopped at: Completed 07.3-06-PLAN.md (final plan, phase 07.3 complete -- NL-ACC-01 closed via significant-lift path)
-Resume file: None
+Last session: 2026-07-24T21:51:17.181Z
+Stopped at: Phase 07.4 context gathered
+Resume file: .planning/phases/07.4-nl-sparql-predicate-schema-convention-grounding/07.4-CONTEXT.md
