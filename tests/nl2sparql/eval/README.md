@@ -515,3 +515,125 @@ auto-regenerates it (same discipline as §5/§7.9).
 - No secrets, raw prompts/completions, or full multilingual JSON blobs are
   vendored — only the CC-BY-4.0-licensed English question/gold-SPARQL pairs
   the harness needs, plus the required attribution `NOTICE.md` per set.
+
+---
+
+## 9. CK25 entity/instance grounding sweep — NL-ACC-01 (Phase 07.3)
+
+This section documents the credentialed, human-run measurement behind
+NL-ACC-01: does injecting retrieved instance IRIs+labels ("Known entities —
+use these EXACT IRIs") for entities named in the question produce a
+**statistically significant** execution-graded pass-rate lift on CK25 over a
+freshly-run zero-shot arm? Same discipline as §§3–6 and §8.5.1 (key-gated,
+`scripted` stays the CI default, manual human-reviewed fold-in), with one
+addition specific to grounding: the confirmatory comparison is always
+**grounded-vs-a-fresh-zero-arm run in the SAME session**, never grounded vs
+the already-committed `openai-gpt4o-mini-ck25` baseline entry — that entry
+was captured in a prior session (07.2-04) and model drift across sessions is
+a real confound (RESEARCH Pitfall / 07-04 M2), exactly the same discipline
+§7.2 established for the dense few-shot sweep.
+
+### 9.1 Design
+
+Both arms use `judge: execution` (07.2's answer-set judge against the
+vendored CK25 instance graph) and share the same model/temperature:
+
+- **`openai-gpt4o-mini-ck25`** — the fresh zero arm. Re-run THIS session
+  (not read from the already-committed `baseline.json` entry).
+- **`openai-gpt4o-mini-ck25-grounded`** — the grounded arm. Seam 6
+  (`grounding_index` / `GroundedEntity`, wired through the eval runner in
+  Plan 07.3-05) retrieves top-k label-matched instance IRIs per question and
+  injects them into the prompt; everything else (model, temperature, corpus,
+  judge) is identical to the zero arm.
+
+### 9.2 Temperature provenance (Plan 07.3-06 Task 1)
+
+`OpenAICompatibleClient` has no `configs.yml` temperature override path —
+`runner.py::_client_for()` never passes `temperature=`, so both
+`openai-gpt4o-mini-ck25` and `openai-gpt4o-mini-ck25-grounded` run at the
+constructor's hardcoded default `temperature=0.1` (same value already
+recorded on the committed `openai-gpt4o-mini-ck25` entry), **not** the
+07.3 pre-planning spike's explicit `temperature=0`
+(`grounding_spike.py` hardcoded 0 in its raw HTTP call). A non-reproduction
+of the spike's exact 6/49→12/49 numbers is therefore attributable to this
+temperature delta, not to grounding failing (RESEARCH Open Question 1,
+resolved) — record `"temperature": 0.1` in the fold-in, not the spike's 0.
+
+### 9.3 Run both arms in ONE session
+
+```bash
+uv sync --extra dev --extra nl   # dev: pyoxigraph judge; nl: openai client
+export NL2SPARQL_API_KEY=sk-...  # your OpenAI key — this shell only, never OPENAI_API_KEY (Pitfall 1)
+```
+
+Capture the vendored CK25 corpus revision:
+
+```bash
+git log -1 --format=%h -- tests/nl2sparql/eval/vendored/ck25/corpus.yml
+```
+
+Run both arms fresh, THIS session, then compute the paired McNemar test and
+bootstrap delta over the same 49 cases:
+
+```bash
+RUN_EVAL=1 NL2SPARQL_API_KEY=... python -c "
+from tests.nl2sparql.eval.runner import run, write_report, paired_mcnemar, bootstrap_paired_delta
+
+zero = run('openai-gpt4o-mini-ck25')            # freshly run THIS session
+grounded = run('openai-gpt4o-mini-ck25-grounded')
+write_report(zero)
+write_report(grounded)
+
+zero_cases = {c.name: c.passed for c in zero.cases}
+grounded_cases = {c.name: c.passed for c in grounded.cases}
+
+print('zero pass_rate', zero.pass_rate)
+print('grounded pass_rate', grounded.pass_rate)
+b, c, p = paired_mcnemar(zero_cases, grounded_cases)
+delta, lo, hi = bootstrap_paired_delta(zero_cases, grounded_cases)
+print(f'b={b} c={c} p={p:.4f} delta={delta:.4f} CI=({lo:.4f}, {hi:.4f})')
+"
+```
+
+Writes `reports/openai-gpt4o-mini-ck25.{json,md}` and
+`reports/openai-gpt4o-mini-ck25-grounded.{json,md}` (both **gitignored**).
+
+**The lift PASSES iff McNemar `p < 0.05` with zero regressions (`c=0` or a
+non-negative net flip count)** — this is THE confirmatory bar for NL-ACC-01,
+mirroring §7.3's dense/zero bar exactly. Report `b`, `c`, the exact p-value,
+the bootstrap paired-delta 95% CI, and the per-case gained/regressed case
+names.
+
+### 9.4 MANUAL fold-in into `baseline.json` (never CI-auto-regenerated)
+
+Same discipline as §5/§7.9/§8.5 — a human-reviewed copy. Add a **new**,
+separate `configs['openai-gpt4o-mini-ck25-grounded']` entry (never touching
+`scripted-ck25` or the existing `openai-gpt4o-mini-ck25` entry — RESEARCH
+Pitfall 4/3) carrying the aggregate `pass_rate`/`passed`/`total`/`cases` +
+`model: "gpt-4o-mini"` / `temperature: 0.1` / `corpus_sha`, plus:
+
+- `role: "anchor_reported_not_gated"` — same N=49 achieved-MDE caveat as
+  `openai-gpt4o-mini-ck25` (§8.3): never gate CI or a promotion decision on
+  this pass_rate alone.
+- A `confirmatory_test` object recording the fresh zero arm's pass_rate,
+  `b`/`c`/`p_value`, the bootstrap `paired_delta`/`ci_95`, the
+  `gained_0_to_1`/`regressed_1_to_0` case-name lists, and the
+  `nl_acc_01_disposition` (significant-lift vs documented-null — mirror the
+  `phase07_dense_few_shot_sweep.primary_confirmatory_test` shape in §7.9).
+- If Task 2's live sweep instead returns a null/inconclusive result, record
+  it via the documented-null path (mirroring NL-FEW-02, §7.3) — never claim
+  a passed confirmatory test that didn't clear `p < 0.05`.
+
+Same secret hygiene as §6: never commit a key or raw prompts/completions —
+only aggregate numbers + provenance cross into `baseline.json`.
+
+### 9.5 Non-regression (unchanged, re-confirm before closing NL-ACC-01)
+
+- `pytest tests/w3c/test_coverage_gate.py -q` green (QUERY_EVAL ≥ 96.4%) or
+  skips key-free when the W3C corpus isn't fetched locally.
+- `git diff --stat -- arango_sparql/translate/` empty across every phase
+  commit — the transpiler is untouched by NL-ACC-01.
+- `scripted`/`scripted-ck25` remain the only CI-reachable configs
+  (`test_ci_gate_only_ever_runs_scripted`); the grounded config is reachable
+  only via an explicit, human-run `run("openai-gpt4o-mini-ck25-grounded")`
+  call, never from the default test path.
