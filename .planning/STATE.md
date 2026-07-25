@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-25T01:09:50.114Z"
+last_updated: "2026-07-25T01:24:41.340Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 14
   completed_phases: 7
   total_plans: 35
-  completed_plans: 32
+  completed_plans: 33
   percent: 50
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-25
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [█████████░] 91%
 | Phase 07.3 P05 | 12min | 2 tasks | 2 files |
 | Phase 07.3 P06 | 25min | 3 tasks | 3 files |
 | Phase 07.4 P02 | 35min | 2 tasks | 5 files |
+| Phase 07.4 P03 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-02]: TYPE_CHECKING-guarded PredicateIndex import in both adapters + pipeline (not an unconditional top-level import) so Task 1 genuinely loads and passes tests against the still-old c6ae5e1 pin — A plain top-level import would raise ImportError at Task 1's commit since PredicateIndex does not exist until the seam-7 SHA; this is a stronger fulfillment of the plan's own harmless-against-the-still-old-pin requirement
 - [Phase 07.4-02]: PredicateIndex has no public len/count; D-01 dump-vs-retrieve threshold reads the total off the private _predicates list in both adapters — The pushed seam-7 API (8adc0de) has no public accessor and this plan is in-repo-only, so no cross-repo edit was permitted to add one
 - [Phase 07.4-02]: NL-ACC-02 not marked complete this plan — Mirrors NL-ACC-01/07.3-02 precedent -- this plan lands plumbing only (both adapters + pipeline conformant, pin bumped); the statistically-significant CK25 lift is unproven until the Plan 05 live sweep
+- [Phase 07.4-03]: Label fallback to IRI local name when rdfs:label is absent -- keeps every GroundedPredicate/child usable for shape-detail rendering on a TBox omitting rdfs:label entirely (QALD's dbpedia_subset.ttl)
+- [Phase 07.4-03]: Undeclared rdfs:range on an object property degrades to the corrected rule's own zero-children branch (category_instance), not a distinct 4th case or a crash -- mechanically consistent, and exactly matches RESEARCH.md OQ1's anticipated honest QALD finding (0 value_object, 88 category_instance, n=250)
+- [Phase 07.4-03]: Predicate-count assertions read PredicateIndex._predicates directly rather than idx.retrieve('', k) -- the shared token-substring scorer always returns empty for an empty question string (verified empirically), so the plan's own literal verify-command text is unsatisfiable regardless of implementation; mirrors the 07.4-02 no-public-len/count precedent
 
 ### Pending Todos
 
@@ -168,6 +172,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-25T01:09:50.108Z
+Last session: 2026-07-25T01:23:00.544Z
 Stopped at: Completed 07.4-02-PLAN.md
 Resume file: None
