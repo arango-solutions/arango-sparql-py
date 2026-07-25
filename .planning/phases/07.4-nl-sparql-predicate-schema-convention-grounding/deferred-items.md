@@ -14,3 +14,13 @@
   are format-clean under the same formatter (verified: `ruff format --diff` shows zero
   hunks touching the new predicate methods). Left as-is; a future formatting-only cleanup
   plan/commit can reformat both seam-6 signatures if desired.
+
+## Plan 04
+
+- **Pre-existing `ruff format` drift on `test_gold_iri_retrieval_recall_meets_spike_floor`'s
+  assertion message** in `tests/nl2sparql/eval/test_grounding_recall.py` (lines ~53-56,
+  the two-line f-string ruff would collapse to one line under the currently-installed
+  formatter). Verified via `git diff` — zero overlap with Plan 04's own diff hunks (this
+  function predates Plan 04 entirely). Out of scope per the executor's scope-boundary
+  rule. Plan 04's own new function (`test_predicate_retrieval_recall_meets_mechanical_builder_floor`)
+  is format-clean under the same formatter. Left as-is.
