@@ -1,11 +1,21 @@
-"""Eval-only pyoxigraph -> LabelIndex builder for CK25's vendored instance graph.
+"""Eval-only pyoxigraph -> LabelIndex/PredicateIndex builders.
 
-Turns a Turtle instance graph (e.g. CK25's ``raw/prod-inst.ttl``) plus a list
-of prefixed label predicates (e.g. ``["rdfs:label", "pv:name"]``) into an
+``build_label_index`` turns a Turtle *instance* graph (e.g. CK25's
+``raw/prod-inst.ttl``) plus a list of prefixed label predicates (e.g.
+``["rdfs:label", "pv:name"]``) into an
 ``arango_query_core.nl.grounding.LabelIndex`` the eval harness can inject
-into ``NlPipeline`` via seam 6.
+into ``NlPipeline`` via seam 6 (entity/instance grounding, Phase 07.3).
 
-This is a near-verbatim port of
+``build_predicate_index`` (Phase 07.4, sibling function) is the inverse
+walk: it turns a Turtle *TBox* (e.g. a corpus's ``ontology:`` block --
+``shared_ontology`` in ``runner.py``) into an
+``arango_query_core.nl.grounding.PredicateIndex`` of
+``GroundedPredicate``s with a mechanically-derived usage ``shape``
+(``"value_object"`` / ``"category_instance"`` / ``"linked_entity"`` /
+``"literal"``), injected via seam 7 (predicate/schema-convention
+grounding).
+
+``build_label_index`` is a near-verbatim port of
 ``scratchpad/nl-grounding-spike/grounding_spike.py::build_entity_index``,
 restructured to return a ``LabelIndex`` instead of a bare ``list[dict]``,
 and of ``tests/nl2sparql/eval/runner.py::_build_label_map``'s
@@ -16,7 +26,8 @@ Packaging boundary (CLAUDE.md hard rule 5): this file MUST live under
 proper. Every ``pyoxigraph``-touching import stays function-local (never at
 module top level) so those packages never gain a transitive ``pyoxigraph``
 import path -- mirroring ``runner.py::_build_label_map``'s own
-``from tests.helpers.oxi import oxi_query`` placement.
+``from tests.helpers.oxi import oxi_query`` placement. This applies equally
+to ``build_predicate_index`` (D-08).
 """
 
 from __future__ import annotations
@@ -146,3 +157,175 @@ def build_label_index(
             for iri, v in by_iri.items()
         ]
     )
+
+
+def _strip_iri(term: str | None) -> str:
+    """Strip pyoxigraph's ``<...>`` N-Triples envelope from a NamedNode term.
+
+    Returns ``""`` for ``None``/unbound (mirrors ``OPTIONAL``'s "absent" case
+    rather than raising), so callers can treat "not declared" uniformly.
+    """
+    if not term:
+        return ""
+    return term[1:-1] if term.startswith("<") and term.endswith(">") else term
+
+
+def _local_name(term: str | None) -> str:
+    """IRI (or ``<...>``-wrapped IRI) -> its trailing local name.
+
+    Tries the fragment (``#foo``) first, then the last path segment
+    (``/foo``) -- the same two IRI shapes CK25/QALD's vocabularies use
+    (``http://.../prod-vocab/Price`` has no ``#``; a hypothetical
+    ``http://example.org/onto#Price`` would). ``""`` in, ``""`` out.
+    """
+    iri = _strip_iri(term)
+    if not iri:
+        return ""
+    return iri.rsplit("#", 1)[-1].rsplit("/", 1)[-1]
+
+
+def build_predicate_index(ontology_ttl: str):
+    """Build a ``PredicateIndex`` from a Turtle TBox (D-02, mechanical only).
+
+    ``ontology_ttl`` is the raw Turtle text of a corpus's ``ontology:``
+    block (``shared_ontology`` in ``runner.py`` -- every corpus has one,
+    unlike ``build_label_index``'s ``data_ttl`` which only CK25-shaped
+    corpora vendor). Walks every declared ``owl:ObjectProperty``/
+    ``owl:DatatypeProperty`` and classifies each predicate's rendering
+    ``shape`` purely from its own ``rdfs:domain``/``rdfs:range``
+    declarations -- **no hand-authored, per-schema hints** (D-02): this
+    file must never special-case any single vocabulary term's own name
+    anywhere in the classification logic below, or the lever stops
+    transferring to a new schema (e.g. CDF).
+
+    Two-pass query (RESEARCH.md Pattern 2), same "one clear query per
+    pass, function-local pyoxigraph import" discipline as
+    ``build_label_index`` above:
+
+    - Pass 1 selects every declared property with its own
+      ``rdfs:label``/``rdfs:domain``/``rdfs:range`` (``BIND``-tagged
+      ``"object"``/``"datatype"`` kind).
+    - Pass 2 runs once per distinct object-property range class ``C``,
+      selecting ``C``'s "children" -- properties with an **explicitly
+      declared** ``rdfs:domain == C`` (exact match only; this file MUST
+      NOT walk any class-hierarchy inheritance predicate here -- see
+      RESEARCH.md's ``pv:Employee``/``pv:Agent`` false-positive
+      walkthrough for why an inheritance-aware walk would over-fire).
+
+    Corrected 3-way shape rule (RESEARCH.md Pattern 1, verified against
+    the real CK25 TBox -- see RESEARCH.md's worked example for the
+    three discriminating properties):
+
+    - ``kind == "datatype"`` -> ``shape = "literal"``.
+    - ``kind == "object"``, range class ``C``'s children are non-empty
+      AND every child is a ``DatatypeProperty`` -> ``shape =
+      "value_object"`` (``shape_detail`` carries the ``(label, range)``
+      pairs of those datatype children -- the "extra hop" example the
+      prompt renderer needs).
+    - ``kind == "object"``, ``C`` has zero children (this also covers
+      the case where ``C`` itself is undeclared/unbound -- an
+      undeclared range trivially has no domain-matched children
+      either, so it degrades to this branch, not a crash; QALD's
+      DBpedia subset exercises exactly this path, see Task 3) ->
+      ``shape = "category_instance"``.
+    - Otherwise (``C`` has >=1 non-datatype child, e.g. ``pv:Manager``'s
+      ``pv:hasDirectReport``) -> ``shape = "linked_entity"`` (the false-
+      positive guard: a naive "range class has >=1 own property" rule
+      would wrongly flag this as ``value_object``, identical to
+      ``pv:price``).
+    """
+    from tests.helpers.oxi import load_store_from_string, oxi_query
+
+    store = load_store_from_string(ontology_ttl)
+
+    def _clean(raw: str | None) -> str:
+        # Reuses CR-02's exact normalization (see build_label_index above):
+        # split off the "^^<datatype>"/"@lang envelope BEFORE stripping
+        # quotes, and also handles BIND-produced plain literals (e.g.
+        # '"object"', no envelope at all) via the same chained splits.
+        return (raw or "").split('"^^')[0].strip('"').split('"@')[0]
+
+    pass1_query = """
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?p ?kind ?label ?domain ?range WHERE {
+      { ?p a owl:ObjectProperty . BIND("object" AS ?kind) }
+      UNION
+      { ?p a owl:DatatypeProperty . BIND("datatype" AS ?kind) }
+      OPTIONAL { ?p rdfs:label ?label }
+      OPTIONAL { ?p rdfs:domain ?domain }
+      OPTIONAL { ?p rdfs:range ?range }
+    }"""
+
+    # iri -> {kind, label, domain, range, range_iri}. ``range`` is the
+    # local name (rendered in the prompt); ``range_iri`` is the full IRI
+    # (used as Pass 2's join key, and to detect "range declared at all").
+    declared: dict[str, dict[str, str]] = {}
+    for row in oxi_query(store, pass1_query).rows or []:
+        iri = _strip_iri(row.get("p"))
+        if not iri:
+            continue
+        range_term = row.get("range")
+        declared[iri] = {
+            "kind": _clean(row.get("kind")),
+            "label": _clean(row.get("label")) or _local_name(iri),
+            "domain": _local_name(row.get("domain")),
+            "range": _local_name(range_term),
+            "range_iri": _strip_iri(range_term),
+        }
+
+    # Pass 2: once per distinct object-property range class C (never
+    # per-predicate -- CK25 has 14 classes, QALD's subset has 75; both
+    # trivial against an in-memory store).
+    range_classes = {p["range_iri"] for p in declared.values() if p["kind"] == "object" and p["range_iri"]}
+    children_by_class: dict[str, list[dict[str, str]]] = {}
+    for class_iri in range_classes:
+        pass2_query = f"""
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        SELECT ?childP ?childKind ?childLabel ?childRange WHERE {{
+          {{ ?childP a owl:ObjectProperty ; rdfs:domain <{class_iri}> . BIND("object" AS ?childKind) }}
+          UNION
+          {{ ?childP a owl:DatatypeProperty ; rdfs:domain <{class_iri}> . BIND("datatype" AS ?childKind) }}
+          OPTIONAL {{ ?childP rdfs:label ?childLabel }}
+          OPTIONAL {{ ?childP rdfs:range ?childRange }}
+        }}"""
+        children = []
+        for row in oxi_query(store, pass2_query).rows or []:
+            children.append(
+                {
+                    "kind": _clean(row.get("childKind")),
+                    "label": _clean(row.get("childLabel")) or _local_name(row.get("childP")),
+                    "range": _local_name(row.get("childRange")),
+                }
+            )
+        children_by_class[class_iri] = children
+
+    from arango_query_core.nl.grounding import GroundedPredicate, PredicateIndex
+
+    items = []
+    for iri, p in declared.items():
+        if p["kind"] == "datatype":
+            shape, shape_detail = "literal", ()
+        else:
+            children = children_by_class.get(p["range_iri"], [])
+            if children and all(c["kind"] == "datatype" for c in children):
+                shape = "value_object"
+                shape_detail = tuple((c["label"], c["range"]) for c in children)
+            elif not children:
+                shape, shape_detail = "category_instance", ()
+            else:
+                shape, shape_detail = "linked_entity", ()
+        items.append(
+            GroundedPredicate(
+                iri=iri,
+                label=p["label"],
+                kind=p["kind"],
+                domain=p["domain"],
+                range=p["range"],
+                shape=shape,
+                shape_detail=shape_detail,
+            )
+        )
+
+    return PredicateIndex.from_items(items)
