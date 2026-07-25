@@ -51,6 +51,7 @@
 - [x] **NL-FEW-01**: Dense/embedding few-shot retrieval — wire the shared engine's few-shot seam through `SparqlAdapter.few_shot_index()` using a sentence-transformer (dense) retriever over the curated corpus (≤ 3 shots per rule-300), landing engine-side (`arango_query_core.nl.FewShotIndex`) so Cypher inherits it. BM25 is the fallback/ablation, not the primary. — acceptance: retrieved examples appear in the `NLQueryEngine`-built prompt's `## Examples` section; unit tests pass
 - [x] **NL-FEW-02**: Measurable accuracy lift — dense few-shot run shows a **positive NL→SPARQL pass-rate delta over the Phase 06.2 live-model baseline** via the Phase 6 harness. — acceptance: eval report delta > 0 over the live baseline
 - [x] **NL-ACC-01**: NL→SPARQL entity/instance grounding — productionize entity grounding as a language-agnostic seam in the shared `arango_query_core` NL engine (Cypher inherits it): retrieve candidate instance IRIs+labels for entities named in the question from the target instance data / a schema-agnostic index (never CK25-specific hand-curation, so it transfers to the CDF project), inject them into the prompt so the model binds to real IRIs instead of inventing them. Prove a **statistically significant, execution-graded** accuracy lift on the CK25 corporate anchor over the committed zero-shot baseline. Spike (2026-07-23) confirmed +12.2pt (6/49→12/49, McNemar p=0.031, 0 regressions, 96% IRI retrieval recall); execution-guided selection was tried and found ineffective (p=1.0) and is superseded. **CLOSED via the significant-lift path** (07.3-06, credentialed live sweep 2026-07-23/24): grounded 14/49 (0.2857) vs a freshly-run-same-session zero arm 5/49 (0.1020), paired McNemar b=9/c=0/p=0.0039, bootstrap delta +0.1837 CI[0.0816, 0.3061], ZERO regressions — stronger than the pre-planning spike, same direction. — acceptance: live execution-graded CK25 config shows a significant positive delta (McNemar p<0.05) over the recorded baseline with zero regressions; scripted configs stay the no-network CI default; W3C DAWG coverage ≥96.4% and the SPARQL→AQL transpiler package unchanged — evidence: `tests/nl2sparql/eval/baseline.json:configs.openai-gpt4o-mini-ck25-grounded.confirmatory_test`, `tests/nl2sparql/eval/README.md` §9
+- [ ] **NL-ACC-02**: NL→SPARQL predicate/schema-convention grounding — mechanically-derived TBox predicate index (label + domain + range + object-vs-datatype + usage-shape, walked purely from `rdfs:domain`/`rdfs:range` declarations, no hand-curated per-schema hints so it transfers to CDF, D-02) injected as a new engine seam-7 prompt block (`predicate_index()`/`predicate_prompt_section()` on `QueryLanguageAdapter`, D-06/D-07), composed after the entity block inside `NLQueryEngine._system_prompt`, targeting the 17 convention-bound CK25 failures left over after entity grounding. Prove a **statistically significant, execution-graded** CK25 lift over the NL-ACC-01 entity-grounded baseline (`baseline.json:openai-gpt4o-mini-ck25-grounded` = 14/49), McNemar p<0.05, zero regressions; directional QALD-9-plus generalization check (first-ever live run of the powered gate, zero-shot + predicate-grounded — reported, not gated, D-03). No CK25-specific hand-curation (mechanical schema walk only, D-02); scripted configs stay the sole CI-reachable default; W3C DAWG coverage ≥96.4% and the SPARQL→AQL transpiler package unchanged (D-08). — acceptance: live execution-graded CK25 predicate-grounded config shows a significant positive delta (McNemar p<0.05) over the recorded entity-grounded baseline with zero regressions; QALD-9-plus zero-shot-vs-predicate-grounded directional delta recorded (not gated); scripted configs stay the no-network CI default; W3C DAWG coverage ≥96.4% and the SPARQL→AQL transpiler package unchanged
 
 ### NL to SPARQL Benchmark Adoption (ACTIVE)
 
@@ -117,6 +118,7 @@ Deferred to future release. Tracked but not in the current roadmap.
 | NL-EVAL-04 | Phase 06.2 | Complete |
 | NL-EVAL-05 | Phase 07.2 | Complete |
 | NL-ACC-01 | Phase 07.3 | Complete |
+| NL-ACC-02 | Phase 07.4 | Pending |
 | NL-FEW-01 | Phase 7 | Complete |
 | NL-FEW-02 | Phase 7 | Complete |
 | NL-BENCH-01 | Phase 07.1 | Complete |
@@ -130,8 +132,8 @@ Deferred to future release. Tracked but not in the current roadmap.
 
 **Coverage:**
 
-- v1 requirements: 28 total (16 PRD + 5 NL + 7 NL-BENCH)
-- Mapped to phases: 28
+- v1 requirements: 29 total (16 PRD + 6 NL + 7 NL-BENCH)
+- Mapped to phases: 29
 - Unmapped: 0 ✓
 - Already satisfied (Complete): 10 across Phases 1–3
 
