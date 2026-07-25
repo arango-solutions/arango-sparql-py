@@ -566,6 +566,25 @@ def run(config_name: str) -> Report:
         prefixes = grounding_cfg.get("prefixes")
         grounding_index = build_label_index(data_ttl, label_predicates, prefixes=prefixes)
 
+    # Additive `predicate_grounding:` config read (Phase 07.4 seam 7 / RESEARCH
+    # Pitfall 5): predicate/schema-convention grounding mirrors the `grounding:`
+    # (seam 6) precedent exactly, EXCEPT the gate — this builds from the
+    # corpus's TBox (`shared_ontology`, always present) not its instance graph
+    # (`data_ttl`, CK25-only; QALD has no `data_path`). Absent
+    # `predicate_grounding:` == today's ungrounded behavior (`predicate_index=
+    # None` is the honest no-op NlPipeline already understands).
+    predicate_cfg = config.get("predicate_grounding", {})
+    predicate_k = predicate_cfg.get("k", 0)
+    predicate_index = None
+    if predicate_cfg and shared_ontology:
+        # Build the PredicateIndex ONCE here, outside the per-case loop below
+        # (same build-once discipline as few_shot_index/grounding_index above).
+        # Imported function-locally so pyoxigraph stays off runner.py's module
+        # import path (mirrors the grounding_index_builder import above).
+        from tests.nl2sparql.eval.grounding_index_builder import build_predicate_index
+
+        predicate_index = build_predicate_index(shared_ontology)
+
     cases: list[CaseResult] = []
     for case in corpus["cases"]:
         ontology_ttl = case.get("ontology", shared_ontology)
@@ -580,6 +599,8 @@ def run(config_name: str) -> Report:
             few_shot_index=few_shot_index,
             grounding_k=grounding_k,
             grounding_index=grounding_index,
+            predicate_k=predicate_k,
+            predicate_index=predicate_index,
         )
 
         t0 = time.perf_counter()
@@ -717,7 +738,10 @@ def write_report(report: Report, *, out_dir: Path = REPORTS_DIR) -> tuple[Path, 
     payload = {
         "config": report.config,
         "pass_rate": report.pass_rate,
-        "cases": [{"name": c.name, "passed": c.passed, "elapsed_ms": c.elapsed_ms} for c in report.cases],
+        "cases": [
+            {"name": c.name, "passed": c.passed, "elapsed_ms": c.elapsed_ms, "sparql": c.actual}
+            for c in report.cases
+        ],
     }
     json_path.write_text(json.dumps(payload, indent=2) + "\n")
 

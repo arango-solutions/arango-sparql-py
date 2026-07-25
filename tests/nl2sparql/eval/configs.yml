@@ -148,6 +148,68 @@ configs:
   # NL2SPARQL_API_KEY per the Task 4 human-run sweep (README §7).
   # --------------------------------------------------------------------
 
+  # --------------------------------------------------------------------
+  # Phase 07.4: predicate/schema-convention grounding (seam 7) additive
+  # `predicate_grounding` config block. Unlike `grounding:` (seam 6, gated on the
+  # corpus's instance graph `data_path`), this is gated on the corpus's TBox
+  # (`shared_ontology`) — every corpus has one, so both CK25 and QALD-9-plus
+  # get a `-predicate-grounded` config (Pitfall 5). `k` is per-corpus: CK25's
+  # 30 properties sit under PREDICATE_DUMP_THRESHOLD=40 (dump mode; k=40 is
+  # a headroom bound, not a retrieval cap), QALD-9-plus's 250 properties
+  # exceed it (genuine retrieve mode; k=20 mirrors seam 6's QALD-shaped k).
+  # scripted-*-predicate-grounded configs are PLUMBING gates only (config ->
+  # build_predicate_index -> seam 7 -> prompt -> judge does not crash) — NOT
+  # accuracy evidence (mirrors the seam-6 scripted-ck25-grounded precedent).
+  # Do NOT add/modify `openai-gpt4o-mini-qald9plus` above — it already
+  # exists as the zero-shot live config (Pitfall 4).
+  # --------------------------------------------------------------------
+
+  # CK25 predicate-grounded — no network, deterministic; plumbing gate.
+  scripted-ck25-predicate-grounded:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    predicate_grounding:
+      k: 40
+
+  # Live CK25 predicate-grounded sweep — same discipline as
+  # openai-gpt4o-mini-ck25-grounded above. Not run in CI — gated behind
+  # RUN_EVAL=1 + NL2SPARQL_API_KEY, human-run (Plan 05).
+  openai-gpt4o-mini-ck25-predicate-grounded:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    predicate_grounding:
+      k: 40
+
+  # QALD-9-plus predicate-grounded — no network, deterministic; plumbing gate.
+  scripted-qald9plus-predicate-grounded:
+    provider:
+      type: scripted
+    judge: canonical
+    max_repairs: 2
+    corpus: vendored/qald9plus/corpus.yml
+    predicate_grounding:
+      k: 20
+
+  # Live QALD-9-plus predicate-grounded sweep — same discipline as
+  # openai-gpt4o-mini-qald9plus above. Not run in CI — gated behind
+  # RUN_EVAL=1 + NL2SPARQL_API_KEY, human-run (Plan 05).
+  openai-gpt4o-mini-qald9plus-predicate-grounded:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: canonical
+    max_repairs: 2
+    corpus: vendored/qald9plus/corpus.yml
+    predicate_grounding:
+      k: 20
+
   # gpt-4o-mini — the anchor model (06.2's committed live baseline).
   openai-gpt4o-mini-dense:
     provider:
