@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-25T00:17:39.450Z"
-last_activity: 2026-07-25 -- Phase 07.4 execution started
+last_updated: "2026-07-25T01:09:50.114Z"
+last_activity: 2026-07-25
 progress:
   total_phases: 14
   completed_phases: 7
   total_plans: 35
-  completed_plans: 30
+  completed_plans: 32
   percent: 50
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 07.4
-Last activity: 2026-07-25 -- Phase 07.4 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-07-25
 
-Progress: [██████████] 100%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [██████████] 100%
 | Phase 07.3 P04 | 15min | 3 tasks | 3 files |
 | Phase 07.3 P05 | 12min | 2 tasks | 2 files |
 | Phase 07.3 P06 | 25min | 3 tasks | 3 files |
+| Phase 07.4 P02 | 35min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.3-05]: scripted-ck25-grounded verified green as a plumbing gate (pass_rate 1.0, 49/49) under RUN_EVAL=1 -- config -> build_label_index -> seam 6 -> prompt -> execution judge does not crash; explicitly documented as plumbing evidence, not accuracy evidence
 - [Phase 07.3-06]: NL-ACC-01 closed via the SIGNIFICANT-LIFT path (not documented-null) -- credentialed live grounded-vs-fresh-same-session-zero CK25 sweep: 14/49 (0.2857) vs 5/49 (0.1020), McNemar b=9/c=0/p=0.0039, bootstrap delta+0.1837 CI[0.0816,0.3061], zero regressions, temperature=0.1, corpus_sha=814d227 -- stronger than the pre-planning spike (6/49->12/49, p=0.031)
 - [Phase 07.3-06]: baseline.json's new openai-gpt4o-mini-ck25-grounded entry is kept fully separate from the existing openai-gpt4o-mini-ck25 entry (a stale prior-session 07.2-04 number, 6/49); the confirmatory McNemar pairing uses only the fresh same-session zero arm run this checkpoint, never the committed historical entry
+- [Phase 07.4-02]: TYPE_CHECKING-guarded PredicateIndex import in both adapters + pipeline (not an unconditional top-level import) so Task 1 genuinely loads and passes tests against the still-old c6ae5e1 pin — A plain top-level import would raise ImportError at Task 1's commit since PredicateIndex does not exist until the seam-7 SHA; this is a stronger fulfillment of the plan's own harmless-against-the-still-old-pin requirement
+- [Phase 07.4-02]: PredicateIndex has no public len/count; D-01 dump-vs-retrieve threshold reads the total off the private _predicates list in both adapters — The pushed seam-7 API (8adc0de) has no public accessor and this plan is in-repo-only, so no cross-repo edit was permitted to add one
+- [Phase 07.4-02]: NL-ACC-02 not marked complete this plan — Mirrors NL-ACC-01/07.3-02 precedent -- this plan lands plumbing only (both adapters + pipeline conformant, pin bumped); the statistically-significant CK25 lift is unproven until the Plan 05 live sweep
 
 ### Pending Todos
 
@@ -164,6 +168,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-24T21:51:17.181Z
-Stopped at: Phase 07.4 context gathered
-Resume file: .planning/phases/07.4-nl-sparql-predicate-schema-convention-grounding/07.4-CONTEXT.md
+Last session: 2026-07-25T01:09:50.108Z
+Stopped at: Completed 07.4-02-PLAN.md
+Resume file: None

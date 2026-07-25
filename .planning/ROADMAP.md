@@ -233,13 +233,13 @@ Plans:
 **Goal:** Extend the grounding seam (seam 6) from instance-entity grounding to predicate/schema-convention grounding: walk the OWL/RDFS TBox to surface schema predicates with label, domain, range, and a shape classification (value-object range → emit the join pattern; class-typed range → filter by a category-instance IRI), and inject them so the model binds to real predicates and follows schema conventions instead of inventing nonexistent classes or flat predicates. Language-agnostic seam so the Cypher sister repo inherits it. Prove a statistically-graded CK25 accuracy lift over the 07.3 entity-grounded baseline, targeting the 17 convention-bound still-failing cases (dominated by the price value-object and hasCategory product-typing patterns, both mechanically derivable from the TBox).
 **Requirements**: NL-ACC-02 (predicate/schema-convention grounding lift, execution-graded).
 **Depends on:** Phase 07.3 (entity grounding — seam 6, LabelIndex, grounded eval configs)
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
 **Wave 1**
 - [x] 07.4-01-PLAN.md — Engine-side seam 7 in arango-query-core (GroundedPredicate/PredicateIndex + shared scorer + seam 7 Protocol + engine composition) + author NL-ACC-02 [NL-ACC-02]
 **Wave 2** *(atomic: pin bump never precedes adapters — Pitfall 1)*
-- [ ] 07.4-02-PLAN.md — Seam 7 on BOTH SPARQL adapters + NlPipeline passthrough + PREDICATE_DUMP_THRESHOLD, then bump arango-query-core pin (both extras) + uv lock [NL-ACC-02]
+- [x] 07.4-02-PLAN.md — Seam 7 on BOTH SPARQL adapters + NlPipeline passthrough + PREDICATE_DUMP_THRESHOLD, then bump arango-query-core pin (both extras) + uv lock [NL-ACC-02]
 **Wave 3**
 - [ ] 07.4-03-PLAN.md — Eval-only build_predicate_index() TBox walk + corrected 3-way shape rule + shape precision/purity tests (Price/ProductCategory/Manager/literal) [NL-ACC-02]
 **Wave 4**
