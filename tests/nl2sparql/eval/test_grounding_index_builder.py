@@ -22,10 +22,13 @@ a `LabelIndex` by hand):
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
+from arango_sparql.nl2sparql.engine_adapter import PREDICATE_DUMP_THRESHOLD
 from tests.nl2sparql.eval.grounding_index_builder import build_label_index, build_predicate_index
 
 _TTL = """
@@ -204,3 +207,49 @@ def test_predicate_literal_shape_derived_for_datatype_property() -> None:
     shapes = _shape_by_label(index)
 
     assert shapes["full name"] == "literal"
+
+
+# --------------------------------------------------------------------------
+# Phase 07.4-03 Task 3: QALD DBpedia shape-distribution smoke check.
+# Resolves RESEARCH.md Open Question 1 (Assumption A3 guard) -- runs the
+# mechanical builder against the real 250-property DBpedia subset (~6x
+# PREDICATE_DUMP_THRESHOLD) BEFORE the live QALD sweep, and records the
+# actual shape-distribution counts honestly. Per OQ1, a "0 value_object,
+# N category_instance" result is a VALID, EXPECTED finding here (DBpedia's
+# subset carries no rdfs:domain/rdfs:range/rdfs:label declarations at all --
+# verified via direct read/grep -- so every object property's range class
+# trivially has zero exact-domain-match children, degrading to
+# category_instance; every datatype property -> literal) -- NOT a bug to
+# chase. This test intentionally does NOT hard-assert specific per-shape
+# counts (only that the retrieve path is exercised on a real, large
+# fixture); see 07.4-03-SUMMARY.md for the recorded counts.
+# --------------------------------------------------------------------------
+
+_QALD_DBPEDIA_SUBSET_PATH = Path(__file__).parent / "vendored" / "qald9plus" / "dbpedia_subset.ttl"
+
+
+def test_predicate_qald_dbpedia_subset_shape_distribution_recorded_honestly() -> None:
+    ontology_ttl = _QALD_DBPEDIA_SUBSET_PATH.read_text()
+    index = build_predicate_index(ontology_ttl)
+
+    predicates = index._predicates
+    total = len(predicates)
+
+    # (a) the mechanical builder runs on a real, large DBpedia-style schema
+    # and exercises the retrieve (not dump) path -- CK25's 30 predicates
+    # dump in full; QALD's 250 sit ~6x over the threshold.
+    assert total > 0, "build_predicate_index returned an empty PredicateIndex for the QALD subset"
+    assert total > PREDICATE_DUMP_THRESHOLD, (
+        f"expected >{PREDICATE_DUMP_THRESHOLD} predicates (retrieve-path fixture), got {total}"
+    )
+
+    # (b) compute + record the shape-distribution counts. Deliberately NOT
+    # asserted per-shape (OQ1: a 0-value_object DBpedia result is a valid
+    # honest finding, not a failure) -- printed so `-s` / CI logs capture
+    # the actual distribution, and recorded verbatim in the plan's SUMMARY.
+    distribution = {"value_object": 0, "category_instance": 0, "linked_entity": 0, "literal": 0}
+    for predicate in predicates:
+        distribution[predicate.shape] += 1
+
+    print(f"QALD dbpedia_subset.ttl shape distribution (n={total}): {distribution}")
+    assert sum(distribution.values()) == total, "every predicate must classify into exactly one shape"
