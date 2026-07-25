@@ -17,7 +17,12 @@ satisfy the ``LLMProvider`` protocol without ever calling it.
 from __future__ import annotations
 
 from arango_query_core.nl.engine import NLQueryEngine
-from arango_query_core.nl.grounding import GroundedEntity, LabelIndex
+from arango_query_core.nl.grounding import (
+    GroundedEntity,
+    GroundedPredicate,
+    LabelIndex,
+    PredicateIndex,
+)
 
 from arango_sparql.nl2sparql.client import ScriptedLLMClient
 from arango_sparql.nl2sparql.engine_adapter import EngineProviderBridge, SparqlAdapter
@@ -65,3 +70,45 @@ def test_entities_render_in_engine_prompt_not_standalone_builder() -> None:
     standalone_prompt = adapter.grammar_prompt_section("")
     assert _SENTINEL_LABEL not in standalone_prompt
     assert "## Known entities" not in standalone_prompt
+
+
+_SENTINEL_PREDICATE_LABEL = "sentinelPredicateXYZ123"
+
+
+def _build_predicate_index() -> PredicateIndex:
+    return PredicateIndex.from_items(
+        [
+            GroundedPredicate(
+                iri="http://ex.org/sentinelPredicateXYZ123",
+                label=_SENTINEL_PREDICATE_LABEL,
+                kind="datatype",
+                domain="Person",
+                range="string",
+                shape="literal",
+            )
+        ]
+    )
+
+
+def test_predicates_render_in_engine_prompt_not_standalone_builder() -> None:
+    index = _build_predicate_index()
+    adapter = SparqlAdapter(
+        resolver=SchemaResolver.from_turtle(ONTOLOGY),
+        ontology_ttl=ONTOLOGY,
+        predicate_index=index,
+    )
+    bridge = EngineProviderBridge(ScriptedLLMClient([LLMResponse(content="unused")], latency_ms=0))
+    engine = NLQueryEngine(provider=bridge, adapter=adapter, predicate_k=20, max_retries=0)
+
+    # The engine's own render path — no LLM completion is fired by this call.
+    system_prompt = engine._system_prompt(f"find the {_SENTINEL_PREDICATE_LABEL}", "")
+
+    assert "## Known schema predicates" in system_prompt
+    assert _SENTINEL_PREDICATE_LABEL in system_prompt
+
+    # D-07 cache boundary extended to seam 7: the standalone PromptBuilder
+    # path (grammar_prompt_section) must stay predicate-free — the predicate
+    # block never routes through it.
+    standalone_prompt = adapter.grammar_prompt_section("")
+    assert _SENTINEL_PREDICATE_LABEL not in standalone_prompt
+    assert "## Known schema predicates" not in standalone_prompt

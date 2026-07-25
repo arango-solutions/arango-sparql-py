@@ -20,7 +20,12 @@ import pytest
 
 pytest.importorskip("arango_query_core", reason="nl extra (arango-query-core) required")
 
-from arango_query_core.nl.grounding import GroundedEntity, LabelIndex  # noqa: E402
+from arango_query_core.nl.grounding import (  # noqa: E402
+    GroundedEntity,
+    GroundedPredicate,
+    LabelIndex,
+    PredicateIndex,
+)
 
 from arango_sparql.nl2sparql.adapter import SparqlLanguageAdapter  # noqa: E402
 from arango_sparql.nl2sparql.engine_adapter import SparqlAdapter  # noqa: E402
@@ -57,3 +62,38 @@ def test_grounding_prompt_section_byte_identical_across_adapters() -> None:
     # Sanity: the fixture actually rendered something (not two empty strings
     # that happen to be equal) -- a real retrieval hit for the sentinel.
     assert _SENTINEL_LABEL in language_output
+
+
+_SENTINEL_PREDICATE_LABEL = "sentinelPredicateXYZ123"
+
+
+def _predicate_index() -> PredicateIndex:
+    return PredicateIndex.from_items(
+        [
+            GroundedPredicate(
+                iri="http://ex.org/sentinelPredicateXYZ123",
+                label=_SENTINEL_PREDICATE_LABEL,
+                kind="datatype",
+                domain="Person",
+                range="string",
+                shape="literal",
+            )
+        ]
+    )
+
+
+def test_predicate_prompt_section_byte_identical_across_adapters() -> None:
+    resolver = SchemaResolver.from_turtle(ONTOLOGY_TTL)
+    index = _predicate_index()
+    question = f"find the {_SENTINEL_PREDICATE_LABEL}"
+
+    language_adapter = SparqlLanguageAdapter(resolver=resolver, ontology_ttl=ONTOLOGY_TTL)
+    engine_adapter = SparqlAdapter(resolver=resolver, ontology_ttl=ONTOLOGY_TTL)
+
+    language_output = language_adapter.predicate_prompt_section(question, index, k=20)
+    engine_output = engine_adapter.predicate_prompt_section(question, index, k=20)
+
+    assert language_output == engine_output
+    # Sanity: the fixture actually rendered something (not two empty strings
+    # that happen to be equal) -- a real retrieval hit for the sentinel.
+    assert _SENTINEL_PREDICATE_LABEL in language_output
