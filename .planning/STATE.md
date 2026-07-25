@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-25T01:24:41.340Z"
+last_updated: "2026-07-25T01:36:11.225Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 14
   completed_phases: 7
   total_plans: 35
-  completed_plans: 33
+  completed_plans: 34
   percent: 50
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-25
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [█████████░] 94%
 | Phase 07.3 P06 | 25min | 3 tasks | 3 files |
 | Phase 07.4 P02 | 35min | 2 tasks | 5 files |
 | Phase 07.4 P03 | 25min | 3 tasks | 3 files |
+| Phase 07.4 P04 | 20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-03]: Label fallback to IRI local name when rdfs:label is absent -- keeps every GroundedPredicate/child usable for shape-detail rendering on a TBox omitting rdfs:label entirely (QALD's dbpedia_subset.ttl)
 - [Phase 07.4-03]: Undeclared rdfs:range on an object property degrades to the corrected rule's own zero-children branch (category_instance), not a distinct 4th case or a crash -- mechanically consistent, and exactly matches RESEARCH.md OQ1's anticipated honest QALD finding (0 value_object, 88 category_instance, n=250)
 - [Phase 07.4-03]: Predicate-count assertions read PredicateIndex._predicates directly rather than idx.retrieve('', k) -- the shared token-substring scorer always returns empty for an empty question string (verified empirically), so the plan's own literal verify-command text is unsatisfiable regardless of implementation; mirrors the 07.4-02 no-public-len/count precedent
+- [Phase 07.4-04]: predicate_grounding gate reads if predicate_cfg and shared_ontology (not data_ttl) -- QALD-9-plus has no data_path, so gating on data_ttl would silently no-op the QALD predicate-grounded config forever
+- [Phase 07.4-04]: predicate-recall guard measured 78/158=0.49 gold pv: mention recall (lower than the entity guard's 0.96 because the literal regex also counts class mentions a predicate-only index can never retrieve); floor asserted at 0.45, below the measured value
+- [Phase 07.4-04]: scripted-ck25-predicate-grounded / scripted-qald9plus-predicate-grounded are plumbing gates only (pass_rate 1.0 because the scripted client replays each case's own gold answer), not accuracy evidence; NL-ACC-02 stays open until the Plan 05 live sweep
 
 ### Pending Todos
 
@@ -172,6 +176,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-25T01:23:00.544Z
-Stopped at: Completed 07.4-02-PLAN.md
+Last session: 2026-07-25T01:36:11.219Z
+Stopped at: Completed 07.4-04-PLAN.md
 Resume file: None
