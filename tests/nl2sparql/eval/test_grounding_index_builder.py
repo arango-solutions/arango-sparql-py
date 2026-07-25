@@ -26,7 +26,7 @@ import pytest
 
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
-from tests.nl2sparql.eval.grounding_index_builder import build_label_index
+from tests.nl2sparql.eval.grounding_index_builder import build_label_index, build_predicate_index
 
 _TTL = """
 @prefix ex: <http://ex.org/> .
@@ -91,3 +91,116 @@ def test_real_instances_retained_with_clean_normalized_labels() -> None:
             assert '"' not in label, f"stray quote survived normalization: {label!r}"
             assert "^^" not in label, f"stray datatype suffix survived normalization: {label!r}"
             assert "@en" not in label, f"stray language-tag suffix survived normalization: {label!r}"
+
+
+# --------------------------------------------------------------------------
+# Phase 07.4-03: `build_predicate_index()` shape-derivation precision/purity
+# tests (RESEARCH.md Wave 0 Gap #1). A small hand-rolled TBox fixture (NOT
+# an instance graph) reproducing the four discriminating cases the
+# corrected 3-way shape rule was verified against on the real CK25 TBox:
+# a value-object-shaped property (range class has ONLY datatype-property
+# children), a category-instance-shaped property (range class has ZERO own
+# children), the false-positive guard (range class has an ObjectProperty
+# child -- must classify as linked_entity, NOT value_object), and a plain
+# datatype property (-> literal).
+# --------------------------------------------------------------------------
+
+_PREDICATE_TTL = """
+@prefix ex: <http://ex.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:Product a owl:Class ; rdfs:label "Product"@en .
+ex:Money a owl:Class ; rdfs:label "Money"@en .
+ex:Category a owl:Class ; rdfs:label "Category"@en .
+ex:Employee a owl:Class ; rdfs:label "Employee"@en .
+ex:Boss a owl:Class ; rdfs:label "Boss"@en .
+
+# value_object case: range class (ex:Money) has ONLY datatype children.
+ex:hasCost a owl:ObjectProperty ;
+  rdfs:label "has cost"@en ;
+  rdfs:domain ex:Product ;
+  rdfs:range ex:Money .
+
+ex:amount a owl:DatatypeProperty ;
+  rdfs:label "amount"@en ;
+  rdfs:domain ex:Money ;
+  rdfs:range xsd:decimal .
+
+ex:currency a owl:DatatypeProperty ;
+  rdfs:label "currency"@en ;
+  rdfs:domain ex:Money ;
+  rdfs:range xsd:string .
+
+# category_instance case: range class (ex:Category) has ZERO own children.
+ex:hasCategory a owl:ObjectProperty ;
+  rdfs:label "has category"@en ;
+  rdfs:domain ex:Product ;
+  rdfs:range ex:Category .
+
+# linked_entity false-positive guard: range class (ex:Boss) HAS a child,
+# but it is an ObjectProperty (ex:hasDirectReport) -- a naive "range class
+# has >=1 own property" rule would wrongly flag ex:hasBoss as value_object,
+# identical to ex:hasCost above. The corrected rule must NOT do that.
+ex:hasBoss a owl:ObjectProperty ;
+  rdfs:label "has boss"@en ;
+  rdfs:domain ex:Employee ;
+  rdfs:range ex:Boss .
+
+ex:hasDirectReport a owl:ObjectProperty ;
+  rdfs:label "has direct report"@en ;
+  rdfs:domain ex:Boss ;
+  rdfs:range ex:Employee .
+
+# literal case: a plain datatype property.
+ex:fullName a owl:DatatypeProperty ;
+  rdfs:label "full name"@en ;
+  rdfs:range xsd:string .
+""".strip()
+
+
+def _build_predicates():
+    return build_predicate_index(_PREDICATE_TTL)
+
+
+def _shape_by_label(index) -> dict[str, str]:
+    return {p.label: p.shape for p in index._predicates}
+
+
+def test_predicate_value_object_shape_derived_for_all_datatype_children() -> None:
+    index = _build_predicates()
+    shapes = _shape_by_label(index)
+
+    assert shapes["has cost"] == "value_object"
+
+    by_label = {p.label: p for p in index._predicates}
+    hop = by_label["has cost"]
+    assert hop.shape_detail, "value_object predicate must carry its child (label, range) pairs"
+    child_labels = {label for label, _ in hop.shape_detail}
+    assert child_labels == {"amount", "currency"}
+
+
+def test_predicate_category_instance_shape_derived_for_zero_children() -> None:
+    index = _build_predicates()
+    shapes = _shape_by_label(index)
+
+    assert shapes["has category"] == "category_instance"
+
+
+def test_predicate_linked_entity_shape_not_misclassified_as_value_object() -> None:
+    """The exact false positive RESEARCH.md's Pattern 1 discovered and fixed:
+    a range class with an ObjectProperty (not all-datatype) child must
+    classify as linked_entity, never value_object."""
+    index = _build_predicates()
+    shapes = _shape_by_label(index)
+
+    assert shapes["has boss"] == "linked_entity"
+    assert shapes["has boss"] != "value_object"
+
+
+def test_predicate_literal_shape_derived_for_datatype_property() -> None:
+    index = _build_predicates()
+    shapes = _shape_by_label(index)
+
+    assert shapes["full name"] == "literal"
