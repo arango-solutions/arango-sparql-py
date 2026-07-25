@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from arango_query_core.nl import FewShotIndex, GuardrailVerdict, ValidationResult
 from arango_query_core.nl.grounding import LabelIndex
@@ -46,7 +46,21 @@ from ..translate.resolver import SchemaResolver
 from .prompt import PromptBuilder
 from .repair import format_repair_context
 
+if TYPE_CHECKING:
+    # Seam 7 (predicate/schema-convention grounding, 07.4) — PredicateIndex is
+    # only added to arango_query_core.nl.grounding at the seam-7 SHA Plan 02
+    # Task 2 pins. Guard the import so this module still loads cleanly against
+    # the still-old pin between Task 1 (this file) and Task 2 (the pin bump) —
+    # mirrors engine_adapter.py's identical guard for the identical reason.
+    from arango_query_core.nl.grounding import PredicateIndex
+
 _CORPORA_DIR = Path(__file__).resolve().parent / "corpora"
+
+# Dump-vs-retrieve mode threshold (D-01) — mirrors engine_adapter.py's
+# PREDICATE_DUMP_THRESHOLD byte-for-byte (both adapters must apply the same
+# mode-selection rule so predicate_prompt_section's rendered output stays
+# byte-identical across adapters for the same index/k).
+PREDICATE_DUMP_THRESHOLD = 40
 
 
 @dataclass
@@ -65,6 +79,7 @@ class SparqlLanguageAdapter:
     tenant_id: str | None = None
     corpus_paths: list[Path] = field(default_factory=lambda: sorted(_CORPORA_DIR.glob("*.yml")))
     _grounding_index: LabelIndex | None = field(default=None, repr=False)
+    _predicate_index: PredicateIndex | None = field(default=None, repr=False)
 
     language: str = "sparql"
     _few_shot: FewShotIndex | None = field(default=None, repr=False)
@@ -122,4 +137,32 @@ class SparqlLanguageAdapter:
             ),
             id_prefix="<",
             id_suffix=">",
+        )
+
+    def predicate_index(self) -> PredicateIndex | None:  # seam 7
+        # Explicit injection only — mirrors engine_adapter.SparqlAdapter's
+        # seam 7 (07.4): no production-default source of TBox predicate
+        # data exists yet, so a caller that never injects one runs
+        # ungrounded.
+        return self._predicate_index
+
+    def predicate_prompt_section(
+        self, question: str, index: PredicateIndex, k: int = 20
+    ) -> str:  # seam 7 (renderer)
+        # D-01 mode selection + wording byte-identical to
+        # engine_adapter.SparqlAdapter.predicate_prompt_section — do not
+        # diverge (Plan 04's parity test enforces this). Wording is
+        # provisional this phase (RESEARCH Open Question 2); no "do not
+        # paraphrase" freeze yet, unlike seam 6's empirically-measured text.
+        total = len(getattr(index, "_predicates", ()))
+        effective_k = total if 0 < total <= PREDICATE_DUMP_THRESHOLD else k
+        return index.format_prompt_section(
+            question,
+            k=effective_k,
+            header="## Known schema predicates (bind to these EXACT predicates in this EXACT shape)",
+            instruction=(
+                "Use only the predicates listed below, with the exact direction and shape shown. "
+                "Predicates marked VALUE OBJECT or CATEGORY require an extra hop — do not flatten "
+                "them into a single triple or invent a class not listed here."
+            ),
         )

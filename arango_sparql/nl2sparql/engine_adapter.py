@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from arango_query_core.nl import FewShotIndex, cached_few_shot_index
 from arango_query_core.nl.grounding import LabelIndex
@@ -49,9 +50,27 @@ from .models import LLMCallRecord, LLMResponse
 from .prompt import PromptBuilder, extract_sparql_from_response
 from .repair import format_repair_context
 
+if TYPE_CHECKING:
+    # Seam 7 (predicate/schema-convention grounding, 07.4) — PredicateIndex is
+    # only added to arango_query_core.nl.grounding at the seam-7 SHA Plan 02
+    # Task 2 pins. Guard the import so this module still loads cleanly against
+    # the still-old pin between Task 1 (this file) and Task 2 (the pin bump) —
+    # Pitfall 1's atomicity requirement is about BOTH adapters implementing the
+    # seam before the pin makes it mandatory, not about importing a symbol that
+    # doesn't exist yet at Task-1 time. Purely a type-checking-time import; no
+    # runtime dependency (the adapter never constructs a PredicateIndex itself,
+    # only calls methods on one the caller injects).
+    from arango_query_core.nl.grounding import PredicateIndex
+
 # The four usage keys the engine's LLMProvider protocol expects in the
 # returned usage dict — kept in sync with ``arango_query_core.nl.engine._USAGE_KEYS``.
 _USAGE_KEYS = ("prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens")
+
+# Dump-vs-retrieve mode threshold (D-01): schemas at or below this many total
+# predicates render in FULL ("dump" mode); larger schemas fall back to
+# retrieval-limited to k per call. CK25 (30 predicates) dumps; QALD-9-plus
+# (250) retrieves — both real fixtures already in this repo (RESEARCH Pattern 4).
+PREDICATE_DUMP_THRESHOLD = 40
 
 # Curated few-shot bank (07-02) — disjoint from tests/nl2sparql/eval/corpus.yml.
 # parents[2] = repo root: engine_adapter.py -> nl2sparql -> arango_sparql -> repo.
@@ -151,6 +170,8 @@ class SparqlAdapter:
     ``guardrails``              allow-all (no tenant/write-op checks yet)
     ``grounding_index``         injected ``LabelIndex`` (explicit-injection
                                  only this phase — no production default)
+    ``predicate_index``         injected ``PredicateIndex`` (explicit-injection
+                                 only this phase — no production default)
     ==========================  ============================================
 
     The constructor takes the caller's **already-built** ``resolver`` (in
@@ -173,12 +194,14 @@ class SparqlAdapter:
         few_shot_index: FewShotIndex | None = None,
         few_shot_mode: str = "auto",
         grounding_index: LabelIndex | None = None,
+        predicate_index: PredicateIndex | None = None,
     ) -> None:
         self.resolver = resolver
         self.ontology_ttl = ontology_ttl
         self._few_shot_index = few_shot_index
         self._few_shot_mode = few_shot_mode
         self._grounding_index = grounding_index
+        self._predicate_index = predicate_index
 
     def grammar_prompt_section(self, schema_context: str) -> str:  # seam 1
         # Reuse the shipped system-prompt template so the grammar + ontology
@@ -262,4 +285,40 @@ class SparqlAdapter:
             ),
             id_prefix="<",
             id_suffix=">",
+        )
+
+    def predicate_index(self) -> PredicateIndex | None:  # seam 7
+        # Explicit injection only this phase — same "no production-default
+        # source" rationale as grounding_index (seam 6): no canonical,
+        # production-owned TBox predicate index exists yet. A deployment
+        # that never injects one runs ungrounded (predicate_index() -> None),
+        # which the engine treats identically to seam 6's "no index" case.
+        return self._predicate_index
+
+    def predicate_prompt_section(
+        self, question: str, index: PredicateIndex, k: int = 20
+    ) -> str:  # seam 7 (renderer)
+        # D-01 dump-vs-retrieve mode selection lives HERE (adapter-level),
+        # never inside PredicateIndex itself (RESEARCH Pattern 4 — "not
+        # inside PredicateIndex"). PredicateIndex exposes no public
+        # __len__/count() (verified against the pushed seam-7 source,
+        # commit 8adc0de), and this plan is in-repo only (no cross-repo edit
+        # permitted to add one) — so the total-predicate-count is read off
+        # the index's private ``_predicates`` list, a same-workstream,
+        # tightly-coupled sibling call rather than a guaranteed public API.
+        total = len(getattr(index, "_predicates", ()))
+        effective_k = total if 0 < total <= PREDICATE_DUMP_THRESHOLD else k
+        # Wording is PROVISIONAL this phase (RESEARCH Open Question 2) — no
+        # "do not paraphrase" freeze yet (unlike seam 6's empirically-measured
+        # entity block); byte-identity across both adapters IS still required
+        # and enforced by the Plan 04 parity test regardless of freeze status.
+        return index.format_prompt_section(
+            question,
+            k=effective_k,
+            header="## Known schema predicates (bind to these EXACT predicates in this EXACT shape)",
+            instruction=(
+                "Use only the predicates listed below, with the exact direction and shape shown. "
+                "Predicates marked VALUE OBJECT or CATEGORY require an extra hop — do not flatten "
+                "them into a single triple or invent a class not listed here."
+            ),
         )
