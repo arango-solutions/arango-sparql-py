@@ -233,7 +233,7 @@ Plans:
 **Goal:** Extend the grounding seam (seam 6) from instance-entity grounding to predicate/schema-convention grounding: walk the OWL/RDFS TBox to surface schema predicates with label, domain, range, and a shape classification (value-object range → emit the join pattern; class-typed range → filter by a category-instance IRI), and inject them so the model binds to real predicates and follows schema conventions instead of inventing nonexistent classes or flat predicates. Language-agnostic seam so the Cypher sister repo inherits it. Prove a statistically-graded CK25 accuracy lift over the 07.3 entity-grounded baseline, targeting the 17 convention-bound still-failing cases (dominated by the price value-object and hasCategory product-typing patterns, both mechanically derivable from the TBox).
 **Requirements**: NL-ACC-02 (predicate/schema-convention grounding lift, execution-graded).
 **Depends on:** Phase 07.3 (entity grounding — seam 6, LabelIndex, grounded eval configs)
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -245,7 +245,7 @@ Plans:
 **Wave 4**
 - [x] 07.4-04-PLAN.md — runner.py predicate_grounding read + build-once + D-05 query capture + configs.yml entries + predicate SC-gate/parity/recall guards [NL-ACC-02]
 **Wave 5** *(human-run, credentialed)*
-- [ ] 07.4-05-PLAN.md — README §10 runbook + live CK25 hard-gate McNemar sweep + first live QALD directional run + baseline.json fold-in + close NL-ACC-02 [NL-ACC-02]
+- [x] 07.4-05-PLAN.md — README §10 runbook + live CK25 hard-gate McNemar sweep + first live QALD directional run + baseline.json fold-in + close NL-ACC-02 [NL-ACC-02]
 
 ### Phase 07.3: NL to SPARQL entity/instance grounding (INSERTED)
 

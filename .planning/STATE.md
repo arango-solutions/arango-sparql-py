@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-25T01:36:11.225Z"
-last_activity: 2026-07-25
+last_updated: "2026-07-27T20:56:50.152Z"
+last_activity: 2026-07-27
 progress:
   total_phases: 14
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 35
-  completed_plans: 34
-  percent: 50
+  completed_plans: 35
+  percent: 57
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
-Last activity: 2026-07-25
+Last activity: 2026-07-27
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████████] 97%
 | Phase 07.4 P02 | 35min | 2 tasks | 5 files |
 | Phase 07.4 P03 | 25min | 3 tasks | 3 files |
 | Phase 07.4 P04 | 20min | 3 tasks | 6 files |
+| Phase 07.4 P05 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-04]: predicate_grounding gate reads if predicate_cfg and shared_ontology (not data_ttl) -- QALD-9-plus has no data_path, so gating on data_ttl would silently no-op the QALD predicate-grounded config forever
 - [Phase 07.4-04]: predicate-recall guard measured 78/158=0.49 gold pv: mention recall (lower than the entity guard's 0.96 because the literal regex also counts class mentions a predicate-only index can never retrieve); floor asserted at 0.45, below the measured value
 - [Phase 07.4-04]: scripted-ck25-predicate-grounded / scripted-qald9plus-predicate-grounded are plumbing gates only (pass_rate 1.0 because the scripted client replays each case's own gold answer), not accuracy evidence; NL-ACC-02 stays open until the Plan 05 live sweep
+- [Phase 07.4-05]: Standalone predicate-alone CK25 arm (full per-case verdicts) recorded as a real configs.* BaselineConfig entry; additive arm + both QALD arms (aggregate-only) folded into a new phase07_4_predicate_grounding_sweep sibling key mirroring phase07_dense_few_shot_sweep -- avoids fabricating a cases map
+- [Phase 07.4-05]: NL-ACC-02 closed via the documented-null path (NL-FEW-02 precedent): seam-7 predicate grounding regresses standalone (5/49 vs fresh 12/49 entity-alone, p=0.0156 wrong direction) and is a statistical wash additively composed on entity grounding (13/49 vs fresh 13/49, p=1.0, delta=0.0) -- no CK25 lift proven either way, never reframed as a pass
 
 ### Pending Todos
 
@@ -176,6 +179,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-25T01:36:11.219Z
-Stopped at: Completed 07.4-04-PLAN.md
+Last session: 2026-07-27T20:56:50.148Z
+Stopped at: Completed 07.4-05-PLAN.md
 Resume file: None
