@@ -742,9 +742,16 @@ question regardless of `k`. Both adapters now pass the pinned
 `arango_query_core.nl.grounding.PredicateIndex`'s explicit `dump=True`
 kwarg (upstream commit `b669320`) when `0 < total <= PREDICATE_DUMP_THRESHOLD`,
 which bypasses that zero-hit filter and genuinely renders every predicate.
-The NL-ACC-02 CK25 predicate-grounded sweep recorded in `baseline.json`
-predates this fix and is confounded — re-run before treating its verdict
-as final.
+The NL-ACC-02 CK25 predicate-grounded sweep originally recorded in
+`baseline.json` (07.4-05) predated this fix and was confounded; a
+credentialed human RE-RAN the full live sweep on the fixed dump mode
+(07.4-06 re-fold) and `baseline.json` now carries the clean, valid numbers
+(standalone 7/49 p=0.1250, additive 10/49 vs a fresh 12/49 entity-alone
+arm p=0.6875) — see
+`phase07_4_predicate_grounding_sweep.ck25_additive_arm` and
+`configs.openai-gpt4o-mini-ck25-predicate-grounded.confirmatory_test`.
+NL-ACC-02 stays closed via the documented-null path, now on a valid,
+unconfounded experiment.
 
 ### 10.2 The four live arms (exact commands)
 
