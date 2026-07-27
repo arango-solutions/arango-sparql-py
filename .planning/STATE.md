@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-27T20:56:50.152Z"
+status: verifying
+last_updated: "2026-07-27T21:59:55.937Z"
 last_activity: 2026-07-27
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 35
-  completed_plans: 35
+  completed_plans: 36
   percent: 57
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 
 Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-27
 
 Progress: [██████████] 100%
@@ -77,6 +77,7 @@ Progress: [██████████] 100%
 | Phase 07.4 P03 | 25min | 3 tasks | 3 files |
 | Phase 07.4 P04 | 20min | 3 tasks | 6 files |
 | Phase 07.4 P05 | 20min | 3 tasks | 3 files |
+| Phase 07.4 P06 | 32min | 4 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-04]: scripted-ck25-predicate-grounded / scripted-qald9plus-predicate-grounded are plumbing gates only (pass_rate 1.0 because the scripted client replays each case's own gold answer), not accuracy evidence; NL-ACC-02 stays open until the Plan 05 live sweep
 - [Phase 07.4-05]: Standalone predicate-alone CK25 arm (full per-case verdicts) recorded as a real configs.* BaselineConfig entry; additive arm + both QALD arms (aggregate-only) folded into a new phase07_4_predicate_grounding_sweep sibling key mirroring phase07_dense_few_shot_sweep -- avoids fabricating a cases map
 - [Phase 07.4-05]: NL-ACC-02 closed via the documented-null path (NL-FEW-02 precedent): seam-7 predicate grounding regresses standalone (5/49 vs fresh 12/49 entity-alone, p=0.0156 wrong direction) and is a statistical wash additively composed on entity grounding (13/49 vs fresh 13/49, p=1.0, delta=0.0) -- no CK25 lift proven either way, never reframed as a pass
+- [Phase 07.4-06]: arango-query-core PredicateIndex gains a real dump=True kwarg (upstream b669320, pushed to both remotes) -- widening k to total predicates alone never bypassed the shared scorer's zero-hit filter, so CK25 dump mode never actually dumped the full schema (CR-01 code-review BLOCKER)
+- [Phase 07.4-06]: NL-ACC-02's 07.4-05 documented-null closure is left in place (not reversed) but flagged provisional/confounded in REQUIREMENTS.md/baseline.json/eval README -- it was measured against the broken dump mode; a fresh credentialed live sweep (separate human checkpoint, not run this plan) is needed to settle the verdict
 
 ### Pending Todos
 
@@ -168,6 +171,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5] WP-UI-CAT / WP-UI-TENANT / WP-UI-CORR are backend-blocked (need async introspect, tenant catalogue, translator source-map).
 - [Gate] W3C DAWG query-eval coverage must stay ≥ 96.4% throughout the NL workstream (Phases 6–7).
 - [Dep] Upstream hard dependency `arangodb-schema-analyzer` pinned ≥0.6.1,<0.7.0.
+- [Phase 07.4-06] AWAITING HUMAN CHECKPOINT: a fresh credentialed live CK25 sweep (standalone openai-gpt4o-mini-ck25-predicate-grounded + additive openai-gpt4o-mini-ck25-grounded-predicate-grounded, both re-paired against a same-session fresh entity-alone arm per 07.4-05's protocol) is needed to re-confirm NL-ACC-02's documented-null verdict now that the real dump-mode fix (arango-query-core b669320) is wired in. The agent must never hold NL2SPARQL_API_KEY -- this is a human-run step.
 
 ## Deferred Items
 
@@ -179,6 +183,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-27T20:56:50.148Z
-Stopped at: Completed 07.4-05-PLAN.md
+Last session: 2026-07-27T21:59:29.341Z
+Stopped at: Completed 07.4-06 (CR-01 predicate dump-mode gap-closure fix)
 Resume file: None
