@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-07-27T22:45:10.227Z"
+status: ready_to_plan
+last_updated: 2026-07-27T22:55:14.473Z
 last_activity: 2026-07-27
 progress:
   total_phases: 14
@@ -11,6 +11,7 @@ progress:
   total_plans: 35
   completed_plans: 36
   percent: 57
+stopped_at: Phase 07.4 complete (6/5) — ready to discuss Phase 8
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 07.4 — nl-sparql-predicate-schema-convention-grounding
+**Current focus:** Phase 8 — public release readiness
 
 ## Current Position
 
-Phase: 07.4 (nl-sparql-predicate-schema-convention-grounding) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 8
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-07-27
 
 Progress: [██████████] 100%
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 27 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
+- Total plans completed: 33 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -50,6 +51,7 @@ Progress: [██████████] 100%
 | 07.1 | 6 | - | - |
 | 07.2 | 4 | - | - |
 | 07.3 | 6 | - | - |
+| 07.4 | 6 | - | - |
 
 **Recent Trend:**
 
