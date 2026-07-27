@@ -122,7 +122,9 @@ class SparqlLanguageAdapter:
         # ungrounded.
         return self._grounding_index
 
-    def grounding_prompt_section(self, question: str, index: LabelIndex, k: int = 20) -> str:  # seam 6 (renderer)
+    def grounding_prompt_section(
+        self, question: str, index: LabelIndex, k: int = 20
+    ) -> str:  # seam 6 (renderer)
         # Verbatim wording from the spike's entity_block, byte-identical to
         # engine_adapter.SparqlAdapter.grounding_prompt_section — do not
         # paraphrase (empirically measured +12.2pt lift).
@@ -154,8 +156,16 @@ class SparqlLanguageAdapter:
         # diverge (Plan 04's parity test enforces this). Wording is
         # provisional this phase (RESEARCH Open Question 2); no "do not
         # paraphrase" freeze yet, unlike seam 6's empirically-measured text.
+        #
+        # CR-01 fix: widening k to total alone is NOT dump mode — the
+        # shared scorer's zero-hit filter drops every predicate that shares
+        # no label/domain/range token with the question regardless of k.
+        # Pass the pinned arango_query_core dump=True kwarg (upstream
+        # b669320, CR-01) so a schema at/under the threshold genuinely
+        # dumps every predicate, not just the question-matching subset.
         total = len(getattr(index, "_predicates", ()))
-        effective_k = total if 0 < total <= PREDICATE_DUMP_THRESHOLD else k
+        is_dump = 0 < total <= PREDICATE_DUMP_THRESHOLD
+        effective_k = total if is_dump else k
         return index.format_prompt_section(
             question,
             k=effective_k,
@@ -165,4 +175,5 @@ class SparqlLanguageAdapter:
                 "Predicates marked VALUE OBJECT or CATEGORY require an extra hop — do not flatten "
                 "them into a single triple or invent a class not listed here."
             ),
+            dump=is_dump,
         )

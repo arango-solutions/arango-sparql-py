@@ -264,7 +264,9 @@ class SparqlAdapter:
         # identically to seam 2's "no index" case.
         return self._grounding_index
 
-    def grounding_prompt_section(self, question: str, index: LabelIndex, k: int = 20) -> str:  # seam 6 (renderer)
+    def grounding_prompt_section(
+        self, question: str, index: LabelIndex, k: int = 20
+    ) -> str:  # seam 6 (renderer)
         # Verbatim wording from the spike's entity_block
         # (scratchpad/nl-grounding-spike/grounding_spike.py::entity_block) —
         # this exact header + instruction text is what was empirically
@@ -306,8 +308,16 @@ class SparqlAdapter:
         # permitted to add one) — so the total-predicate-count is read off
         # the index's private ``_predicates`` list, a same-workstream,
         # tightly-coupled sibling call rather than a guaranteed public API.
+        #
+        # CR-01 fix: widening k to total alone is NOT dump mode — the
+        # shared scorer's zero-hit filter drops every predicate that shares
+        # no label/domain/range token with the question regardless of k.
+        # Pass the pinned arango_query_core dump=True kwarg (upstream
+        # b669320, CR-01) so a schema at/under the threshold genuinely
+        # dumps every predicate, not just the question-matching subset.
         total = len(getattr(index, "_predicates", ()))
-        effective_k = total if 0 < total <= PREDICATE_DUMP_THRESHOLD else k
+        is_dump = 0 < total <= PREDICATE_DUMP_THRESHOLD
+        effective_k = total if is_dump else k
         # Wording is PROVISIONAL this phase (RESEARCH Open Question 2) — no
         # "do not paraphrase" freeze yet (unlike seam 6's empirically-measured
         # entity block); byte-identity across both adapters IS still required
@@ -321,4 +331,5 @@ class SparqlAdapter:
                 "Predicates marked VALUE OBJECT or CATEGORY require an extra hop — do not flatten "
                 "them into a single triple or invent a class not listed here."
             ),
+            dump=is_dump,
         )
