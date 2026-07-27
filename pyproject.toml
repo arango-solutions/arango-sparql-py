@@ -62,7 +62,7 @@ nl = [
   # {GroundedPredicate,PredicateIndex}, QueryLanguageAdapter.predicate_index()/
   # predicate_prompt_section() (seam 7), NLQueryEngine.predicate_k) the
   # predicate-grounding workstream imports.
-  "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@8adc0de91f86fe409a37e240cd3eaaa98bb01334",
+  "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@b66932046a102898e8fff205a7ddcbedfb2c896e",
 ]
 # Torch-free-by-default packaging (D-05 packaging discretion, Phase 7 07-03):
 # a plain `pip install '.[nl]'` never pulls sentence-transformers/torch — the
@@ -72,7 +72,7 @@ nl = [
 # extra (sentence-transformers) on top of `[nl]`'s deps.
 dense = [
   "arango-sparql-py[nl]",
-  "arango-query-core[dense] @ git+https://github.com/ArthurKeen/arango-query-core@8adc0de91f86fe409a37e240cd3eaaa98bb01334",
+  "arango-query-core[dense] @ git+https://github.com/ArthurKeen/arango-query-core@b66932046a102898e8fff205a7ddcbedfb2c896e",
 ]
 dev = [
   "pytest>=8.0.0",
