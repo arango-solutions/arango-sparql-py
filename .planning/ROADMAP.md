@@ -246,6 +246,10 @@ Plans:
 - [x] 07.4-04-PLAN.md — runner.py predicate_grounding read + build-once + D-05 query capture + configs.yml entries + predicate SC-gate/parity/recall guards [NL-ACC-02]
 **Wave 5** *(human-run, credentialed)*
 - [x] 07.4-05-PLAN.md — README §10 runbook + live CK25 hard-gate McNemar sweep + first live QALD directional run + baseline.json fold-in + close NL-ACC-02 [NL-ACC-02]
+**Wave 6** *(gap-closure: CR-01 code-review fix + re-fold)*
+- [x] 07.4-06-PLAN.md — Real PredicateIndex dump mode upstream (CR-01 fix, pin b669320) + both adapters wired + re-fold: credentialed human RE-RAN the live CK25 sweep on the fixed dump mode, overwrote the confounded 07.4-05 numbers with valid ones, re-closed NL-ACC-02 as a VALID documented-null [NL-ACC-02]
+
+**Status**: Complete (2026-07-27) — NL-ACC-02 closed via the documented-null path (standalone predicate-alone 7/49 vs a fresh 12/49 entity-alone arm, p=0.1250; additive 10/49 vs the same arm, p=0.6875 — the phase's actual hard-gate test), re-confirmed valid after the 07.4-06 CR-01 dump-mode fix and live re-sweep superseded the original 07.4-05 confounded numbers; see 07.4-06-SUMMARY.md "Re-fold" section for the full before/after.
 
 ### Phase 07.3: NL to SPARQL entity/instance grounding (INSERTED)
 
