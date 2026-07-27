@@ -101,4 +101,4 @@ improvable** so the natural-language layer can be tuned with confidence.
 | Port eval harness + few-shot from `arango-cypher` sister repo | Proven at 93–100%; parity keeps cross-repo telemetry aligned | ⚠️ Adapted, not ported — `references/` symlinks are unreachable on this machine; Phase 6 harness was built grounded in this repo's own shipped code (docstring = spec) |
 
 ---
-*Last updated: 2026-07-23 after Phase 07.2 completion (execution-based answer-set eval judging for adopted benchmarks; CK25 execution-graded anchor = 12.2%)*
+*Last updated: 2026-07-27 after Phase 07.4 completion (predicate/schema-convention grounding, seam 7). NL-ACC-02 closed via the documented-null path on a valid execution-graded experiment: predicate/schema-convention grounding shows no CK25 lift (additive entity+predicate 10/49 vs entity-only 12/49, McNemar p=0.6875; predicate-alone 7/49). Entity grounding (seam 6) remains the sole confirmed CK25 lever. Follow-up: selective predicate surfacing rather than full-dump/token-match.*
