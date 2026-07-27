@@ -187,6 +187,48 @@ configs:
     predicate_grounding:
       k: 40
 
+  # --------------------------------------------------------------------
+  # Phase 07.4 Plan 05 checkpoint ADDITIVE arm: entity grounding (seam 6)
+  # AND predicate grounding (seam 7) composed in ONE config. The live sweep
+  # showed predicate-grounding ALONE (openai-gpt4o-mini-ck25-predicate-grounded)
+  # regressed vs entity-grounding ALONE (openai-gpt4o-mini-ck25-grounded, 12/49):
+  # predicate-only dropped the confirmed entity-grounding lever. This arm tests
+  # the real NL-ACC-02 hypothesis — does seam-7 predicate grounding ADD lift ON
+  # TOP OF the entity-grounded baseline. The runner already composes both indexes
+  # (runner.py passes grounding_index AND predicate_index to NlPipeline); this is
+  # a pure config addition, no runner change. `grounding:` mirrors the
+  # openai-gpt4o-mini-ck25-grounded arm byte-for-byte; `predicate_grounding:`
+  # mirrors the predicate-grounded arm.
+  # --------------------------------------------------------------------
+
+  # Additive (entity + predicate) — no network, deterministic; plumbing gate.
+  scripted-ck25-grounded-predicate-grounded:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates: ["rdfs:label", "pv:name"]
+    predicate_grounding:
+      k: 40
+
+  # Live CK25 additive (entity + predicate) sweep — RUN_EVAL=1 + NL2SPARQL_API_KEY,
+  # human-run (Plan 05 checkpoint). Confirmatory arm for the additive hypothesis.
+  openai-gpt4o-mini-ck25-grounded-predicate-grounded:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates: ["rdfs:label", "pv:name"]
+    predicate_grounding:
+      k: 40
+
   # QALD-9-plus predicate-grounded — no network, deterministic; plumbing gate.
   scripted-qald9plus-predicate-grounded:
     provider:
