@@ -735,6 +735,17 @@ boundary — `predicate_grounding:` is gated on `shared_ontology` (always
 truthy), never on `data_ttl` (RESEARCH Pitfall 5), so QALD's predicate-
 grounded config is not silently a no-op.
 
+**CR-01 correction (07.4-06):** widening `k` to the total predicate count
+alone does NOT achieve dump mode — the shared `arango_query_core` scorer
+drops any predicate with zero label/domain/range token overlap against the
+question regardless of `k`. Both adapters now pass the pinned
+`arango_query_core.nl.grounding.PredicateIndex`'s explicit `dump=True`
+kwarg (upstream commit `b669320`) when `0 < total <= PREDICATE_DUMP_THRESHOLD`,
+which bypasses that zero-hit filter and genuinely renders every predicate.
+The NL-ACC-02 CK25 predicate-grounded sweep recorded in `baseline.json`
+predates this fix and is confounded — re-run before treating its verdict
+as final.
+
 ### 10.2 The four live arms (exact commands)
 
 > **Pitfall 1 reminder — the runner's live path reads `NL2SPARQL_API_KEY`,
