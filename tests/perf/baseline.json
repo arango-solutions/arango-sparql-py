@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-07-28T17:15:00Z",
+  "captured_env": "local",
+  "rows": {
+    "translate_cold_p95_ms": 2.3,
+    "translate_warm_p95_ms": 2.3,
+    "execute_overhead_p95_ms": 1.9
+  }
+}

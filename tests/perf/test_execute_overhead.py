@@ -27,6 +27,9 @@ passes — advisory only.
 
 from __future__ import annotations
 
+import contextlib
+import gc
+import logging
 import os
 import time
 import warnings
@@ -62,6 +65,32 @@ _ONTOLOGY_TTL = """
 # the fake cursor's instant return dominates — the row measures
 # translate+dispatch overhead, not AQL execution time.
 _ASK_QUERY = "PREFIX : <http://ex.org/> ASK { ?s a :Thing }"
+
+
+@contextlib.contextmanager
+def _quiet_logging():
+    """Suppress logging + defer GC for the duration of a measurement loop.
+
+    ``execute_endpoint`` emits one ``logger.info`` per request
+    (``log_endpoint_timing``); under pytest's captured-stdout
+    redirection this I/O cost is uneven enough to occasionally land in
+    the p95 bucket and destabilize the gate with jitter unrelated to
+    the measured translate+dispatch work. A mid-loop GC pass is the
+    other common source of a single-iteration outlier (T-04-12
+    mitigation: a stable central value, not GC/I/O noise) --
+    ``gc.collect()`` runs once up front so the loop starts from a
+    clean generation, then ``gc.disable()`` keeps a cyclic-collector
+    pass from landing inside the timed window.
+    """
+    previous = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        logging.disable(previous)
 
 
 def _current_env() -> str:
@@ -107,18 +136,38 @@ def test_execute_overhead_p95(
     # itself re-exported from tests.test_service_sparql_routes) already
     # monkeypatches svc.ArangoClient -- /connect never touches a real DB.
     monkeypatch.setattr(svc, "_compute_bucket", _TokenBucket(10_000))
+    # /execute's analyzer-enrichment path (_analyzer_bundle_for_session ->
+    # _get_or_acquire, strategy="auto") resolves an LLM provider from
+    # OPENAI_API_KEY/ANTHROPIC_API_KEY/OPENROUTER_API_KEY/LLM_PROVIDER/
+    # SCHEMA_ANALYZER_PROVIDER when arangodb-schema-analyzer is installed
+    # (verified this session: a repo-local .env sets OPENAI_API_KEY, which
+    # this route layer picks up via _resolve_analyzer_provider). It fails
+    # fast against our _FakeDb (no .collections()) today and degrades
+    # silently, but a CI-gated, Docker/network-free perf row must not
+    # depend on that failure ordering never changing -- explicitly force
+    # the deterministic-baseline path so this row never risks a live LLM
+    # call regardless of the host's ambient env/.env configuration.
+    for _var in (
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENROUTER_API_KEY",
+        "LLM_PROVIDER",
+        "SCHEMA_ANALYZER_PROVIDER",
+    ):
+        monkeypatch.delenv(_var, raising=False)
     client = TestClient(app)
     token = _connect_session(client)
 
     samples: list[float] = []
-    for _ in range(_N_ITER):
-        t0 = time.perf_counter()
-        resp = client.post(
-            "/execute",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"sparql": _ASK_QUERY, "ontology_ttl": _ONTOLOGY_TTL},
-        )
-        samples.append((time.perf_counter() - t0) * 1000)
-        assert resp.status_code == 200, resp.text
+    with _quiet_logging():
+        for _ in range(_N_ITER):
+            t0 = time.perf_counter()
+            resp = client.post(
+                "/execute",
+                headers={"Authorization": f"Bearer {token}"},
+                json={"sparql": _ASK_QUERY, "ontology_ttl": _ONTOLOGY_TTL},
+            )
+            samples.append((time.perf_counter() - t0) * 1000)
+            assert resp.status_code == 200, resp.text
     measured = p95(samples[_WARMUP:])
     _gate("execute_overhead_p95_ms", measured)

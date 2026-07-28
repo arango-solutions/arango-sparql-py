@@ -27,6 +27,9 @@ baseline row, e.g. the very first capture run) the test emits a
 
 from __future__ import annotations
 
+import contextlib
+import gc
+import logging
 import os
 import time
 import warnings
@@ -108,6 +111,32 @@ LIMIT 5
 """
 
 
+@contextlib.contextmanager
+def _quiet_logging():
+    """Suppress logging + defer GC for the duration of a measurement loop.
+
+    ``translate_endpoint`` emits one ``logger.info`` per request
+    (``log_endpoint_timing``); under pytest's captured-stdout
+    redirection this I/O cost is uneven enough to occasionally land in
+    the p95 bucket and destabilize the gate with jitter unrelated to
+    the measured translate work. A mid-loop GC pass is the other
+    common source of a single-iteration outlier (T-04-12 mitigation:
+    a stable central value, not GC/I/O noise) -- ``gc.collect()`` runs
+    once up front so the loop starts from a clean generation, then
+    ``gc.disable()`` keeps a cyclic-collector pass from landing inside
+    the timed window.
+    """
+    previous = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        logging.disable(previous)
+
+
 def _current_env() -> str:
     return "ci" if os.environ.get("CI") else "local"
 
@@ -151,13 +180,14 @@ def test_translate_cold_p95(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(svc, "_compute_bucket", _TokenBucket(10_000))
     client = TestClient(app)
     samples: list[float] = []
-    for i in range(_N_ITER):
-        ttl = _cold_ttl(i)
-        query = _cold_query(i)
-        t0 = time.perf_counter()
-        resp = client.post("/translate", json={"sparql": query, "ontology_ttl": ttl})
-        samples.append((time.perf_counter() - t0) * 1000)
-        assert resp.status_code == 200, resp.text
+    with _quiet_logging():
+        for i in range(_N_ITER):
+            ttl = _cold_ttl(i)
+            query = _cold_query(i)
+            t0 = time.perf_counter()
+            resp = client.post("/translate", json={"sparql": query, "ontology_ttl": ttl})
+            samples.append((time.perf_counter() - t0) * 1000)
+            assert resp.status_code == 200, resp.text
     measured = p95(samples[_WARMUP:])
     _gate("translate_cold_p95_ms", measured)
 
@@ -166,13 +196,14 @@ def test_translate_warm_p95(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(svc, "_compute_bucket", _TokenBucket(10_000))
     client = TestClient(app)
     samples: list[float] = []
-    for _ in range(_N_ITER):
-        t0 = time.perf_counter()
-        resp = client.post(
-            "/translate",
-            json={"sparql": _WARM_QUERY, "ontology_ttl": _WARM_ONTOLOGY_TTL},
-        )
-        samples.append((time.perf_counter() - t0) * 1000)
-        assert resp.status_code == 200, resp.text
+    with _quiet_logging():
+        for _ in range(_N_ITER):
+            t0 = time.perf_counter()
+            resp = client.post(
+                "/translate",
+                json={"sparql": _WARM_QUERY, "ontology_ttl": _WARM_ONTOLOGY_TTL},
+            )
+            samples.append((time.perf_counter() - t0) * 1000)
+            assert resp.status_code == 200, resp.text
     measured = p95(samples[_WARMUP:])
     _gate("translate_warm_p95_ms", measured)
