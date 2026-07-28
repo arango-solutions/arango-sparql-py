@@ -114,3 +114,13 @@ None - no external service configuration required.
 ---
 *Phase: 04-interoperability-performance-verification*
 *Completed: 2026-07-28*
+
+## Self-Check: PASSED
+
+- FOUND: tests/integration/test_sparqlwrapper_smoke.py
+- FOUND: tests/integration/test_ontology_playground_roundtrip.py
+- FOUND commit a19bea9 (Task 1)
+- FOUND commit 2ed09f3 (Task 2)
+- FOUND commit 1913648 (plan metadata / this summary)
+- Re-verified this session (docker-gated): both files skip cleanly (`5 skipped`) without `RUN_INTEGRATION`; `RUN_INTEGRATION=1 uv run pytest tests/integration/test_sparqlwrapper_smoke.py tests/integration/test_ontology_playground_roundtrip.py -m integration -q` is green (`5 passed`) against a live docker-compose ArangoDB.
+- Non-regression suite re-confirmed green this session: `uv run pytest -m "not integration and not w3c and not eval and not perf" -q` → 1428 passed, 0 failed (matches the count recorded above).
