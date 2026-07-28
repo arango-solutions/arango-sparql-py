@@ -12,7 +12,7 @@ Design goals (see ``04-01-PLAN.md`` Task 2 and
   :mod:`tests.test_service_sparql_routes` with zero real I/O, rather than
   building a second, perf-specific test double.
 * Percentiles are computed with the stdlib ``statistics`` module
-  (``statistics.quantiles(samples, n=100)[93]`` for p95), matching this
+  (``statistics.quantiles(samples, n=100)[94]`` for p95), matching this
   repo's existing "no scipy" convention (``tests/nl2sparql/eval/power.py``).
 * Baseline comparison and the human-reviewed Markdown report both follow
   the checked-in-``baseline.json`` convention already established by
@@ -135,12 +135,13 @@ LATENCY_REPORT_PATH = Path(__file__).parent / "LATENCY_REPORT.md"
 def p95(samples: list[float]) -> float:
     """Return the 95th percentile of ``samples`` (stdlib-only, no numpy/scipy).
 
-    Uses ``statistics.quantiles(samples, n=100)[93]`` per RESEARCH.md's
-    "Don't Hand-Roll" guidance — index 93 is the boundary between the 94th
-    and 95th percentile bucket in a 100-way split, i.e. p95.
+    ``statistics.quantiles(samples, n=100)`` returns the 99 inner cut points
+    (index 0 = 1st percentile … index 98 = 99th percentile), so the 95th
+    percentile is index 94. (The previous ``[93]`` returned the 94th
+    percentile, silently under-measuring the CI-gated p95 gates — WR-01.)
     """
     ordered = sorted(samples)
-    return statistics.quantiles(ordered, n=100)[93]
+    return statistics.quantiles(ordered, n=100)[94]
 
 
 def load_baseline() -> dict[str, Any]:

@@ -4,6 +4,35 @@ Out-of-scope discoveries logged during plan execution (not fixed, per the
 executor's SCOPE BOUNDARY rule — only issues directly caused by the current
 task's own changes are auto-fixed).
 
+## Post-verification (code-review findings, Phase 04 close-out)
+
+- **rdflib SPARQL parser thread-safety (re-filed after lock revert).**
+  rdflib's SPARQL grammar uses module-level singleton pyparsing
+  `ParserElement`s with no thread-safety guarantee; concurrent
+  `parseQuery`/`translateQuery` under FastAPI's threaded dispatch can race
+  (observed as `<lambda>() missing 1 required positional argument: 'x'` under
+  concurrent load in `tests/perf/test_concurrency.py`). A module-level
+  `threading.Lock()` was trialled in 04-07 but **reverted at phase close-out**
+  (operator decision) because acquiring it from the async `/sparql` routes
+  (`arango_sparql/service/routes/protocol.py`) stalled the asyncio event loop
+  (WR-02). A proper fix — offload parsing to a threadpool executor for the
+  async routes, or build per-thread/per-request grammar instances — is
+  deferred to a dedicated plan. This is a REAL (observed) concurrency bug, not
+  hypothetical; prioritise if concurrent `/sparql` or `/execute` traffic is
+  expected before it is fixed.
+- **WR-03 — dead `OwlImportRequest` validation layer (`arango_sparql/service/routes/mapping.py`).**
+  The docstring claims `OwlImportRequest`'s pydantic `max_length` mirrors the
+  byte ceiling, but `import_owl` never takes `OwlImportRequest` as a parameter,
+  so that validation never runs; the constant it references (1 MB) also
+  disagrees with the actual byte cap (2 MB). Remove the dead model/docstring or
+  wire it in, and reconcile the constant. Minor; no security impact (the real
+  byte cap + triple cap both fire).
+- **WR-04 — export triple-count re-parse swallows exceptions (`mapping.py:471-477`).**
+  The export path's triple-count re-parse catches all exceptions into a silent
+  `triple_count = 0`, which would mask a future serializer/parser round-trip
+  regression. Narrow the except and at least log at debug. Minor (report-only
+  count, not a correctness path).
+
 ## 04-08 Task 2 (checkpoint resolution)
 
 - **Protégé/YASGUI recorded transcripts — deferred by operator decision
