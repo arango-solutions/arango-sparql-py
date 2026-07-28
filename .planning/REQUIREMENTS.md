@@ -35,7 +35,7 @@
 - [x] **REQ-foxx-parity** (PRD §3.7): **RETIRED** via ADR-0003 (Appendix B.3) — Foxx is deprecated; no v1.0 acceptance gate. See §13.4 amendment.
 - [x] **REQ-thirdparty-tool-compat** (PRD §3.10): Every §11.1 verified-compatible tool row has a passing smoke test (≥1 SELECT, 1 ASK, Service Description fetch) — Protégé, YASGUI, SPARQLWrapper, MS Ontology Playground. — acceptance: `tests/integration/test_*_compat.py`
 - [x] **REQ-ontoextract-integration** (PRD §3.11): `arango-ontoextract` can point its Q7 endpoint at us, seed via `/mapping/export-owl`, accept a curated OWL push via `/mapping/import-owl`. — acceptance: `tests/integration/test_aoe_roundtrip.py` (Docker-gated)
-- [ ] **REQ-performance-slos** (PRD §3.12): Every §9.4 perf budget row passes within ≤ 25% of stated p95 (CI-blocking on > 25% regression). — acceptance: `tests/perf/test_*.py`
+- [x] **REQ-performance-slos** (PRD §3.12): Every §9.4 perf budget row passes within ≤ 25% of stated p95 (CI-blocking on > 25% regression). — acceptance: `tests/perf/test_*.py`
 
 ### UI Workbench
 
@@ -110,7 +110,7 @@ Deferred to future release. Tracked but not in the current roadmap.
 | REQ-foxx-parity | Phase 4 | Retired |
 | REQ-thirdparty-tool-compat | Phase 4 | Complete |
 | REQ-ontoextract-integration | Phase 4 | Complete |
-| REQ-performance-slos | Phase 4 | Pending |
+| REQ-performance-slos | Phase 4 | Complete |
 | REQ-ui-parity | Phase 5 | Pending |
 | NL-EVAL-01 | Phase 6 | Complete |
 | NL-EVAL-02 | Phase 6 | Complete |

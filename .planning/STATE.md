@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T17:32:42.097Z"
+last_updated: "2026-07-28T18:19:25.373Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 43
-  completed_plans: 42
+  completed_plans: 43
   percent: 57
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 04 (interoperability-performance-verification) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-07-28
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [██████████] 98%
 | Phase 04 P04 | 25min | 2 tasks | 1 files |
 | Phase 04 P05 | ~20min | 2 tasks | 2 files |
 | Phase 04 P06 | 45min | 2 tasks | 3 files |
+| Phase 04 P07 | 55min | 1 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -184,6 +185,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04-06]: test_execute_overhead.py clears OPENAI_API_KEY/ANTHROPIC_API_KEY/OPENROUTER_API_KEY/LLM_PROVIDER/SCHEMA_ANALYZER_PROVIDER for the duration of the test so the analyzer-enrichment path never risks a live LLM call regardless of the host's ambient .env
 - [Phase 04-06]: Both perf test files suppress per-request INFO logging and defer GC (gc.collect+gc.disable) during the measurement loop -- logging I/O and mid-loop GC passes were destabilizing the p95 gate with noise unrelated to the measured work
 - [Phase 04-06]: baseline.json committed with captured_env=local as the plan-sanctioned interim bootstrap; authoritative CI-captured baseline is a required follow-up (CI runs are advisory-only against this baseline until then)
+- [Phase 04]: Locked ARANGO_URL/ARANGO_TEST_DB env defaults before tests/perf/conftest.py's eager import chain to close a real .env-pollution race that made Docker-gated perf rows target the wrong port/database — This repo's dev .env silently overrides ARANGO_URL to the wrong port and ARANGO_DB to the forbidden _system via load_dotenv(), triggered transitively before tests.integration.conftest resolved its own defaults
+- [Phase 04]: Swapped test_concurrency.py's pinned ASK query for a SELECT after discovering /execute cannot represent ASK's boolean AQL result against a real ArangoDB — ASK translates to RETURN LENGTH(...) > 0 (scalar boolean), incompatible with SparqlExecuteResponse.bindings: list[dict]; deferred as a Known Gap rather than changing the API contract
 
 ### Pending Todos
 
@@ -208,6 +211,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T17:32:42.092Z
-Stopped at: 04-07 Task 1 committed (901ed75); paused at Task 2 checkpoint:human-verify (gate=blocking)
-Resume file: .planning/phases/04-interoperability-performance-verification/04-07-PLAN.md
+Last session: 2026-07-28T18:19:25.364Z
+Stopped at: Completed 04-07-PLAN.md
+Resume file: None

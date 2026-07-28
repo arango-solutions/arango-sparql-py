@@ -106,7 +106,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   - [x] 04-04-PLAN.md — AOE own-half roundtrip contract test (import/export isomorphism + ASK/SELECT via /sparql)
   - [x] 04-05-PLAN.md — Automated third-party smoke: SPARQLWrapper + Ontology Playground roundtrip
   - [x] 04-06-PLAN.md — CI-gated perf tier: /translate cold+warm, /execute overhead p95 gate + baseline.json
-  - [ ] 04-07-PLAN.md — Report-only perf tier: 8 advisory rows → LATENCY_REPORT.md (human-run)
+  - [x] 04-07-PLAN.md — Report-only perf tier: 8 advisory rows → LATENCY_REPORT.md (human-run)
   - [ ] 04-08-PLAN.md — Documented-manual recipes: Protégé/YASGUI/rsparql/SPARQLWrapper/Playground + recorded transcript
 **Status**: Planned
 
@@ -465,7 +465,7 @@ arc runs 6 (measurable) → 06.1 (shared engine) → 06.2 (harder corpus + live 
 | 1. Deterministic transpiler core | shipped | Complete | pre-GSD (mature) |
 | 2. Protocol service + schema HTTP | shipped | Complete | pre-GSD (mature) |
 | 3. Operational/security/privacy parity | shipped | Complete | pre-GSD (mature) |
-| 4. Interop & performance verification | 6/8 | In Progress|  |
+| 4. Interop & performance verification | 7/8 | In Progress|  |
 | 5. UI workbench parity completion | 0/TBD | Not started | - |
 | 6. NL→SPARQL eval harness + corpus | 3/3 | Complete    | 2026-07-15 |
 | 06.1. Re-point nl2sparql onto shared engine | 3/3 | Executed | 2026-07-20 |
