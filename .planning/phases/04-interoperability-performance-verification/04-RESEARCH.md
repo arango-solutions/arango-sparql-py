@@ -628,19 +628,21 @@ assert isinstance(ask_result.get("boolean"), bool)
 
 **If this table is empty:** N/A — see above; all three entries are low-risk verification gaps, not load-bearing unknowns.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does the AOE contract test need seeded instance data, or is an empty-collection ASK/SELECT sufficient?**
+> All three resolved during planning and traceably adopted into the plans (04-04 Task 2, 04-02 objective, 04-06 Task 1).
+
+1. **Does the AOE contract test need seeded instance data, or is an empty-collection ASK/SELECT sufficient?** — RESOLVED: seed instance data (adopted in plan 04-04 Task 2).
    - What we know: `/execute` and (by inference) `/sparql` execute correctly against zero-row collections, returning well-formed empty results — this alone proves the AQL-emission path is correct.
    - What's unclear: Whether D-03's "ASK/SELECT via /sparql" intends a purely structural smoke check (query executes, returns correctly-typed empty results) or wants at least one seeded document so a SELECT returns a non-empty binding and an ASK returns `true` at least once.
    - Recommendation: Mirror `tests/integration/test_execute_endpoint.py`'s `_seeded_collection` pattern (create the collection, insert 1-3 documents) — it's already proven, costs almost nothing extra, and produces a strictly more convincing contract test (both a `true` and a `false` ASK, and a non-empty SELECT).
 
-2. **Should the RDF/XML format-plumbing fix land as part of this phase, or as a fast-follow prerequisite phase/task?**
+2. **Should the RDF/XML format-plumbing fix land as part of this phase, or as a fast-follow prerequisite phase/task?** — RESOLVED: land in this phase, framed as closing a documented gap (adopted as plan 04-02, Wave 1, unblocking 04-04/04-05).
    - What we know: It's a small, mechanical, rdflib-native change (format dispatch table) with zero new dependencies, verified feasible this session.
    - What's unclear: The phase framing explicitly says "builds verification harnesses... not new product features," which could be read as forbidding any production code change at all.
    - Recommendation: Frame it explicitly to the planner as "closing a documented-but-unimplemented PRD contract" (§11.3/§12.2 already assert RDF/XML support exists) rather than "new feature" — the alternative (testing only Turtle and silently not satisfying D-04) would leave a known gap between the PRD and the shipped behavior. This should be an explicit, small, separately-reviewable task, not folded silently into the test-writing tasks.
 
-3. **What is the right sample size / warmup policy for the CI-gated perf p95 gate to stay stable on shared GitHub Actions runners?**
+3. **What is the right sample size / warmup policy for the CI-gated perf p95 gate to stay stable on shared GitHub Actions runners?** — RESOLVED: N=100–200 with first 10–20 discarded as warmup (adopted in plan 04-06 Task 1 as N=120 / discard 20).
    - What we know: D-08 already asks for a "generous" tolerance (the existing 25% from §9.4); `statistics.quantiles` needs a reasonably large N for a stable p95 estimate (N=100 gives whole-percentile granularity).
    - What's unclear: The exact N and whether a warmup discard (e.g., first 10 iterations excluded) is needed to avoid cold-JIT/cold-cache skew — Python has no JIT to warm up (interpreter, not PyPy), but rdflib/pydantic model construction and FastAPI's routing table lookups may still have first-call overhead worth discarding.
    - Recommendation: N=100-200 samples with the first 10-20 discarded as warmup, consistent with the `/translate cold` vs `/translate warm` SLO rows already distinguishing this exact effect in §9.4's own table.
