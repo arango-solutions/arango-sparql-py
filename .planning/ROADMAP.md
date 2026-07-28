@@ -95,8 +95,20 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `arango-ontoextract` completes the Q7 roundtrip via `/mapping/export-owl` + `/mapping/import-owl` (Docker-gated, both services live)
   4. Every §9.4 performance budget row passes within ≤ 25% of its stated p95
 
-**Plans**: TBD
-**Status**: Not started
+> **Scope narrowed by 04-CONTEXT (D-01..D-09):** SC1 (Foxx parity) is retired via ADR-0003 — see plan 04-03; SC3 is reframed as our own-half `/mapping` OWL-roundtrip contract test (no live AOE); SC4 enforcement is tiered (3 CI-gated in-process rows + 8 report-only rows).
+
+**Plans**: 8 plans (2 waves)
+- Wave 1:
+  - [ ] 04-01-PLAN.md — Wave-0 foundation: perf marker + SPARQLWrapper dep, tests/perf scaffolding, vendored cosmic_coffee.rdf fixture, docs/howto anchor
+  - [ ] 04-02-PLAN.md — RDF/XML (+JSON-LD/N-Triples) format-dispatch production-code fix in owl.py + mapping.py (unblocks RDF/XML test rows)
+  - [ ] 04-03-PLAN.md — REQ-foxx-parity retirement: ADR-0003 + PRD/ROADMAP/REQUIREMENTS amendments
+- Wave 2:
+  - [ ] 04-04-PLAN.md — AOE own-half roundtrip contract test (import/export isomorphism + ASK/SELECT via /sparql)
+  - [ ] 04-05-PLAN.md — Automated third-party smoke: SPARQLWrapper + Ontology Playground roundtrip
+  - [ ] 04-06-PLAN.md — CI-gated perf tier: /translate cold+warm, /execute overhead p95 gate + baseline.json
+  - [ ] 04-07-PLAN.md — Report-only perf tier: 8 advisory rows → LATENCY_REPORT.md (human-run)
+  - [ ] 04-08-PLAN.md — Documented-manual recipes: Protégé/YASGUI/rsparql/SPARQLWrapper/Playground + recorded transcript
+**Status**: Planned
 
 ### Phase 5: UI workbench parity completion
 
