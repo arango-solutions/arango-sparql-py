@@ -39,7 +39,7 @@ key-decisions:
 patterns-established:
   - "Env-matched perf gate: any future report-only or CI-gated perf row (Plan 07) should reuse the captured_env tag + hard-enforce-on-match/advisory-on-mismatch pattern rather than inventing a new gating scheme."
 
-requirements-completed: [REQ-performance-slos]
+requirements-completed: []  # REQ-performance-slos is multi-plan (04-06 CI-gated tier + 04-07 report-only tier, both claim it in frontmatter); mirrors the 04-01 precedent of not marking a multi-plan requirement complete until its final owning plan lands.
 
 # Metrics
 duration: ~45min
