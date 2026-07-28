@@ -86,6 +86,9 @@ dev = [
   "pyoxigraph>=0.3.22",
   "arango-sparql-py[analyzer]",
   "typer>=0.9.0",
+  # SPARQLWrapper is the exact client PRD §11.1 names as the automated
+  # third-party-tool compat target (D-06).
+  "SPARQLWrapper>=2.0.0",
 ]
 
 [project.scripts]
@@ -99,6 +102,7 @@ markers = [
   "w3c: SPARQL 1.1 W3C DAWG evaluation harness",
   "cross: cross-validates transpiled AQL bindings against pyoxigraph as the W3C reference store",
   "eval: NL->SPARQL evaluation harness; slow, gated behind RUN_EVAL=1",
+  "perf: performance budget enforcement (see PRD §9.4); CI-blocking on >25% p95 regression for the fast in-process rows",
 ]
 
 # Static typing starts where the correctness risk is highest — the
