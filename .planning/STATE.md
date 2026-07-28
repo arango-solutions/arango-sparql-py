@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T15:56:39.410Z"
+last_updated: "2026-07-28T16:04:58.701Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 43
-  completed_plans: 38
+  completed_plans: 39
   percent: 57
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 04 (interoperability-performance-verification) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-07-28
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [█████████░] 88%
 | Phase 07.4 P06-refold | ~15min | 1 tasks | 3 files |
 | Phase 04 P01 | 10min | 3 tasks | 7 files |
 | Phase 04 P02 | 18min | 3 tasks | 4 files |
+| Phase 04 P03 | 10min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04-01]: cosmic_coffee.rdf pinned to commit 9a0eb93cef978b1ee6c4a6857dc0ce2733444ea0 (last commit touching that path on main), MIT license verified via GitHub API repo endpoint
 - [Phase 04-02]: owl.py's owl_turtle field is re-serialised to canonical Turtle on non-Turtle import (format=xml/json-ld/nt) — Preserves the codebase-wide invariant that owl_turtle is always Turtle text (resolver.py, schema routes); storing raw non-Turtle input would have silently broken those consumers
 - [Phase 04-02]: parse_owl_graph() centralizes the RDF/XML pre-parse DOCTYPE/ENTITY guard (billion-laughs/XXE) — Both the import parse and the export route's triple-count roundtrip reparse inherit the guard automatically rather than duplicating it at each call site
+- [Phase 04-03]: REQ-foxx-parity retired (not built) per locked D-01/D-02: legacy Foxx is deprecated, W3C DAWG (>=96.4%) is the sole correctness gate going forward
+- [Phase 04-03]: PRD Appendix B.3 mirrors the B.2 header shape (Status/Date/Owner/Related) plus Context/Decision/Considered alternatives/Consequences, matching the established ADR convention
+- [Phase 04-03]: Sec 9.4's 11 SLO rows kept intact (no deletions); each annotated CI-blocking (3 fast in-process rows) or Report-only (8 Docker/LLM/noisy rows) per D-08/D-09
+- [Phase 04-03]: ROADMAP SC1 kept as a struck-through historical entry (no prior struck-criterion precedent found in ROADMAP.md to follow instead)
 
 ### Pending Todos
 
@@ -191,6 +196,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T15:56:39.404Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-07-28T16:04:58.695Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
