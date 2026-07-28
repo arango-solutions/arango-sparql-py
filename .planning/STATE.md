@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T15:39:28.675Z"
+last_updated: "2026-07-28T15:56:39.410Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 43
-  completed_plans: 37
+  completed_plans: 38
   percent: 57
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 04 (interoperability-performance-verification) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-07-28
 
-Progress: [█████████░] 86%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [█████████░] 86%
 | Phase 07.4 P06 | 32min | 4 tasks | 9 files |
 | Phase 07.4 P06-refold | ~15min | 1 tasks | 3 files |
 | Phase 04 P01 | 10min | 3 tasks | 7 files |
+| Phase 04 P02 | 18min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-06 re-fold]: NL-ACC-02 re-closed as a VALID documented-null (provisional/confounded caveat removed) after the credentialed human RE-RAN the CK25 predicate-grounding sweep on the fixed dump mode (pin b66932046a102898e8fff205a7ddcbedfb2c896e): standalone predicate-alone 7/49 vs a fresh 12/49 entity-alone arm (p=0.1250, non-significant -- softened from the confounded run's wrong-direction-significant p=0.0156); additive (the phase's actual composition) 10/49 vs the same fresh 12/49 arm (p=0.6875, non-significant wash, 2 real wins on ck25-8/ck25-11 offset by 4 distraction losses). Overall disposition (fails hard gate, closes via documented-null) is unchanged from 07.4-05's conclusion -- only its confounded status is resolved. baseline.json's confounded 07.4-05 CK25 entries are overwritten (superseded, not deleted-in-place) with these clean numbers.
 - [Phase 04-01]: conftest.py imports (does not copy) _FakeArangoClient/_FakeDb/_FakeCursor/fake_client_factory/_connect_session from tests.test_service_sparql_routes -- the import path resolves cleanly, so no ~140-line duplication was needed
 - [Phase 04-01]: cosmic_coffee.rdf pinned to commit 9a0eb93cef978b1ee6c4a6857dc0ce2733444ea0 (last commit touching that path on main), MIT license verified via GitHub API repo endpoint
+- [Phase 04-02]: owl.py's owl_turtle field is re-serialised to canonical Turtle on non-Turtle import (format=xml/json-ld/nt) — Preserves the codebase-wide invariant that owl_turtle is always Turtle text (resolver.py, schema routes); storing raw non-Turtle input would have silently broken those consumers
+- [Phase 04-02]: parse_owl_graph() centralizes the RDF/XML pre-parse DOCTYPE/ENTITY guard (billion-laughs/XXE) — Both the import parse and the export route's triple-count roundtrip reparse inherit the guard automatically rather than duplicating it at each call site
 
 ### Pending Todos
 
@@ -188,6 +191,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T15:39:28.668Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-07-28T15:56:39.404Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None

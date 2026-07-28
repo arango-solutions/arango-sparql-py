@@ -38,7 +38,7 @@ key-decisions:
 patterns-established:
   - "Format-dispatch tables belong in the lower (translate) layer and are re-exported as small pure functions (format_from_mime) for the route layer to consume, rather than routes reaching into private translate-layer names."
 
-requirements-completed: [REQ-ontoextract-integration, REQ-thirdparty-tool-compat]
+requirements-completed: []  # REQ-ontoextract-integration and REQ-thirdparty-tool-compat NOT marked complete here — their acceptance tests (tests/integration/test_aoe_roundtrip.py, tests/integration/test_*_compat.py) don't exist until Plans 04-03/04-04/04-05 land; this plan only unblocks them (mirrors the NL-FEW-01/NL-ACC-01 multi-plan-requirement precedent from Phase 07).
 
 # Metrics
 duration: 18min
@@ -129,3 +129,7 @@ None - no external service configuration required.
 ---
 *Phase: 04-interoperability-performance-verification*
 *Completed: 2026-07-28*
+
+## Self-Check: PASSED
+
+All claimed files exist and all claimed commit hashes (`b1ea4ea`, `62e6211`, `5ef78ca`) resolve in `git log`.
