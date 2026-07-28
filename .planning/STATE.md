@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-07-28T19:07:12.282Z"
+status: ready_to_plan
+last_updated: 2026-07-28T19:26:08.421Z
 last_activity: 2026-07-28
 progress:
   total_phases: 14
@@ -11,6 +11,7 @@ progress:
   total_plans: 43
   completed_plans: 44
   percent: 64
+stopped_at: Phase 04 complete (8/8) — ready to discuss Phase 06
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 04 — interoperability-performance-verification
+**Current focus:** Phase 06 — nl sparql eval harness seed corpus
 
 ## Current Position
 
-Phase: 04 (interoperability-performance-verification) — EXECUTING
-Plan: 8 of 8
-Status: Phase complete — ready for verification
+Phase: 06
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-07-28
 
 Progress: [██████████] 100%
@@ -35,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 33 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
+- Total plans completed: 41 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -51,6 +52,7 @@ Progress: [██████████] 100%
 | 07.2 | 4 | - | - |
 | 07.3 | 6 | - | - |
 | 07.4 | 6 | - | - |
+| 04 | 8 | - | - |
 
 **Recent Trend:**
 

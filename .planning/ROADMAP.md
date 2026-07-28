@@ -465,7 +465,7 @@ arc runs 6 (measurable) → 06.1 (shared engine) → 06.2 (harder corpus + live 
 | 1. Deterministic transpiler core | shipped | Complete | pre-GSD (mature) |
 | 2. Protocol service + schema HTTP | shipped | Complete | pre-GSD (mature) |
 | 3. Operational/security/privacy parity | shipped | Complete | pre-GSD (mature) |
-| 4. Interop & performance verification | 8/8 | Complete   | 2026-07-28 |
+| 4. Interop & performance verification | 8/8 | Complete    | 2026-07-28 |
 | 5. UI workbench parity completion | 0/TBD | Not started | - |
 | 6. NL→SPARQL eval harness + corpus | 3/3 | Complete    | 2026-07-15 |
 | 06.1. Re-point nl2sparql onto shared engine | 3/3 | Executed | 2026-07-20 |
