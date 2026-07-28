@@ -32,8 +32,10 @@ from arango_sparql.translate.owl import (
     OwlBombError,
     OwlParseError,
     count_triples,
+    format_from_mime,
     mapping_to_turtle,
     owl_graph_view,
+    parse_owl_graph,
     resolve_max_triples,
     turtle_to_mapping,
 )
@@ -572,3 +574,205 @@ def test_graph_view_property_typed_twice_emits_once_object_wins() -> None:
     rel = [p for p in props if p["localName"] == "rel"]
     assert len(rel) == 1
     assert rel[0]["kind"] == "object"
+
+
+# ---------------------------------------------------------------------------
+# Format dispatch — Turtle / RDF-XML / JSON-LD / N-Triples (04-02 Task 1)
+# ---------------------------------------------------------------------------
+
+
+def _pg_graph() -> Graph:
+    g = Graph()
+    g.parse(data=PG_TURTLE, format="turtle")
+    return g
+
+
+PG_RDFXML = _pg_graph().serialize(format="xml")
+PG_JSONLD = _pg_graph().serialize(format="json-ld")
+PG_NTRIPLES = _pg_graph().serialize(format="nt")
+
+
+def test_turtle_to_mapping_rdfxml_roundtrip_parity() -> None:
+    """RDF/XML import must yield the same entity/relationship surface
+    as the Turtle import of the same ontology (D-04 roundtrip parity)."""
+
+    turtle_bundle = turtle_to_mapping(PG_TURTLE)
+    xml_bundle = turtle_to_mapping(PG_RDFXML, format="xml")
+    assert xml_bundle.entities() == turtle_bundle.entities()
+    assert xml_bundle.relationships() == turtle_bundle.relationships()
+
+
+def test_turtle_to_mapping_rdfxml_accepts_mime_string() -> None:
+    """``format=`` also accepts a bare MIME type, not just the rdflib name."""
+
+    bundle = turtle_to_mapping(PG_RDFXML, format="application/rdf+xml")
+    assert set(bundle.entities()) == {"Person", "Org"}
+
+
+def test_turtle_to_mapping_json_ld_roundtrip() -> None:
+    bundle = turtle_to_mapping(PG_JSONLD, format="json-ld")
+    assert set(bundle.entities()) == {"Person", "Org"}
+    assert set(bundle.relationships()) == {"knows", "worksAt"}
+
+
+def test_turtle_to_mapping_ntriples_roundtrip() -> None:
+    bundle = turtle_to_mapping(PG_NTRIPLES, format="nt")
+    assert set(bundle.entities()) == {"Person", "Org"}
+    assert set(bundle.relationships()) == {"knows", "worksAt"}
+
+
+def test_mapping_to_turtle_xml_output_is_isomorphic_to_turtle() -> None:
+    """``mapping_to_turtle(bundle, format="xml")`` output must re-parse
+    under rdflib ``format="xml"`` and be isomorphic to the Turtle
+    serialisation of the same bundle."""
+
+    bundle = turtle_to_mapping(PG_TURTLE, preserve_owl=False)
+    turtle_out = mapping_to_turtle(bundle)
+    xml_out = mapping_to_turtle(bundle, format="xml")
+
+    g_turtle = Graph()
+    g_turtle.parse(data=turtle_out, format="turtle")
+    g_xml = Graph()
+    g_xml.parse(data=xml_out, format="xml")
+    assert g_turtle.isomorphic(g_xml)
+
+
+def test_mapping_to_turtle_xml_from_inline_owl_turtle_reserialises() -> None:
+    """When the bundle carries an inline ``owl_turtle`` (the common
+    case), requesting ``format="xml"`` must re-serialise rather than
+    return the Turtle verbatim."""
+
+    bundle = turtle_to_mapping(PG_TURTLE)  # preserve_owl defaults True
+    xml_out = mapping_to_turtle(bundle, format="xml")
+    assert xml_out != bundle.owl_turtle
+    g = Graph()
+    g.parse(data=xml_out, format="xml")
+    assert len(g) == len(_pg_graph())
+
+
+def test_mapping_to_turtle_json_ld_and_nt_round_trip_same_bundle() -> None:
+    bundle = turtle_to_mapping(PG_TURTLE, preserve_owl=False)
+    jsonld_out = mapping_to_turtle(bundle, format="json-ld")
+    nt_out = mapping_to_turtle(bundle, format="nt")
+
+    g_jsonld = Graph()
+    g_jsonld.parse(data=jsonld_out, format="json-ld")
+    g_nt = Graph()
+    g_nt.parse(data=nt_out, format="nt")
+    assert g_jsonld.isomorphic(g_nt)
+
+
+def test_turtle_to_mapping_preserves_owl_turtle_as_turtle_even_for_xml_import() -> None:
+    """``MappingBundle.owl_turtle`` is documented (resolver.py, schema
+    routes) as always being Turtle text; importing via ``format="xml"``
+    must not leak raw RDF/XML into that slot."""
+
+    bundle = turtle_to_mapping(PG_RDFXML, format="xml")
+    assert bundle.owl_turtle is not None
+    assert "<?xml" not in bundle.owl_turtle
+    g = Graph()
+    g.parse(data=bundle.owl_turtle, format="turtle")
+    assert g.isomorphic(_pg_graph())
+
+
+def test_unknown_format_raises_owl_parse_error() -> None:
+    with pytest.raises(OwlParseError) as exc_info:
+        turtle_to_mapping(PG_TURTLE, format="not-a-real-format")
+    assert exc_info.value.code == "E_OWL_PARSE"
+
+
+def test_unknown_format_on_export_raises_owl_parse_error() -> None:
+    bundle = turtle_to_mapping(PG_TURTLE)
+    with pytest.raises(OwlParseError) as exc_info:
+        mapping_to_turtle(bundle, format="not-a-real-format")
+    assert exc_info.value.code == "E_OWL_PARSE"
+
+
+def test_triple_cap_fires_regardless_of_import_format() -> None:
+    """The OWL-bomb triple cap must fire identically whether the input
+    was Turtle or RDF/XML — it is applied to the parsed ``Graph``, not
+    the input bytes."""
+
+    actual_triples = count_triples(_pg_graph())
+    cap = max(1, actual_triples - 1)
+    with pytest.raises(OwlBombError) as exc_info:
+        turtle_to_mapping(PG_RDFXML, format="xml", max_triples=cap)
+    assert exc_info.value.code == "E_OWL_TOO_LARGE"
+
+
+def test_format_from_mime_resolves_known_types() -> None:
+    assert format_from_mime("text/turtle") == "turtle"
+    assert format_from_mime("application/rdf+xml") == "xml"
+    assert format_from_mime("application/ld+json") == "json-ld"
+    assert format_from_mime("application/n-triples") == "nt"
+
+
+def test_format_from_mime_unknown_returns_none() -> None:
+    assert format_from_mime("application/json") is None
+    assert format_from_mime("") is None
+    assert format_from_mime(None) is None
+
+
+# ---------------------------------------------------------------------------
+# RDF/XML pre-parse DOCTYPE/ENTITY guard (billion-laughs / XXE — 04-02 Task 3)
+# ---------------------------------------------------------------------------
+
+
+_XML_BILLION_LAUGHS = """<?xml version="1.0"?>
+<!DOCTYPE lolz [
+  <!ENTITY lol "lol">
+  <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:ex="http://ex.org/">
+  <owl:Class rdf:about="http://ex.org/Person">
+    <rdf:comment>&lol3;</rdf:comment>
+  </owl:Class>
+</rdf:RDF>
+"""
+
+_XML_XXE = """<?xml version="1.0"?>
+<!DOCTYPE rdf:RDF [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="http://ex.org/Person">
+    <rdf:comment>&xxe;</rdf:comment>
+  </owl:Class>
+</rdf:RDF>
+"""
+
+
+def test_billion_laughs_rdfxml_raises_owl_parse_error() -> None:
+    with pytest.raises(OwlParseError) as exc_info:
+        turtle_to_mapping(_XML_BILLION_LAUGHS, format="xml")
+    assert exc_info.value.code == "E_OWL_PARSE"
+
+
+def test_external_entity_rdfxml_raises_owl_parse_error() -> None:
+    with pytest.raises(OwlParseError) as exc_info:
+        turtle_to_mapping(_XML_XXE, format="xml")
+    assert exc_info.value.code == "E_OWL_PARSE"
+
+
+def test_dtd_free_rdfxml_still_parses_successfully() -> None:
+    """The guard must not reject legitimate, DOCTYPE-free RDF/XML."""
+
+    bundle = turtle_to_mapping(PG_RDFXML, format="xml")
+    assert set(bundle.entities()) == {"Person", "Org"}
+
+
+def test_parse_owl_graph_applies_dtd_guard_for_xml_format() -> None:
+    with pytest.raises(OwlParseError):
+        parse_owl_graph(_XML_BILLION_LAUGHS, "xml")
+
+
+def test_parse_owl_graph_does_not_guard_non_xml_formats() -> None:
+    """The DOCTYPE/ENTITY guard is RDF/XML-specific — Turtle input is
+    never scanned for it."""
+
+    graph = parse_owl_graph(PG_TURTLE, "turtle")
+    assert len(graph) == len(_pg_graph())

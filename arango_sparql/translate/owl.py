@@ -43,6 +43,7 @@ Public surface:
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 from rdflib import OWL, RDF, RDFS, Graph, Literal, URIRef
@@ -68,8 +69,10 @@ __all__ = [
     "OwlBombError",
     "OwlParseError",
     "count_triples",
+    "format_from_mime",
     "mapping_to_turtle",
     "owl_graph_view",
+    "parse_owl_graph",
     "resolve_max_triples",
     "turtle_to_mapping",
 ]
@@ -137,6 +140,127 @@ class OwlParseError(SparqlError):
 
 
 # ---------------------------------------------------------------------------
+# Format dispatch — Turtle, RDF/XML, JSON-LD, N-Triples (PRD §11.3/§12.2)
+# ---------------------------------------------------------------------------
+#
+# All four formats are natively supported by the installed rdflib (no new
+# dependency). ``_FORMAT_ALIASES`` maps the MIME strings a client sends on
+# ``Content-Type``/``Accept`` to the bare rdflib format name
+# ``Graph.parse``/``Graph.serialize`` expect; :func:`_resolve_rdflib_format`
+# additionally accepts the bare rdflib name itself so library callers don't
+# have to spell out a MIME type.
+
+_FORMAT_ALIASES: dict[str, str] = {
+    "text/turtle": "turtle",
+    "application/x-turtle": "turtle",
+    "application/rdf+xml": "xml",  # rdflib's format name for RDF/XML is "xml"
+    "application/ld+json": "json-ld",
+    "application/n-triples": "nt",
+}
+
+_VALID_RDFLIB_FORMATS: frozenset[str] = frozenset(_FORMAT_ALIASES.values())
+
+
+def format_from_mime(mime: str | None) -> str | None:
+    """Return the rdflib format name for *mime*, or ``None`` if unrecognised.
+
+    *mime* should already have any ``;`` parameters stripped (the route
+    layer does this before calling in). Used by both the import
+    Content-Type sniff and the export Accept negotiation so they share a
+    single source of truth (:data:`_FORMAT_ALIASES`).
+    """
+
+    if not mime:
+        return None
+    return _FORMAT_ALIASES.get(mime.strip().lower())
+
+
+def _resolve_rdflib_format(format: str) -> str:
+    """Resolve *format* — a MIME string or a bare rdflib format name — to
+    the rdflib format name ``Graph.parse``/``Graph.serialize`` expect.
+
+    Raises :class:`OwlParseError` (not a bare ``KeyError``/``ValueError``)
+    for anything unrecognised, matching this module's "never raise a raw
+    rdflib/stdlib exception" contract.
+    """
+
+    if not format or not isinstance(format, str):
+        raise OwlParseError(f"unrecognised OWL format: {format!r}")
+    normalized = format.strip().lower()
+    if normalized in _FORMAT_ALIASES:
+        return _FORMAT_ALIASES[normalized]
+    if normalized in _VALID_RDFLIB_FORMATS:
+        return normalized
+    raise OwlParseError(
+        f"unrecognised OWL format {format!r}; expected one of "
+        f"{sorted(_VALID_RDFLIB_FORMATS)} or a matching MIME type "
+        f"({sorted(_FORMAT_ALIASES)})"
+    )
+
+
+# ---------------------------------------------------------------------------
+# RDF/XML pre-parse DOCTYPE/ENTITY guard (billion-laughs / XXE defence)
+# ---------------------------------------------------------------------------
+#
+# The post-parse triple cap (below) cannot defend against an entity-
+# expansion ("billion laughs") bomb: the bomb detonates memory DURING
+# ``graph.parse()``, before a ``Graph`` exists for ``count_triples`` to
+# inspect. RDF/XML never legitimately requires a DTD, so rejecting any
+# ``<!DOCTYPE`` / ``<!ENTITY`` declaration before the bytes ever reach
+# rdflib's SAX-based RDF/XML parser is a safe, format-appropriate
+# rejection — not a functional limitation. This also blocks external-
+# entity (XXE) references (``<!ENTITY xxe SYSTEM "file:///etc/passwd">``)
+# since the SAX parser never sees the declaration that would trigger
+# resolution.
+
+_XML_DTD_PATTERN = re.compile(rb"<!\s*(?:DOCTYPE|ENTITY)\b", re.IGNORECASE)
+
+
+def _reject_xml_dtd(data: str | bytes) -> None:
+    """Raise :class:`OwlParseError` if *data* contains a ``<!DOCTYPE`` or
+    ``<!ENTITY`` declaration anywhere in the document.
+
+    Only meaningful for RDF/XML input — callers must gate this on the
+    resolved format being ``"xml"``. Scans the raw bytes directly
+    (case-insensitively) rather than parsing, so the check itself cannot
+    be tricked into doing expensive work on a hostile payload.
+    """
+
+    raw = data.encode("utf-8", errors="ignore") if isinstance(data, str) else data
+    if raw.startswith(b"\xef\xbb\xbf"):  # tolerate a leading UTF-8 BOM
+        raw = raw[3:]
+    if _XML_DTD_PATTERN.search(raw):
+        raise OwlParseError(
+            "RDF/XML DOCTYPE/ENTITY declarations are not permitted "
+            "(billion-laughs / XXE defence); RDF/XML never legitimately "
+            "requires a DTD"
+        )
+
+
+def parse_owl_graph(data: str, format: str = "turtle") -> Graph:
+    """Parse *data* into a fresh :class:`rdflib.Graph`.
+
+    Resolves *format* via :func:`_resolve_rdflib_format`, applies the
+    pre-parse :func:`_reject_xml_dtd` guard when the resolved format is
+    RDF/XML, then hands the bytes to ``rdflib``. Any parse failure —
+    including a rejected DTD — is wrapped in :class:`OwlParseError`
+    (``E_OWL_PARSE``) so callers never see a raw rdflib/stdlib exception.
+    """
+
+    resolved = _resolve_rdflib_format(format)
+    if resolved == "xml":
+        _reject_xml_dtd(data)
+    graph = Graph()
+    try:
+        graph.parse(data=data, format=resolved)
+    except OwlParseError:
+        raise
+    except Exception as exc:
+        raise OwlParseError(f"failed to parse OWL ({format}): {exc}") from exc
+    return graph
+
+
+# ---------------------------------------------------------------------------
 # Cheap helpers
 # ---------------------------------------------------------------------------
 
@@ -191,31 +315,47 @@ _PHYS_TO_RELATIONSHIP_FIELD: dict[str, str] = {
 def turtle_to_mapping(
     turtle: str,
     *,
+    format: str = "turtle",
     max_triples: int | None = None,
     preserve_owl: bool = True,
     source_notes: str | None = None,
 ) -> MappingBundle:
     """Parse *turtle* and project it into a :class:`MappingBundle`.
 
+    *format* selects the rdflib parser: ``"turtle"`` (default),
+    ``"xml"`` (RDF/XML), ``"json-ld"``, or ``"nt"`` (N-Triples) — or
+    the equivalent MIME string for any of those (see
+    :data:`_FORMAT_ALIASES`). All four are native to the installed
+    rdflib; no new dependency is required.
+
     Steps:
 
-    1. Hand the Turtle to ``rdflib.Graph.parse(format="turtle")``.
-       Parse errors are wrapped in :class:`OwlParseError` with the
-       PRD's stable ``E_OWL_PARSE`` code.
+    1. Hand the input to :func:`parse_owl_graph`, which resolves
+       *format*, applies the pre-parse RDF/XML DOCTYPE/ENTITY guard
+       (billion-laughs/XXE defence) when the resolved format is
+       ``"xml"``, and parses via ``rdflib``. Parse errors — including
+       a rejected DTD — are wrapped in :class:`OwlParseError` with
+       the PRD's stable ``E_OWL_PARSE`` code.
     2. Enforce the triple cap (PRD §8.6 T7). The default is
        :data:`DEFAULT_MAPPING_IMPORT_MAX_TRIPLES` (200 000); an
        explicit *max_triples* override is honoured by the route
        layer's tests but is otherwise read from the
-       :envvar:`MAPPING_IMPORT_MAX_TRIPLES` env var.
+       :envvar:`MAPPING_IMPORT_MAX_TRIPLES` env var. This cap is
+       applied to the parsed ``Graph`` — i.e. it is format-agnostic
+       and fires identically regardless of *format*.
     3. Walk every ``owl:Class`` / ``owl:ObjectProperty`` /
        ``owl:DatatypeProperty`` resource and harvest its ``phys:*``
        annotations into the analyzer-canonical
        ``physicalMapping.{entities, relationships}`` shape.
-    4. Build a :class:`MappingBundle` with the original Turtle on
+    4. Build a :class:`MappingBundle` with the ontology on
        :attr:`MappingBundle.owl_turtle` (if *preserve_owl* is true)
        so the resolver can re-use it without reserialisation, and a
        :class:`MappingSource` tagged ``imported_owl`` with the
-       supplied *source_notes*.
+       supplied *source_notes*. ``owl_turtle`` is documented
+       elsewhere (:mod:`resolver`, the schema routes) as always being
+       Turtle text regardless of the import format — when *format*
+       is not ``"turtle"`` the parsed graph is re-serialised to
+       canonical Turtle before being stored, so that invariant holds.
 
     The conceptual half is left empty by design — the analyzer's
     OWL emission is the canonical conceptual schema, and we don't
@@ -237,11 +377,8 @@ def turtle_to_mapping(
             "turtle input is empty; supply at least one prefix declaration or class statement"
         )
 
-    graph = Graph()
-    try:
-        graph.parse(data=turtle, format="turtle")
-    except Exception as exc:
-        raise OwlParseError(f"failed to parse Turtle: {exc}") from exc
+    resolved_format = _resolve_rdflib_format(format)
+    graph = parse_owl_graph(turtle, resolved_format)
 
     cap = resolve_max_triples(max_triples)
     triples = count_triples(graph)
@@ -263,6 +400,18 @@ def turtle_to_mapping(
     if warnings:
         metadata["warnings"] = warnings
 
+    owl_turtle_value: str | None
+    if not preserve_owl:
+        owl_turtle_value = None
+    elif resolved_format == "turtle":
+        owl_turtle_value = turtle
+    else:
+        # ``MappingBundle.owl_turtle`` is consumed elsewhere (resolver.py,
+        # the schema routes) under the hard assumption that it is Turtle
+        # text — re-serialise so that invariant holds regardless of the
+        # format the caller imported from.
+        owl_turtle_value = graph.serialize(format="turtle")
+
     bundle = MappingBundle(
         conceptual_schema={"entities": [], "relationships": []},
         physical_mapping={
@@ -270,7 +419,7 @@ def turtle_to_mapping(
             "relationships": relationships,
         },
         metadata=metadata,
-        owl_turtle=turtle if preserve_owl else None,
+        owl_turtle=owl_turtle_value,
         source=MappingSource(
             kind="imported_owl",
             notes=source_notes,
@@ -433,24 +582,35 @@ def _physical_literal(graph: Graph, subject: URIRef, predicate_local: str) -> st
 def mapping_to_turtle(
     bundle: MappingBundle | None,
     *,
+    format: str = "turtle",
     rebind_prefixes: bool = True,
 ) -> str:
-    """Serialise *bundle* as an OWL/Turtle string.
+    """Serialise *bundle* as an OWL string in the requested *format*.
+
+    *format* selects the rdflib serialiser: ``"turtle"`` (default),
+    ``"xml"`` (RDF/XML), ``"json-ld"``, or ``"nt"`` (N-Triples) — or
+    the equivalent MIME string for any of those (see
+    :data:`_FORMAT_ALIASES`).
 
     Two paths:
 
     * If the bundle already carries :attr:`MappingBundle.owl_turtle`
-      we return it verbatim. The analyzer's OWL serialisation is
-      the canonical form; round-tripping it through rdflib would
-      introduce syntactic drift (whitespace, prefix order) that a
-      downstream UI's diff view would surface as spurious changes.
+      (always Turtle text, regardless of the format it was originally
+      imported from — see :func:`turtle_to_mapping`) and *format*
+      resolves to ``"turtle"``, it is returned verbatim: the
+      analyzer's OWL serialisation is the canonical form, and round-
+      tripping it through rdflib would introduce syntactic drift
+      (whitespace, prefix order) that a downstream UI's diff view
+      would surface as spurious changes. When a different *format* is
+      requested, the inline Turtle is re-parsed and re-serialised into
+      that format (still avoiding the synthesizer).
 
     * Otherwise we synthesise a graph via
       :func:`_synthesize_graph_from_bundle` (the same helper the
-      resolver uses) and serialise it as Turtle. ``rdflib`` picks
-      sensible default prefix bindings; we additionally bind
-      ``phys:`` for the synthesizer's annotation namespace so the
-      output is human-readable.
+      resolver uses) and serialise it in the requested format.
+      ``rdflib`` picks sensible default prefix bindings; we
+      additionally bind ``phys:`` for the synthesizer's annotation
+      namespace so Turtle/RDF-XML output is human-readable.
 
     *rebind_prefixes* is a tunable for tests that need a known
     serialisation; production code should leave it at the default.
@@ -459,15 +619,23 @@ def mapping_to_turtle(
     if bundle is None:
         raise MappingError("cannot serialise a None bundle")
 
+    resolved_format = _resolve_rdflib_format(format)
+
     if bundle.owl_turtle:
-        return bundle.owl_turtle
+        if resolved_format == "turtle":
+            return bundle.owl_turtle
+        # bundle.owl_turtle is always canonical Turtle (see
+        # turtle_to_mapping's format-agnostic storage contract) — no XML
+        # DTD guard needed here, we're parsing Turtle, not RDF/XML.
+        graph = parse_owl_graph(bundle.owl_turtle, "turtle")
+        return graph.serialize(format=resolved_format)
 
     graph = _synthesize_graph_from_bundle(bundle)
     if rebind_prefixes:
         graph.bind("phys", _SYNTHETIC_PHYS_NS, replace=True)
         graph.bind("owl", OWL, replace=True)
         graph.bind("rdfs", RDFS, replace=True)
-    return graph.serialize(format="turtle")
+    return graph.serialize(format=resolved_format)
 
 
 # ---------------------------------------------------------------------------
