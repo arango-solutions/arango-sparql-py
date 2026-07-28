@@ -52,7 +52,9 @@ from ...translate.owl import (
     OwlBombError,
     OwlParseError,
     count_triples,
+    format_from_mime,
     mapping_to_turtle,
+    parse_owl_graph,
     turtle_to_mapping,
 )
 from ..app import app
@@ -107,14 +109,32 @@ def _resolve_max_bytes() -> int:
 # Body extraction + content-negotiation
 # ---------------------------------------------------------------------------
 
+# Reverse of owl.py's ``_FORMAT_ALIASES`` — the canonical MIME type to
+# advertise on the ``Content-Type`` response header for each rdflib
+# format name, used by ``export_owl``'s raw-body response path.
+_EXPORT_MIME_BY_FORMAT: dict[str, str] = {
+    "turtle": "text/turtle",
+    "xml": "application/rdf+xml",
+    "json-ld": "application/ld+json",
+    "nt": "application/n-triples",
+}
 
-async def _read_import_body(request: Request, max_bytes: int) -> tuple[str, str | None]:
+
+async def _read_import_body(request: Request, max_bytes: int) -> tuple[str, str | None, str]:
     """Pull the raw bytes off *request*, enforce the byte ceiling,
-    and decode into a ``(turtle, source_notes)`` tuple.
+    and decode into a ``(turtle, source_notes, format)`` tuple.
 
-    Returns ``(turtle, source_notes)`` where ``source_notes`` is
-    drawn from a JSON envelope (``{turtle, source_notes}``) when
-    that shape is present, else ``None``.
+    Returns ``(turtle, source_notes, format)`` where ``source_notes``
+    is drawn from a JSON envelope (``{turtle, source_notes}``) when
+    that shape is present, else ``None``, and ``format`` is the
+    rdflib format name resolved from the request's ``Content-Type``
+    (``text/turtle`` → ``"turtle"``, ``application/rdf+xml`` →
+    ``"xml"``, etc. — see ``owl.py``'s ``_FORMAT_ALIASES``). The JSON
+    envelope path always resolves to ``"turtle"`` since its ``turtle``
+    field is documented as Turtle text regardless of Content-Type.
+    An unrecognised or absent Content-Type on the raw-body path
+    defaults to ``"turtle"``, matching the historical "treat any
+    non-JSON content as raw Turtle" behaviour.
 
     Raises ``HTTPException(413, ...)`` when the body exceeds
     *max_bytes*; ``HTTPException(422, ...)`` when neither a JSON
@@ -167,7 +187,7 @@ async def _read_import_body(request: Request, max_bytes: int) -> tuple[str, str 
                     },
                 )
             notes = payload.get("source_notes")
-            return turtle, notes if isinstance(notes, str) else None
+            return turtle, notes if isinstance(notes, str) else None, "turtle"
         if content_type == "application/json":
             # JSON content-type but unrecognised body shape — fail
             # loudly rather than silently falling back to "treat the
@@ -180,11 +200,13 @@ async def _read_import_body(request: Request, max_bytes: int) -> tuple[str, str 
                 },
             )
 
-    # Treat any non-JSON content as raw Turtle. ``text/turtle`` is
-    # the documented happy path; ``text/plain`` and unset content
-    # types (curl's default) are accepted too.
+    # Treat any non-JSON content as raw OWL in the Content-Type's
+    # negotiated format. ``text/turtle`` is the documented happy path;
+    # ``text/plain`` and unset content types (curl's default) fall back
+    # to Turtle too, matching the historical behaviour.
+    negotiated_format = format_from_mime(content_type) or "turtle"
     try:
-        return raw.decode("utf-8"), None
+        return raw.decode("utf-8"), None, negotiated_format
     except UnicodeDecodeError as exc:
         raise HTTPException(
             status_code=422,
@@ -197,20 +219,32 @@ async def _read_import_body(request: Request, max_bytes: int) -> tuple[str, str 
         ) from exc
 
 
-def _wants_turtle_response(request: Request) -> bool:
-    """Inspect the ``Accept`` header for a Turtle-ish media type.
+def _negotiate_export_format(request: Request) -> str | None:
+    """Inspect the ``Accept`` header and return the negotiated rdflib
+    format name for a raw-body export response, or ``None`` when the
+    client wants the default JSON envelope.
 
-    ``text/turtle`` and ``application/x-turtle`` are both honoured
-    (the latter is the legacy spelling some clients still use).
-    Anything else — including the default ``*/*`` — falls through
-    to the JSON envelope so a curious browser doesn't see raw
-    Turtle when it expected JSON.
+    ``text/turtle``, ``application/x-turtle`` (legacy spelling),
+    ``application/rdf+xml``, ``application/ld+json``, and
+    ``application/n-triples`` are all honoured (see owl.py's
+    ``_FORMAT_ALIASES`` via :func:`format_from_mime`). Accept is a
+    comma-separated list of media types (optionally with
+    ``;q=`` parameters); the first recognised type wins. Anything
+    else — including the default ``*/*``, an absent header, or
+    ``application/json`` — falls through to ``None`` so a curious
+    browser or JSON client doesn't see a raw body when it expected the
+    JSON envelope.
     """
 
     accept = request.headers.get("accept", "").lower()
     if not accept or accept == "*/*":
-        return False
-    return "text/turtle" in accept or "application/x-turtle" in accept
+        return None
+    for part in accept.split(","):
+        mime = part.split(";", 1)[0].strip()
+        resolved = format_from_mime(mime)
+        if resolved is not None:
+            return resolved
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -224,24 +258,28 @@ async def import_owl(
     _: None = Depends(_check_compute_rate_limit),
     session: _Session = Depends(_get_session),
 ) -> OwlImportResponse:
-    """Parse a posted OWL/Turtle ontology into a
-    :class:`MappingBundle` and return its wire-dict form.
+    """Parse a posted OWL ontology into a :class:`MappingBundle` and
+    return its wire-dict form.
 
     Body:
 
-    * ``Content-Type: text/turtle`` — raw Turtle bytes.
+    * ``Content-Type: text/turtle`` (default), ``application/rdf+xml``,
+      ``application/ld+json``, or ``application/n-triples`` — raw OWL
+      bytes in the corresponding format.
     * ``Content-Type: application/json`` — ``{turtle: str,
-      source_notes?: str}`` envelope.
+      source_notes?: str}`` envelope (always Turtle text).
 
     Per PRD §8.6 T7 the byte ceiling and the post-parse triple cap
     are both enforced; both surface with the typed code
     ``E_OWL_TOO_LARGE`` (413 for bytes, 422 for triples) so a UI
-    can render one error path for both.
+    can render one error path for both, regardless of format. RDF/XML
+    input additionally passes through a pre-parse DOCTYPE/ENTITY guard
+    (billion-laughs/XXE defence) inside :func:`turtle_to_mapping`.
     """
 
     t0 = time.perf_counter()
     max_bytes = _resolve_max_bytes()
-    turtle, notes = await _read_import_body(request, max_bytes)
+    turtle, notes, negotiated_format = await _read_import_body(request, max_bytes)
 
     # Stamp the session-effective ``source_notes`` so a downstream
     # audit log can pin "tenant X imported this OWL at time Y" even
@@ -249,7 +287,7 @@ async def import_owl(
     effective_notes = notes or f"imported via /mapping/import-owl by {session.token[:8]}…"
 
     try:
-        bundle = turtle_to_mapping(turtle, source_notes=effective_notes)
+        bundle = turtle_to_mapping(turtle, format=negotiated_format, source_notes=effective_notes)
     except OwlBombError as exc:
         log_endpoint_timing(
             "/mapping/import-owl",
@@ -333,14 +371,17 @@ def export_owl(
     session: _Session = Depends(_get_session),
 ) -> OwlExportResponse | PlainTextResponse:
     """Serialise a :class:`MappingBundle` (or an already-Turtle blob)
-    back to OWL/Turtle.
+    back to OWL.
 
     Content-negotiated:
 
-    * ``Accept: text/turtle`` (or ``application/x-turtle``) → raw
-      Turtle response (``Content-Type: text/turtle``).
-    * Anything else → JSON envelope ``{turtle, mime_type,
-      triple_count, elapsed_ms}``.
+    * ``Accept: text/turtle`` (or ``application/x-turtle``),
+      ``application/rdf+xml``, ``application/ld+json``, or
+      ``application/n-triples`` → raw response in the negotiated
+      format, with a matching ``Content-Type``.
+    * Anything else (absent, ``*/*``, ``application/json``, ...) →
+      JSON envelope ``{turtle, mime_type, triple_count, elapsed_ms}``
+      (always Turtle, unchanged from the pre-04-02 shape).
 
     Either ``mapping`` (a :class:`MappingBundle` wire dict) or
     ``ontology_ttl`` (a Turtle blob the caller wants to round-trip
@@ -392,8 +433,24 @@ def export_owl(
             },
         ) from exc
 
+    negotiated = _negotiate_export_format(request)
+    export_format = negotiated or "turtle"
+    wants_raw = negotiated is not None
+
     try:
-        turtle = mapping_to_turtle(bundle)
+        serialized = mapping_to_turtle(bundle, format=export_format)
+    except OwlParseError as exc:
+        # format= itself was unrecognised — shouldn't happen since
+        # _negotiate_export_format only ever returns a resolvable
+        # rdflib format name, but keep the typed envelope symmetric
+        # with the import route's handling of the same exception.
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": _sanitize_error(str(exc)),
+                "code": exc.code,
+            },
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -404,41 +461,44 @@ def export_owl(
         ) from exc
 
     # Compute triple_count from the synthesised graph by re-importing
-    # the just-serialised Turtle. Cheap (the graph we just built has
-    # at most a few thousand triples), and lets us return one number
-    # the caller can render as a "1.2k triples" badge regardless of
-    # which input shape they supplied.
+    # the just-serialised content in its own negotiated format. Cheap
+    # (the graph we just built has at most a few thousand triples),
+    # and lets us return one number the caller can render as a "1.2k
+    # triples" badge regardless of which input/output shape they
+    # supplied. Routes through parse_owl_graph so an RDF/XML roundtrip
+    # still passes the pre-parse DOCTYPE/ENTITY guard (defence-in-depth
+    # — this content is server-generated, but the guard is free here).
     try:
-        from rdflib import Graph
-
-        roundtrip = Graph()
-        roundtrip.parse(data=turtle, format="turtle")
+        roundtrip = parse_owl_graph(serialized, export_format)
         triple_count = count_triples(roundtrip)
     except Exception:
-        # Should never happen — we just produced this Turtle — but
+        # Should never happen — we just produced this content — but
         # don't fail the export over a count we can't compute.
         triple_count = 0
 
     elapsed_ms = round((time.perf_counter() - t0) * 1000, 1)
-    wants_turtle = _wants_turtle_response(request)
 
     log_endpoint_timing(
         "/mapping/export-owl",
         elapsed_ms,
-        format="turtle" if wants_turtle else "json",
+        format=export_format if wants_raw else "json",
         triple_count=triple_count,
-        bytes=len(turtle.encode("utf-8")),
+        bytes=len(serialized.encode("utf-8")),
         session=session.token[:8] + "…" if session and session.token else "unknown",
     )
 
-    if wants_turtle:
+    if wants_raw:
+        mime = _EXPORT_MIME_BY_FORMAT.get(export_format, "text/turtle")
         return PlainTextResponse(
-            content=turtle,
-            media_type="text/turtle",
+            content=serialized,
+            media_type=mime,
             headers={"X-Triple-Count": str(triple_count)},
         )
+    # Not wants_raw ⟹ negotiated is None ⟹ export_format == "turtle",
+    # so `serialized` here is always Turtle — JSON envelope shape is
+    # byte-for-byte unchanged from the pre-04-02 default.
     return OwlExportResponse(
-        turtle=turtle,
+        turtle=serialized,
         mime_type="text/turtle",
         triple_count=triple_count,
         elapsed_ms=elapsed_ms,

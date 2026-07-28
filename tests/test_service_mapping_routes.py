@@ -37,6 +37,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from rdflib import Graph
 
 import arango_sparql.service as svc
 from arango_sparql.service import _sessions, app
@@ -109,6 +110,28 @@ ex:knows a owl:ObjectProperty ;
     phys:mappingStyle "DEDICATED_COLLECTION" ;
     rdfs:domain ex:Person ;
     rdfs:range  ex:Person .
+"""
+
+
+def _pg_rdfxml() -> str:
+    g = Graph()
+    g.parse(data=PG_TURTLE, format="turtle")
+    return g.serialize(format="xml")
+
+
+PG_RDFXML = _pg_rdfxml()
+
+_XML_BILLION_LAUGHS = """<?xml version="1.0"?>
+<!DOCTYPE lolz [
+  <!ENTITY lol "lol">
+  <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+]>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="http://ex.org/Person">
+    <rdf:comment>&lol2;</rdf:comment>
+  </owl:Class>
+</rdf:RDF>
 """
 
 
@@ -647,6 +670,125 @@ def test_resolve_max_bytes_env_parsing(
         assert _resolve_max_bytes() == _DEFAULT_MAPPING_IMPORT_MAX_BYTES
     else:
         assert _resolve_max_bytes() == int(raw)
+
+
+# ---------------------------------------------------------------------------
+# RDF/XML Content-Type/Accept negotiation (04-02 Task 2)
+# ---------------------------------------------------------------------------
+
+
+def test_import_rdfxml_body_matches_turtle_import(client: TestClient, session_token: str) -> None:
+    """POST /mapping/import-owl with Content-Type: application/rdf+xml
+    must parse an RDF/XML body and return the same entity/relationship
+    surface as the Turtle import of the same ontology (D-04)."""
+
+    turtle_resp = client.post(
+        "/mapping/import-owl",
+        content=PG_TURTLE.encode("utf-8"),
+        headers={"Content-Type": "text/turtle", "X-Arango-Session": session_token},
+    )
+    assert turtle_resp.status_code == 200, turtle_resp.text
+
+    xml_resp = client.post(
+        "/mapping/import-owl",
+        content=PG_RDFXML.encode("utf-8"),
+        headers={"Content-Type": "application/rdf+xml", "X-Arango-Session": session_token},
+    )
+    assert xml_resp.status_code == 200, xml_resp.text
+
+    turtle_pm = turtle_resp.json()["mapping"]["physicalMapping"]
+    xml_pm = xml_resp.json()["mapping"]["physicalMapping"]
+    assert xml_pm["entities"] == turtle_pm["entities"]
+    assert xml_pm["relationships"] == turtle_pm["relationships"]
+
+
+def test_export_rdfxml_accept_negotiation(client: TestClient, session_token: str) -> None:
+    """POST /mapping/export-owl with Accept: application/rdf+xml must
+    return a raw RDF/XML body (re-parseable under rdflib format="xml")
+    with a matching Content-Type."""
+
+    resp = client.post(
+        "/mapping/export-owl",
+        json={"ontology_ttl": PG_TURTLE},
+        headers={
+            "X-Arango-Session": session_token,
+            "Accept": "application/rdf+xml",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"].startswith("application/rdf+xml")
+    g = Graph()
+    g.parse(data=resp.text, format="xml")
+    assert len(g) > 0
+    assert int(resp.headers["x-triple-count"]) > 0
+
+
+def test_export_turtle_default_path_unchanged(client: TestClient, session_token: str) -> None:
+    """Existing Turtle import/export path must be unaffected by the
+    new format-negotiation machinery — default Accept still yields the
+    JSON envelope; Accept: text/turtle still yields raw Turtle."""
+
+    json_resp = client.post(
+        "/mapping/export-owl",
+        json={"ontology_ttl": PG_TURTLE},
+        headers={"X-Arango-Session": session_token},
+    )
+    assert json_resp.status_code == 200
+    assert json_resp.json()["mime_type"] == "text/turtle"
+
+    turtle_resp = client.post(
+        "/mapping/export-owl",
+        json={"ontology_ttl": PG_TURTLE},
+        headers={"X-Arango-Session": session_token, "Accept": "text/turtle"},
+    )
+    assert turtle_resp.status_code == 200
+    assert turtle_resp.headers["content-type"].startswith("text/turtle")
+
+
+def test_import_rdfxml_owl_bomb_returns_422(
+    client: TestClient,
+    session_token: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The OWL-bomb triple cap must fire identically for an RDF/XML
+    body — mirrors test_triple_cap_returns_422 but posting
+    application/rdf+xml."""
+
+    monkeypatch.setenv("MAPPING_IMPORT_MAX_TRIPLES", "3")
+    resp = client.post(
+        "/mapping/import-owl",
+        content=PG_RDFXML.encode("utf-8"),
+        headers={
+            "Content-Type": "application/rdf+xml",
+            "X-Arango-Session": session_token,
+        },
+    )
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert detail["code"] == "E_OWL_TOO_LARGE"
+
+
+# ---------------------------------------------------------------------------
+# RDF/XML pre-parse DOCTYPE/ENTITY guard (04-02 Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_import_rdfxml_doctype_entity_returns_422_parse(client: TestClient, session_token: str) -> None:
+    """POST /mapping/import-owl with a DOCTYPE/ENTITY RDF/XML body must
+    return 422 E_OWL_PARSE via the unchanged envelope — the billion-
+    laughs/XXE payload must never reach rdflib's parser."""
+
+    resp = client.post(
+        "/mapping/import-owl",
+        content=_XML_BILLION_LAUGHS.encode("utf-8"),
+        headers={
+            "Content-Type": "application/rdf+xml",
+            "X-Arango-Session": session_token,
+        },
+    )
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert detail["code"] == "E_OWL_PARSE"
 
 
 # Suppress unused-import warning on `os` (kept for potential
