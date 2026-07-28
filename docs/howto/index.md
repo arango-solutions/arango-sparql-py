@@ -10,17 +10,19 @@ tools are documented here with a recorded transcript instead (D-05/D-07).
 See PRD §11.1 for the full list of tools this project targets for
 interoperability, and §11.4 for the connectivity-recipe posture.
 
-## Planned recipes
+## Recipes
 
 | Recipe | Tool | Purpose |
 |--------|------|---------|
-| `sparqlwrapper.md` | [SPARQLWrapper](https://sparqlwrapper.readthedocs.io/) (Python) | Pure-Python SPARQL client; also exercised by an automated smoke test (`tests/integration/test_sparqlwrapper_smoke.py`, D-06) — this recipe documents the same SELECT/ASK/Service-Description flow for manual use. |
-| `ontology-playground.md` | Microsoft [Ontology Playground](https://github.com/microsoft/Ontology-Playground) | Round-tripping a vendored OWL/RDF-XML catalogue fixture through `/mapping/import-owl` and `/mapping/export-owl` (D-06); companion to `tests/integration/test_ontology_playground_roundtrip.py`. |
-| `protege.md` | [Protégé](https://protege.stanford.edu/) (JVM desktop ontology editor) | Connecting Protégé to the live `/sparql` endpoint for interactive querying; documented-manual only, no CI image (D-07). |
-| `arq.md` | Apache Jena `rsparql`/`arq` CLI | Headless command-line SPARQL querying against `/sparql`, used to drive and record the Protégé recipe's transcript; documented-manual only (D-07). |
-| `yasgui.md` | [YASGUI](https://triply.cc/docs/yasgui) (browser SPARQL widget) | Embedding a browser-based query UI against `/sparql`; documented-manual only, no CI image (D-07). |
+| [`sparqlwrapper.md`](sparqlwrapper.md) | [SPARQLWrapper](https://sparqlwrapper.readthedocs.io/) (Python) | Pure-Python SPARQL client; also exercised by an automated smoke test (`tests/integration/test_sparqlwrapper_smoke.py`, D-06) — this recipe documents the same SELECT/ASK/Service-Description flow for manual use. |
+| [`ontology-playground.md`](ontology-playground.md) | Microsoft [Ontology Playground](https://github.com/microsoft/Ontology-Playground) | Round-tripping a vendored OWL/RDF-XML catalogue fixture through `/mapping/import-owl` and `/mapping/export-owl` (D-06); companion to `tests/integration/test_ontology_playground_roundtrip.py`. |
+| [`protege.md`](protege.md) | [Protégé](https://protege.stanford.edu/) (JVM desktop ontology editor) | Connecting Protégé to the live `/sparql` endpoint for interactive querying, driven headlessly via Apache Jena `rsparql` for the recorded transcript; documented-manual only, no CI image (D-07). |
+| [`arq.md`](arq.md) | Apache Jena `rsparql` CLI | Headless command-line SPARQL querying against `/sparql`, used to drive and record the Protégé recipe's transcript; documented-manual only (D-07). |
+| [`yasgui.md`](yasgui.md) | [YASGUI](https://triply.cc/docs/yasgui) (browser SPARQL widget) | Embedding a browser-based query UI against `/sparql`; documented-manual only, no CI image (D-07). |
 
-Each recipe (once written) follows a consistent shape: Prerequisites,
-Connect, SELECT example, ASK example, Service Description fetch, and a
-recorded transcript proving the flow was actually run against a live
-instance of this service.
+Each recipe follows a consistent shape: Prerequisites, Connect, SELECT
+example, ASK example, Service Description fetch, and — for the JVM/browser
+tools (`protege.md`, `yasgui.md`) — a recorded transcript proving the flow
+was actually run by a human against a live instance of this service. No
+JVM/browser image is added to CI for any of these; `protege.md`/`yasgui.md`
+are verified manually per D-07.
