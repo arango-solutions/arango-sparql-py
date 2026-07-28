@@ -90,7 +90,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: REQ-foxx-parity, REQ-thirdparty-tool-compat, REQ-ontoextract-integration, REQ-performance-slos
 **Success Criteria** (what must be TRUE):
 
-  1. ≥ 90% of translatable legacy Foxx fixtures pass a golden emitting semantically equivalent AQL (`test_foxx_roundtrip.py`, Docker-gated)
+  1. ~~≥ 90% of translatable legacy Foxx fixtures pass a golden emitting semantically equivalent AQL (`test_foxx_roundtrip.py`, Docker-gated)~~ **STRUCK — REQ-foxx-parity retired via ADR-0003 (D-01/D-02); Foxx is deprecated.**
   2. Each §11.1 verified-compatible tool (Protégé, YASGUI, SPARQLWrapper, MS Ontology Playground) passes a smoke test (SELECT + ASK + Service Description)
   3. `arango-ontoextract` completes the Q7 roundtrip via `/mapping/export-owl` + `/mapping/import-owl` (Docker-gated, both services live)
   4. Every §9.4 performance budget row passes within ≤ 25% of its stated p95
