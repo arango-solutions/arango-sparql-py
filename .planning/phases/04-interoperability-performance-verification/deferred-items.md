@@ -4,6 +4,26 @@ Out-of-scope discoveries logged during plan execution (not fixed, per the
 executor's SCOPE BOUNDARY rule — only issues directly caused by the current
 task's own changes are auto-fixed).
 
+## 04-08 Task 2 (checkpoint resolution)
+
+- **Protégé/YASGUI recorded transcripts — deferred by operator decision
+  (documented-manual by design, D-07).** `docs/howto/protege.md` and
+  `docs/howto/yasgui.md`'s `## Transcript (recorded, human-required
+  checkpoint)` sections carry only the reserved, clearly-marked placeholder
+  block ("RECORDED TRANSCRIPT — TO BE FILLED IN BY A HUMAN... Do not invent
+  output.") — no transcript was fabricated. The operator resolved the 04-08
+  Task 2 `checkpoint:human-verify` with an explicit CLOSE WITH PLACEHOLDERS
+  decision: the five howto recipes (Prerequisites/Connect/SELECT/ASK/Service
+  Description) are the delivered artifact for REQ-thirdparty-tool-compat's
+  documented-manual half; the recorded transcripts remain a follow-up to be
+  captured whenever a human actually runs the JVM (`rsparql`/Protégé) and
+  browser (YASGUI) tools against a live instance of this service. Not
+  fixed/fabricated here — out of scope for an automated agent to fill by
+  design (D-07: these tools cannot run in CI, and inventing "observed"
+  terminal/browser output would violate the plan's own "Do not fabricate"
+  instruction). Re-open when a human has JVM + browser access to a live
+  `/sparql` endpoint.
+
 ## 04-07 Task 1
 
 - **Pre-existing CI-gated perf flake (Plan 06 files, unrelated to 04-07).**
