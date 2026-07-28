@@ -30,17 +30,14 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.integration.conftest import (
+from tests.perf.conftest import (
     DEFAULT_ARANGO_DB,
-    DEFAULT_ARANGO_PASSWORD,
-    DEFAULT_ARANGO_URL,
-    DEFAULT_ARANGO_USER,
-    arangodb_reachable,
-    ensure_test_database,
-    integration_enabled,
-    try_boot_arangodb_via_compose,
+    arango_seeded_collection,
+    append_report,
+    connect_session_or_skip,
+    live_arango_or_skip,
+    p95,
 )
-from tests.perf.conftest import append_report, p95
 
 pytestmark = pytest.mark.perf
 
@@ -76,15 +73,11 @@ _SELECT_QUERY = (
 
 @pytest.fixture(scope="module")
 def _live_arango() -> Iterator[None]:
-    """Module-scoped Docker gate, mirroring every ``tests/integration/*``
-    file's fixture of the same name."""
+    """Module-scoped Docker + connect/auth gate — see
+    ``tests/perf/conftest.py``'s :func:`live_arango_or_skip` (never
+    ERRORs on a connect/auth failure; skip-gates instead)."""
 
-    if not integration_enabled():
-        pytest.skip("set RUN_INTEGRATION=1 to enable the Docker-gated perf report rows")
-    if not arangodb_reachable():
-        if not try_boot_arangodb_via_compose():
-            pytest.skip(f"ArangoDB at {DEFAULT_ARANGO_URL} is unreachable and could not be booted")
-    ensure_test_database()
+    live_arango_or_skip()
     yield
 
 
@@ -95,44 +88,9 @@ def _seeded_collection(_live_arango: None) -> Iterator[list[dict]]:
     calls for on this row.
     """
 
-    from arango import ArangoClient
-
-    client = ArangoClient(hosts=DEFAULT_ARANGO_URL)
-    db = client.db(DEFAULT_ARANGO_DB, username=DEFAULT_ARANGO_USER, password=DEFAULT_ARANGO_PASSWORD)
-
-    if db.has_collection(_TEST_COLLECTION):
-        db.delete_collection(_TEST_COLLECTION)
-    coll = db.create_collection(_TEST_COLLECTION)
-
     docs = [{"_uri": f"http://example.org/perf-sparql#p{i}", "name": f"Person{i}"} for i in range(_ROW_COUNT)]
-    coll.insert_many(docs)
-
-    try:
-        yield docs
-    finally:
-        try:
-            db.delete_collection(_TEST_COLLECTION)
-        except Exception:
-            # Best-effort teardown — a failed delete shouldn't mask a
-            # real test failure upstream.
-            pass
-        client.close()
-
-
-def _connect_session(client: TestClient) -> str:
-    resp = client.post(
-        "/connect",
-        json={
-            "url": DEFAULT_ARANGO_URL,
-            "database": DEFAULT_ARANGO_DB,
-            "username": DEFAULT_ARANGO_USER,
-            "password": DEFAULT_ARANGO_PASSWORD,
-        },
-    )
-    assert resp.status_code == 200, f"connect failed: {resp.status_code} {resp.text}"
-    payload = resp.json()
-    assert payload["token"]
-    return payload["token"]
+    with arango_seeded_collection(_TEST_COLLECTION, docs) as seeded:
+        yield seeded
 
 
 def test_sparql_get_p95(monkeypatch: pytest.MonkeyPatch, _seeded_collection: list[dict]) -> None:
@@ -154,7 +112,7 @@ def test_sparql_get_p95(monkeypatch: pytest.MonkeyPatch, _seeded_collection: lis
     monkeypatch.setattr(svc, "_compute_bucket", _TokenBucket(10_000))
 
     client = TestClient(app)
-    token = _connect_session(client)
+    token = connect_session_or_skip(client)
 
     # /mapping/import-owl is stateless (RESEARCH.md Pattern 2) — push
     # the mapping straight into the process-wide SchemaCache so

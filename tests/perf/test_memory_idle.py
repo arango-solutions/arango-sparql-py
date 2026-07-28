@@ -36,17 +36,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from tests.integration.conftest import (
-    DEFAULT_ARANGO_DB,
-    DEFAULT_ARANGO_PASSWORD,
-    DEFAULT_ARANGO_URL,
-    DEFAULT_ARANGO_USER,
-    arangodb_reachable,
-    ensure_test_database,
-    integration_enabled,
-    try_boot_arangodb_via_compose,
-)
-from tests.perf.conftest import append_report, p95
+from tests.perf.conftest import append_report, connect_session_or_skip, live_arango_or_skip, p95
 
 pytestmark = pytest.mark.perf
 
@@ -70,15 +60,11 @@ def _rss_mib() -> float:
 
 @pytest.fixture(scope="module")
 def _live_arango() -> Iterator[None]:
-    """Module-scoped Docker gate, mirroring every ``tests/integration/*``
-    file's fixture of the same name."""
+    """Module-scoped Docker + connect/auth gate — see
+    ``tests/perf/conftest.py``'s :func:`live_arango_or_skip` (never
+    ERRORs on a connect/auth failure; skip-gates instead)."""
 
-    if not integration_enabled():
-        pytest.skip("set RUN_INTEGRATION=1 to enable the Docker-gated perf report rows")
-    if not arangodb_reachable():
-        if not try_boot_arangodb_via_compose():
-            pytest.skip(f"ArangoDB at {DEFAULT_ARANGO_URL} is unreachable and could not be booted")
-    ensure_test_database()
+    live_arango_or_skip()
     yield
 
 
@@ -93,16 +79,7 @@ def test_memory_idle_rss_p95(_live_arango: None) -> None:
     from arango_sparql.service import app
 
     client = TestClient(app)
-    resp = client.post(
-        "/connect",
-        json={
-            "url": DEFAULT_ARANGO_URL,
-            "database": DEFAULT_ARANGO_DB,
-            "username": DEFAULT_ARANGO_USER,
-            "password": DEFAULT_ARANGO_PASSWORD,
-        },
-    )
-    assert resp.status_code == 200, resp.text
+    connect_session_or_skip(client)
 
     samples: list[float] = []
     for _ in range(_N_SAMPLES):

@@ -36,17 +36,13 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.integration.conftest import (
-    DEFAULT_ARANGO_DB,
-    DEFAULT_ARANGO_PASSWORD,
-    DEFAULT_ARANGO_URL,
-    DEFAULT_ARANGO_USER,
-    arangodb_reachable,
-    ensure_test_database,
-    integration_enabled,
-    try_boot_arangodb_via_compose,
+from tests.perf.conftest import (
+    arango_seeded_collection,
+    append_report,
+    connect_session_or_skip,
+    live_arango_or_skip,
+    p95,
 )
-from tests.perf.conftest import append_report, p95
 
 pytestmark = pytest.mark.perf
 
@@ -70,15 +66,11 @@ _LLM_PROVIDER_ENV_VARS = (
 
 @pytest.fixture(scope="module")
 def _live_arango() -> Iterator[None]:
-    """Module-scoped Docker gate, mirroring every ``tests/integration/*``
-    file's fixture of the same name."""
+    """Module-scoped Docker + connect/auth gate — see
+    ``tests/perf/conftest.py``'s :func:`live_arango_or_skip` (never
+    ERRORs on a connect/auth failure; skip-gates instead)."""
 
-    if not integration_enabled():
-        pytest.skip("set RUN_INTEGRATION=1 to enable the Docker-gated perf report rows")
-    if not arangodb_reachable():
-        if not try_boot_arangodb_via_compose():
-            pytest.skip(f"ArangoDB at {DEFAULT_ARANGO_URL} is unreachable and could not be booted")
-    ensure_test_database()
+    live_arango_or_skip()
     yield
 
 
@@ -87,47 +79,12 @@ def _seeded_collection(_live_arango: None) -> Iterator[list[dict]]:
     """Drop-and-recreate a small seeded collection so schema
     acquisition has real shape/data to introspect."""
 
-    from arango import ArangoClient
-
-    client = ArangoClient(hosts=DEFAULT_ARANGO_URL)
-    db = client.db(DEFAULT_ARANGO_DB, username=DEFAULT_ARANGO_USER, password=DEFAULT_ARANGO_PASSWORD)
-
-    if db.has_collection(_TEST_COLLECTION):
-        db.delete_collection(_TEST_COLLECTION)
-    coll = db.create_collection(_TEST_COLLECTION)
-
     docs = [
         {"_uri": "http://example.org/perf-introspect#p1", "name": "Ivy", "age": 24},
         {"_uri": "http://example.org/perf-introspect#p2", "name": "Jack", "age": 31},
     ]
-    coll.insert_many(docs)
-
-    try:
-        yield docs
-    finally:
-        try:
-            db.delete_collection(_TEST_COLLECTION)
-        except Exception:
-            # Best-effort teardown — a failed delete shouldn't mask a
-            # real test failure upstream.
-            pass
-        client.close()
-
-
-def _connect_session(client: TestClient) -> str:
-    resp = client.post(
-        "/connect",
-        json={
-            "url": DEFAULT_ARANGO_URL,
-            "database": DEFAULT_ARANGO_DB,
-            "username": DEFAULT_ARANGO_USER,
-            "password": DEFAULT_ARANGO_PASSWORD,
-        },
-    )
-    assert resp.status_code == 200, f"connect failed: {resp.status_code} {resp.text}"
-    payload = resp.json()
-    assert payload["token"]
-    return payload["token"]
+    with arango_seeded_collection(_TEST_COLLECTION, docs) as seeded:
+        yield seeded
 
 
 def test_schema_introspect_cache_miss_and_hit_p95(
@@ -148,7 +105,7 @@ def test_schema_introspect_cache_miss_and_hit_p95(
         monkeypatch.delenv(_var, raising=False)
 
     client = TestClient(app)
-    token = _connect_session(client)
+    token = connect_session_or_skip(client)
     headers = {"Authorization": f"Bearer {token}"}
 
     # --- cache-miss row: force=true forces a fresh acquisition every call ---

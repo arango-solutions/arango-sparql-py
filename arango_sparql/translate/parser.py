@@ -19,6 +19,7 @@ inspection workflow.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +28,25 @@ from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
 
 from ..errors import SparqlParseError
+
+# rdflib's SPARQL grammar (``rdflib.plugins.sparql.parser``) is built on
+# pyparsing ``ParserElement`` objects that are module-level *singletons*
+# (e.g. ``IRIREF.set_parse_action(lambda x: rdflib.URIRef(x[0]))``,
+# ``BLANK_NODE_LABEL``, ``INTEGER``, ...) — the same shared grammar
+# instances parse every query, in every thread. pyparsing's internal
+# parse-in-progress state on those shared objects is not safe for
+# concurrent use from multiple threads: two overlapping ``parseQuery``
+# calls can interleave and corrupt each other's state, surfacing as a
+# spurious ``TypeError`` from one of the grammar's own parse-action
+# lambdas (observed here as ``<lambda>() missing 1 required positional
+# argument: 'x'`` under concurrent ``/execute`` load — PRD §9.4's
+# concurrency report row, ``tests/perf/test_concurrency.py``, is what
+# first surfaced this). This service is deployed behind FastAPI's
+# threaded request handling, so concurrent requests are the norm, not
+# an edge case — this module-level lock serializes the two rdflib calls
+# that touch the shared grammar/algebra machinery so concurrent
+# ``/execute``/``/sparql``/``/translate`` calls never race.
+_PARSE_LOCK = threading.Lock()
 
 
 @dataclass
@@ -67,8 +87,9 @@ def parse_sparql(query: str) -> ParsedSparql:
     if not isinstance(query, str) or not query.strip():
         raise SparqlParseError("SPARQL query must be a non-empty string")
     try:
-        parsed = parseQuery(query)
-        translated = translateQuery(parsed)
+        with _PARSE_LOCK:
+            parsed = parseQuery(query)
+            translated = translateQuery(parsed)
     except Exception as exc:
         raise SparqlParseError(f"failed to parse SPARQL: {exc}") from exc
     explicit = _extract_explicit_projection(parsed)

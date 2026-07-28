@@ -36,17 +36,14 @@ from collections.abc import Iterator
 
 import pytest
 
-from tests.integration.conftest import (
+from tests.perf.conftest import (
     DEFAULT_ARANGO_DB,
-    DEFAULT_ARANGO_PASSWORD,
-    DEFAULT_ARANGO_URL,
-    DEFAULT_ARANGO_USER,
-    arangodb_reachable,
-    ensure_test_database,
-    integration_enabled,
-    try_boot_arangodb_via_compose,
+    arango_seeded_collection,
+    append_report,
+    connect_session_over_socket_or_skip,
+    live_arango_or_skip,
+    p95,
 )
-from tests.perf.conftest import append_report, p95
 
 pytestmark = pytest.mark.perf
 
@@ -79,15 +76,11 @@ _SELECT_QUERY = (
 
 @pytest.fixture(scope="module")
 def _live_arango() -> Iterator[None]:
-    """Module-scoped Docker gate, mirroring every ``tests/integration/*``
-    file's fixture of the same name."""
+    """Module-scoped Docker + connect/auth gate — see
+    ``tests/perf/conftest.py``'s :func:`live_arango_or_skip` (never
+    ERRORs on a connect/auth failure; skip-gates instead)."""
 
-    if not integration_enabled():
-        pytest.skip("set RUN_INTEGRATION=1 to enable the Docker-gated perf report rows")
-    if not arangodb_reachable():
-        if not try_boot_arangodb_via_compose():
-            pytest.skip(f"ArangoDB at {DEFAULT_ARANGO_URL} is unreachable and could not be booted")
-    ensure_test_database()
+    live_arango_or_skip()
     yield
 
 
@@ -97,30 +90,11 @@ def _seeded_collection(_live_arango: None) -> Iterator[list[dict]]:
     with ``_ROW_COUNT`` rows -- large enough that a real TCP transfer
     has observable duration beyond header arrival."""
 
-    from arango import ArangoClient
-
-    client = ArangoClient(hosts=DEFAULT_ARANGO_URL)
-    db = client.db(DEFAULT_ARANGO_DB, username=DEFAULT_ARANGO_USER, password=DEFAULT_ARANGO_PASSWORD)
-
-    if db.has_collection(_TEST_COLLECTION):
-        db.delete_collection(_TEST_COLLECTION)
-    coll = db.create_collection(_TEST_COLLECTION)
-
     docs = [
         {"_uri": f"http://example.org/perf-firstbyte#p{i}", "name": f"Person{i}"} for i in range(_ROW_COUNT)
     ]
-    coll.insert_many(docs)
-
-    try:
-        yield docs
-    finally:
-        try:
-            db.delete_collection(_TEST_COLLECTION)
-        except Exception:
-            # Best-effort teardown — a failed delete shouldn't mask a
-            # real test failure upstream.
-            pass
-        client.close()
+    with arango_seeded_collection(_TEST_COLLECTION, docs) as seeded:
+        yield seeded
 
 
 @pytest.fixture(scope="module")
@@ -172,30 +146,6 @@ def _live_server(_seeded_collection: list[dict]) -> Iterator[int]:
         thread.join(timeout=5.0)
 
 
-def _connect_session_over_socket(port: int) -> str:
-    import json as _json
-
-    body = _json.dumps(
-        {
-            "url": DEFAULT_ARANGO_URL,
-            "database": DEFAULT_ARANGO_DB,
-            "username": DEFAULT_ARANGO_USER,
-            "password": DEFAULT_ARANGO_PASSWORD,
-        }
-    ).encode("utf-8")
-    req = urllib.request.Request(
-        f"http://127.0.0.1:{port}/connect",
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=5.0) as resp:
-        assert resp.status == 200
-        payload = _json.loads(resp.read().decode("utf-8"))
-    assert payload["token"]
-    return payload["token"]
-
-
 def test_first_byte_p95(_live_server: int) -> None:
     """Report-only time-to-first-byte p95 for ``GET /sparql`` over the
     real bound socket. Never asserts against the §9.4 budget (D-09) —
@@ -205,7 +155,7 @@ def test_first_byte_p95(_live_server: int) -> None:
     from arango_sparql.service.routes.schema import _resolve_schema_cache
     from arango_sparql.translate.owl import turtle_to_mapping
 
-    token = _connect_session_over_socket(_live_server)
+    token = connect_session_over_socket_or_skip(_live_server)
     # /mapping/import-owl is stateless (RESEARCH.md Pattern 2) -- push
     # the mapping straight into the process-wide SchemaCache; the
     # background server shares this process's module-global cache.

@@ -42,7 +42,17 @@ DEFAULT_ARANGO_PASSWORD = os.getenv("ARANGO_PASSWORD", "rootpw")
 # but ``_system`` so the suite never drops/recreates collections in the
 # ArangoDB catalogue database. The DB is auto-provisioned by the
 # fixtures (``ensure_test_database``) since it may not exist yet.
-DEFAULT_ARANGO_DB = os.getenv("ARANGO_TEST_DB") or os.getenv("ARANGO_DB") or "sparql-to-aql"
+_resolved_arango_db = os.getenv("ARANGO_TEST_DB") or os.getenv("ARANGO_DB") or "sparql-to-aql"
+if _resolved_arango_db == "_system":
+    # Never trust an ambient ``_system`` resolution regardless of which
+    # env var it came from — this repo's own dev ``.env`` sets
+    # ``ARANGO_DB=_system``, and an import-order race can leak that
+    # value into this module's resolution before a test-only override
+    # is in effect (see 04-07-PLAN.md's hardening fix). A report-only
+    # perf row or test fixture must never run against the ArangoDB
+    # catalogue database, full stop.
+    _resolved_arango_db = "sparql-to-aql"
+DEFAULT_ARANGO_DB = _resolved_arango_db
 
 
 def ensure_test_database() -> None:
