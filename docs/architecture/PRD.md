@@ -126,7 +126,7 @@ under *Where detailed* — these one-line summaries are the contract.
 | §3.4 | **Hybrid translation in a single BGP** — one SPARQL BGP whose triples touch ≥ 2 physical models translates to a single AQL query (not rejected, not split) | `tests/translate/hybrid.yml` + `tests/cross/test_hybrid_cross.py` | §6.6 (mixed-model row) |
 | §3.5 | **Schema detection (algorithmic + analyzer-backed)** — both detectors ship; analyzer wins on `auto`; classifies the sister project's mapping-fixture corpus + this project's RPT fixtures with zero false negatives | `tests/schema/test_classify.py`, `tests/schema/test_acquire.py`, `tests/schema/fixtures/*.export.json` | §6.3 |
 | §3.6 | **Schema HTTP surface parity with `arango-cypher-py`** — all 9 schema/mapping routes exist with documented response shapes | `tests/test_service_schema_routes.py`; route names listed in §5.1 | §5.1, §6.4 |
-| §3.7 | **Hybrid-schema parity with legacy Foxx (`arango-sparql`)** — every translatable legacy fixture has a corresponding golden under `tests/translate/` emitting semantically equivalent AQL | `tests/legacy/test_foxx_roundtrip.py` (Docker-gated; ≥ 90 % of legacy fixtures pass) | §13.4 |
+| §3.7 | ~~**Hybrid-schema parity with legacy Foxx (`arango-sparql`)** — every translatable legacy fixture has a corresponding golden under `tests/translate/` emitting semantically equivalent AQL~~ **WAIVED per ADR-0003 (Appendix B.3) — Foxx is deprecated; W3C DAWG coverage (§13.5) is the sole correctness gate.** | ~~`tests/legacy/test_foxx_roundtrip.py` (Docker-gated; ≥ 90 % of legacy fixtures pass)~~ Retired, never built. | §13.4, Appendix B.3 |
 | §3.8 | **Operational parity with `arango-cypher-py`** — *measurable* parity: identical session / connect / public-mode / CORS / rate-limit / SSRF / redaction / startup-guard surface; one CI test per surface verifies behaviour | `tests/parity/test_cypher_py_*.py` (one file per row of §8) | §8 |
 | §3.9 | **UI feature parity with `arango-cypher-py`'s workbench** — every row of the §10.2 + §10.3 capability tables has a passing playwright test | `ui/tests/playwright/parity.spec.ts` (CI-blocking) | §10 |
 | §3.10 | **Validated 3rd-party tool compatibility** — every "verified-compatible" row of §11.1 has a passing smoke test exercising at least one SELECT, one ASK, and the Service Description fetch | `tests/integration/test_*_compat.py` (one file per tool) | §11 |
@@ -1354,25 +1354,41 @@ advisories like `W_RESULT_TRUNCATED`).
 
 ### 9.4 Performance budgets (v1.0 SLOs)
 
-The following budgets define ship-blocking SLOs. CI **fails** if any
-budget regresses by more than 25% on the standard hardware profile
-(GitHub Actions `ubuntu-latest`, 2 vCPU / 7 GiB RAM, ArangoDB 3.12
-single-server in Docker, default config). Local measurement uses the
-benchmark suite under `tests/perf/` (added in v1.0).
+The following budgets define v1.0 SLOs, but enforcement is **tiered**
+per ADR-driven decisions D-08/D-09 (04-CONTEXT.md): only the fast,
+deterministic, in-process rows are CI-blocking; the Docker/LLM/noisy
+rows are report-only. CI **fails** on a CI-blocking row if it regresses
+by more than 25% on the standard hardware profile (GitHub Actions
+`ubuntu-latest`, 2 vCPU / 7 GiB RAM, ArangoDB 3.12 single-server in
+Docker, default config). Report-only rows produce a checked-in
+`LATENCY_REPORT.md` from a local/on-demand run, reviewed by humans — the
+> 25% threshold is advisory for these rows, not CI-gating. Local
+measurement uses the benchmark suite under `tests/perf/` (added in
+v1.0).
 
-| Budget | Target (p50) | Target (p95) | SLO (p99) | How measured |
-| --- | --- | --- | --- | --- |
-| **`/translate` cold** (warm process, cold mapping) | ≤ 25 ms | ≤ 60 ms | ≤ 120 ms | `tests/perf/test_translate_latency.py`, 100-query workload covering all §6.6 shapes |
-| **`/translate` warm** (mapping cached, AST cache hit) | ≤ 5 ms | ≤ 12 ms | ≤ 25 ms | Same workload, second iteration |
-| **`/execute` overhead** (translate + dispatch, excluding AQL exec) | ≤ 35 ms | ≤ 80 ms | ≤ 150 ms | `tests/perf/test_execute_overhead.py`, AQL pinned to `RETURN 1` |
-| **`/sparql` GET** (W3C protocol, JSON results, 1k-row payload) | ≤ 60 ms | ≤ 150 ms | ≤ 300 ms | `tests/perf/test_sparql_protocol_latency.py` |
-| **`/nl-translate` (single LLM round-trip, no repair)** | n/a | ≤ 3.5 s | ≤ 8 s | `tests/perf/test_nl_latency.py` against `gpt-4o-mini` |
-| **`/schema/introspect` (analyzer-backed, cache miss, ≤ 1k collections)** | ≤ 800 ms | ≤ 2.5 s | ≤ 5 s | `tests/perf/test_schema_introspect_latency.py` |
-| **`/schema/introspect` (cache hit)** | ≤ 5 ms | ≤ 15 ms | ≤ 30 ms | Same |
-| **Memory ceiling, idle** | n/a | ≤ 250 MiB RSS | n/a | `tests/perf/test_memory_idle.py` |
-| **Memory ceiling, 100 concurrent `/execute`, 10k-row payloads** | n/a | ≤ 1.5 GiB RSS | n/a | `tests/perf/test_memory_load.py` |
-| **Concurrency ceiling** (no error budget burn at 100 concurrent `/execute` against pinned AQL) | n/a | ≥ 100 concurrent | n/a | `tests/perf/test_concurrency.py` |
-| **Result-streaming chunk size** (W3C protocol, JSON) | n/a | first byte ≤ 200 ms | n/a | `tests/perf/test_first_byte.py` |
+| Budget | Target (p50) | Target (p95) | SLO (p99) | How measured | Tier |
+| --- | --- | --- | --- | --- | --- |
+| **`/translate` cold** (warm process, cold mapping) | ≤ 25 ms | ≤ 60 ms | ≤ 120 ms | `tests/perf/test_translate_latency.py`, 100-query workload covering all §6.6 shapes | **CI-blocking** |
+| **`/translate` warm** (mapping cached, AST cache hit) | ≤ 5 ms | ≤ 12 ms | ≤ 25 ms | Same workload, second iteration | **CI-blocking** |
+| **`/execute` overhead** (translate + dispatch, excluding AQL exec) | ≤ 35 ms | ≤ 80 ms | ≤ 150 ms | `tests/perf/test_execute_overhead.py`, AQL pinned to `RETURN 1` | **CI-blocking** |
+| **`/sparql` GET** (W3C protocol, JSON results, 1k-row payload) | ≤ 60 ms | ≤ 150 ms | ≤ 300 ms | `tests/perf/test_sparql_protocol_latency.py` | Report-only |
+| **`/nl-translate` (single LLM round-trip, no repair)** | n/a | ≤ 3.5 s | ≤ 8 s | `tests/perf/test_nl_latency.py` against `gpt-4o-mini` | Report-only |
+| **`/schema/introspect` (analyzer-backed, cache miss, ≤ 1k collections)** | ≤ 800 ms | ≤ 2.5 s | ≤ 5 s | `tests/perf/test_schema_introspect_latency.py` | Report-only |
+| **`/schema/introspect` (cache hit)** | ≤ 5 ms | ≤ 15 ms | ≤ 30 ms | Same | Report-only |
+| **Memory ceiling, idle** | n/a | ≤ 250 MiB RSS | n/a | `tests/perf/test_memory_idle.py` | Report-only |
+| **Memory ceiling, 100 concurrent `/execute`, 10k-row payloads** | n/a | ≤ 1.5 GiB RSS | n/a | `tests/perf/test_memory_load.py` | Report-only |
+| **Concurrency ceiling** (no error budget burn at 100 concurrent `/execute` against pinned AQL) | n/a | ≥ 100 concurrent | n/a | `tests/perf/test_concurrency.py` | Report-only |
+| **Result-streaming chunk size** (W3C protocol, JSON) | n/a | first byte ≤ 200 ms | n/a | `tests/perf/test_first_byte.py` | Report-only |
+
+**CI-blocking (3 rows):** `/translate` cold, `/translate` warm,
+`/execute` overhead — fast, deterministic, in-process (no Docker, no
+LLM), so they fit the per-PR path with the generous 25% tolerance
+surviving shared-runner jitter (D-08).
+
+**Report-only (8 rows):** `/sparql` GET, `/nl-translate` (needs a live
+LLM key never placed in CI), `/schema/introspect` (both rows), memory
+idle/load, concurrency, first-byte — Docker/LLM/noisy rows that run as
+a local/on-demand suite producing `LATENCY_REPORT.md` (D-09).
 
 Out-of-scope budgets (deferred to v1.1+): query-cache hit rate, sub-100ms
 NL pipeline latency (LLM-bound), federated `SERVICE` (out of scope per
@@ -2225,25 +2241,20 @@ multi-model cross-validation slice):
    column overrides (`subject_uri` / `predicate` / `object_uri`), read
    from the fixture's own physical spec rather than hard-coded.
 
-### 13.4 Legacy Foxx round-trip regression
+### 13.4 Legacy Foxx round-trip regression — RETIRED
 
-Module: `tests/legacy_roundtrip/`. Docker-Compose spins up both the
-legacy `arango-sparql` Foxx service and `arango-sparql-py` against the
-same ArangoDB. For every SPARQL query under
-`references/arango-sparql/tests/fixtures/sparql/`:
+**Historical note:** this section originally described a planned
+`tests/legacy_roundtrip/` Docker-Compose harness comparing bindings
+between legacy Foxx `arango-sparql` and `arango-sparql-py` query-by-query
+against `references/arango-sparql/tests/fixtures/sparql/`, gated on
+≥ 90% of translatable fixtures passing (acceptance criterion §3.7).
 
-1. Send the query to legacy Foxx (`POST /sparql`); record bindings.
-2. Send the same query to `arango-sparql-py` (`POST /execute`); record
-   bindings.
-3. Compare bindings as bags (order-sensitive only for `ORDER BY`).
-4. On divergence, record an `xfail` with the fixture name + first
-   diverging row, surfacing into a `LEGACY_PARITY_REPORT.md`.
-
-This is the operational form of acceptance criterion §3.7. The Foxx
-service is the legacy ground-truth, *not* a competitor — divergence is
-either a Foxx bug we can ignore (cite the legacy commit), a known-gap
-in v1's translator (xfail with link to issue), or a real regression to
-fix before tagging v1.0.
+That harness is **retired by ADR-0003 (Appendix B.3)** — never built.
+Legacy Foxx `arango-sparql` is deprecated, so parity against it is no
+longer a v1.0 acceptance gate. The W3C DAWG suite (§13.5, ≥ 96.4%
+query-eval coverage) is the sole correctness gate going forward. No
+Foxx harness, no vendored Foxx fixtures, no `tests/legacy_roundtrip/`
+exists or will be built.
 
 ### 13.5 Coverage targets per release
 
@@ -3716,6 +3727,80 @@ remaining `visit_LeftJoin` branches keep raising structured
 `json-res/jsonres02`, `negation/full-minuend`, `negation/part-minuend`;
 `mapping.py` `EntityStyle`/`RelationshipStyle`; Appendix B.1 (per-document
 `_graph` precedent); §3.1 slice-priority table.
+
+### B.3 ADR-0003 — Legacy Foxx parity retired (Foxx deprecated)
+
+- **Status:** **Resolved — retired, not built.** Legacy Foxx `arango-sparql`
+  is deprecated; the W3C DAWG suite (≥96.4% query-eval coverage) is the sole
+  correctness ground truth going forward.
+- **Date:** 2026-07-27 — **Owner:** arango-sparql-py
+- **Related sections:** §3.7 (waived), §13.4 (describes the retired harness)
+
+#### Context
+
+`arango-sparql-py` was originally scoped (§3.7, §13.4) to prove parity
+against the legacy JS Foxx service `arango-sparql` it replaces: a
+Docker-Compose two-service round-trip comparing bindings query-by-query
+against `references/arango-sparql/tests/fixtures/sparql/`, gated on
+≥ 90% of translatable fixtures passing.
+
+That legacy Foxx service is **deprecated**. Validating parity against a
+dying reference has little ongoing value now that the W3C DAWG suite
+independently proves SPARQL→AQL correctness at ≥ 96.4% query-eval
+coverage — a stronger, spec-grounded, continuously-enforced signal than
+a frozen snapshot of a service being retired. Continuing to gate v1.0 on
+Foxx parity would mean building and maintaining a two-service Docker
+harness (`tests/legacy_roundtrip/`, vendored Foxx fixtures) whose sole
+purpose is bit-for-bit agreement with code that will not receive further
+investment.
+
+#### Decision
+
+**Retire REQ-foxx-parity as a v1.0 acceptance gate.** No Foxx harness, no
+vendored Foxx fixtures, no `tests/legacy_roundtrip/` is built. The W3C
+DAWG suite (§13.5) is the sole correctness ground truth for the
+SPARQL→AQL transpiler going forward. `.planning/ROADMAP.md` Phase 4
+Success Criterion 1 is struck; `.planning/REQUIREMENTS.md` marks
+REQ-foxx-parity `Retired` (not `Pending`); §3.7 and §13.4 are amended in
+place to record the retirement rather than describe an unbuilt harness.
+
+#### Considered alternatives
+
+- **Build the harness anyway, best-effort.** *Rejected:* sinks execution
+  budget into parity with a deprecated service instead of the live
+  interoperability/performance work the rest of Phase 4 delivers, for a
+  correctness signal the W3C suite already provides more rigorously.
+- **Keep the requirement Pending indefinitely (silent scope cut).**
+  *Rejected:* an undocumented scope cut is a repudiation risk — silently
+  dropping a numbered acceptance criterion with no auditable rationale.
+  This ADR + the REQUIREMENTS.md/ROADMAP.md citations make the retirement
+  traceable instead.
+
+#### Consequences
+
+- **Positive:** Phase 4 execution budget redirects to the interoperability
+  and performance verification work that has ongoing value (third-party
+  tool compat, `arango-ontoextract` own-half contract, tiered perf SLOs);
+  no two-service Docker harness or vendored Foxx fixture corpus to
+  build or maintain.
+- **Negative:** no independent empirical measurement of behavioral
+  drift between `arango-sparql-py` and the legacy Foxx service exists or
+  will exist; any Foxx-specific quirk not covered by the W3C suite could
+  diverge silently. Accepted because Foxx is deprecated and not a
+  reference worth chasing.
+- **Neutral:** REQ-foxx-parity is retired, not failed — v1.0 acceptance
+  no longer depends on it.
+
+#### Implementation notes & references
+
+- `.planning/ROADMAP.md` Phase 4 Success Criterion 1 struck with a
+  `STRUCK` annotation citing this ADR.
+- `.planning/REQUIREMENTS.md` REQ-foxx-parity bullet and traceability-table
+  row both read `Retired`, citing ADR-0003 (Appendix B.3).
+- PRD §3.7 acceptance row amended to note the Foxx-parity criterion is
+  waived per ADR-0003; §13.4 body replaced with a short historical note
+  pointing at this ADR and at §13.5 (W3C DAWG coverage) as the sole
+  correctness gate.
 
 ---
 
