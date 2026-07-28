@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T01:32:39.501Z"
-last_activity: 2026-07-28 -- Phase 04 planning complete
+last_updated: "2026-07-28T15:39:28.675Z"
+last_activity: 2026-07-28
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 43
-  completed_plans: 36
+  completed_plans: 37
   percent: 57
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 8 — public release readiness
+**Current focus:** Phase 04 — interoperability-performance-verification
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 04 (interoperability-performance-verification) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-07-28 -- Phase 04 planning complete
+Last activity: 2026-07-28
 
-Progress: [██████████] 100%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [██████████] 100%
 | Phase 07.4 P05 | 20min | 3 tasks | 3 files |
 | Phase 07.4 P06 | 32min | 4 tasks | 9 files |
 | Phase 07.4 P06-refold | ~15min | 1 tasks | 3 files |
+| Phase 04 P01 | 10min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.4-05]: NL-ACC-02 closed via the documented-null path (NL-FEW-02 precedent): seam-7 predicate grounding regresses standalone (5/49 vs fresh 12/49 entity-alone, p=0.0156 wrong direction) and is a statistical wash additively composed on entity grounding (13/49 vs fresh 13/49, p=1.0, delta=0.0) -- no CK25 lift proven either way, never reframed as a pass
 - [Phase 07.4-06]: arango-query-core PredicateIndex gains a real dump=True kwarg (upstream b669320, pushed to both remotes) -- widening k to total predicates alone never bypassed the shared scorer's zero-hit filter, so CK25 dump mode never actually dumped the full schema (CR-01 code-review BLOCKER)
 - [Phase 07.4-06 re-fold]: NL-ACC-02 re-closed as a VALID documented-null (provisional/confounded caveat removed) after the credentialed human RE-RAN the CK25 predicate-grounding sweep on the fixed dump mode (pin b66932046a102898e8fff205a7ddcbedfb2c896e): standalone predicate-alone 7/49 vs a fresh 12/49 entity-alone arm (p=0.1250, non-significant -- softened from the confounded run's wrong-direction-significant p=0.0156); additive (the phase's actual composition) 10/49 vs the same fresh 12/49 arm (p=0.6875, non-significant wash, 2 real wins on ck25-8/ck25-11 offset by 4 distraction losses). Overall disposition (fails hard gate, closes via documented-null) is unchanged from 07.4-05's conclusion -- only its confounded status is resolved. baseline.json's confounded 07.4-05 CK25 entries are overwritten (superseded, not deleted-in-place) with these clean numbers.
+- [Phase 04-01]: conftest.py imports (does not copy) _FakeArangoClient/_FakeDb/_FakeCursor/fake_client_factory/_connect_session from tests.test_service_sparql_routes -- the import path resolves cleanly, so no ~140-line duplication was needed
+- [Phase 04-01]: cosmic_coffee.rdf pinned to commit 9a0eb93cef978b1ee6c4a6857dc0ce2733444ea0 (last commit touching that path on main), MIT license verified via GitHub API repo endpoint
 
 ### Pending Todos
 
@@ -185,6 +188,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T00:28:50.240Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-interoperability-performance-verification/04-CONTEXT.md
+Last session: 2026-07-28T15:39:28.668Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

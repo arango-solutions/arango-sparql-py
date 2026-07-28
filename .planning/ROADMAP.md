@@ -99,7 +99,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans**: 8 plans (2 waves)
 - Wave 1:
-  - [ ] 04-01-PLAN.md — Wave-0 foundation: perf marker + SPARQLWrapper dep, tests/perf scaffolding, vendored cosmic_coffee.rdf fixture, docs/howto anchor
+  - [x] 04-01-PLAN.md — Wave-0 foundation: perf marker + SPARQLWrapper dep, tests/perf scaffolding, vendored cosmic_coffee.rdf fixture, docs/howto anchor
   - [ ] 04-02-PLAN.md — RDF/XML (+JSON-LD/N-Triples) format-dispatch production-code fix in owl.py + mapping.py (unblocks RDF/XML test rows)
   - [ ] 04-03-PLAN.md — REQ-foxx-parity retirement: ADR-0003 + PRD/ROADMAP/REQUIREMENTS amendments
 - Wave 2:
@@ -465,7 +465,7 @@ arc runs 6 (measurable) → 06.1 (shared engine) → 06.2 (harder corpus + live 
 | 1. Deterministic transpiler core | shipped | Complete | pre-GSD (mature) |
 | 2. Protocol service + schema HTTP | shipped | Complete | pre-GSD (mature) |
 | 3. Operational/security/privacy parity | shipped | Complete | pre-GSD (mature) |
-| 4. Interop & performance verification | 0/TBD | Not started | - |
+| 4. Interop & performance verification | 1/8 | In Progress|  |
 | 5. UI workbench parity completion | 0/TBD | Not started | - |
 | 6. NL→SPARQL eval harness + corpus | 3/3 | Complete    | 2026-07-15 |
 | 06.1. Re-point nl2sparql onto shared engine | 3/3 | Executed | 2026-07-20 |
