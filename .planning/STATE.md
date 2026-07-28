@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T18:19:25.373Z"
+last_updated: "2026-07-28T18:29:10.213Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 14
@@ -200,6 +200,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Dep] Upstream hard dependency `arangodb-schema-analyzer` pinned ≥0.6.1,<0.7.0.
 - [RESOLVED, 07.4-06 re-fold] The fresh credentialed live CK25 sweep on the fixed dump mode (standalone + additive, both re-paired against a same-session fresh entity-alone arm) has been run by the human and folded into baseline.json/REQUIREMENTS.md. NL-ACC-02 is closed as a VALID documented-null; no further re-run is anticipated for this phase.
 - [Phase 04-07] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (7 report-only perf test files) committed (901ed75). Human must: (1) docker compose up -d arangodb (host 8532, DB sparql-to-aql), (2) RUN_INTEGRATION=1 pytest tests/perf -m perf -k "not translate_latency and not execute_overhead and not nl_latency" -q to populate the 6 Docker-gated rows in tests/perf/LATENCY_REPORT.md, (3) optionally RUN_INTEGRATION=1 NL2SPARQL_API_KEY=... pytest tests/perf/test_nl_latency.py -m perf -q for the live-LLM row (never paste the key into any file), (4) confirm LATENCY_REPORT.md is populated and secret-free, (5) reply approved or describe issues. Continuation folds in the final SUMMARY once approved.
+- [Phase 04-08] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (5 docs/howto recipes) committed (f149998). Human must: (1) docker compose up -d arangodb + uv run python main.py so /sparql is reachable, (2) run SELECT+ASK+Service-Description via rsparql --service / Protege SPARQL panel per docs/howto/protege.md and paste the real output into protege.md's transcript block, (3) point a YASGUI instance at /sparql per docs/howto/yasgui.md, run the same SELECT+ASK+Service Description, paste real output into yasgui.md's transcript block, (4) confirm both transcripts are secret-free, (5) reply approved or describe issues. Continuation completes the plan, writes 04-08-SUMMARY.md, and runs the final metadata commit once approved.
 
 ## Deferred Items
 
@@ -211,6 +212,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T18:19:25.364Z
-Stopped at: Completed 04-07-PLAN.md
-Resume file: None
+Last session: 2026-07-28T18:29:10.204Z
+Stopped at: Phase 04-08 Task 1 committed (f149998); paused at Task 2 checkpoint:human-verify (Protege/YASGUI recorded transcripts)
+Resume file: .planning/phases/04-interoperability-performance-verification/04-08-PLAN.md
