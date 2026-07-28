@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-28T16:04:58.701Z"
+last_updated: "2026-07-28T16:14:32.810Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 14
   completed_phases: 8
   total_plans: 43
-  completed_plans: 39
+  completed_plans: 40
   percent: 57
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 04 (interoperability-performance-verification) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-07-28
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 91%
 | Phase 04 P01 | 10min | 3 tasks | 7 files |
 | Phase 04 P02 | 18min | 3 tasks | 4 files |
 | Phase 04 P03 | 10min | 2 tasks | 4 files |
+| Phase 04 P04 | 25min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04-03]: PRD Appendix B.3 mirrors the B.2 header shape (Status/Date/Owner/Related) plus Context/Decision/Considered alternatives/Consequences, matching the established ADR convention
 - [Phase 04-03]: Sec 9.4's 11 SLO rows kept intact (no deletions); each annotated CI-blocking (3 fast in-process rows) or Report-only (8 Docker/LLM/noisy rows) per D-08/D-09
 - [Phase 04-03]: ROADMAP SC1 kept as a struck-through historical entry (no prior struck-criterion precedent found in ROADMAP.md to follow instead)
+- [Phase 04-04]: SchemaCache.put(db_name, bundle) direct injection deterministically activates an imported OWL mapping for /sparql, bypassing heuristic/analyzer auto-detection -- import-owl/export-owl are stateless (operate on request body only)
+- [Phase 04-04]: AOE roundtrip fixture uses a distinct collection/namespace (AoePerson, example.org/aoe#) from test_execute_endpoint.py's Person fixture so seeded data and the process-wide SchemaCache entry never collide across sibling integration files in the same RUN_INTEGRATION=1 session
 
 ### Pending Todos
 
@@ -196,6 +199,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-28T16:04:58.695Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-07-28T16:14:32.804Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
