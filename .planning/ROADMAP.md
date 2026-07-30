@@ -33,6 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 06.2: NL→SPARQL harder corpus + genuine live-model baseline** - Grow corpus to real difficulty + capture a live-model baseline so a few-shot lift is measurable (INSERTED) (NEXT ACTIVE) (completed 2026-07-21)
 - [x] **Phase 7: NL→SPARQL dense few-shot retrieval** - Dense/embedding ≤3-shot index via the shared engine's few-shot seam; prove pass-rate lift over the live baseline (completed 2026-07-21)
 - [x] **Phase 07.1: NL→SPARQL eval via public benchmarks** - Adopt public NL→SPARQL benchmark test sets (QALD-9-plus = powered capability gate; CK25 = corporate-domain anchor) + a small refusal supplement, reaching ~5–8pt MDE with real vetted questions; synthetic generation retired (INSERTED; pivoted via grill-me, former 07.2 folded in) (completed 2026-07-22)
+- [ ] **Phase 07.5: NL→SPARQL query-first synthetic few-shot bank** - Build-time per-ontology few-shot bank generated query-first from the TBox (compositional templates + data-binding + paraphrase), loaded via the BM25 few-shot seam so NL→SPARQL adapts to any new ontology; re-opens 07.1's synthetic fence in a query-first/few-shot-pool form; measured mechanistically + directionally on held-out CK25+QALD (INSERTED)
 - [ ] **Phase 8: Public release readiness** - Public repo, CI matrix, license/docs/runbook, SBOM on v1.0 tag
 
 ## Phase Details
@@ -239,6 +240,14 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 
 - [x] 07-04-PLAN.md — 3-arm x 3-model lift sweep: temperature fix + configs/runner extension + D-06 guard + D-04 provenance + W3C non-regression [NL-FEW-02] — complete (7ce312e, b2aa008, f1c327e, 3136c17, ac19edc); the credentialed human's live sweep returned a documented null on the pre-registered confirmatory test, closed per the plan's human-accepted-documented-null path — see 07-04-SUMMARY.md
+
+### Phase 07.5: NL→SPARQL query-first synthetic few-shot bank (INSERTED)
+
+**Goal:** At build time for any new ontology, auto-generate a **query-first** `(question, gold-SPARQL)` few-shot bank from the TBox, and load it through the existing BM25 `FewShotIndex` seam so NL→SPARQL specializes to any new ontology without hand-curation. Query-first construction (hand-written ontology-agnostic compositional SPARQL templates — lookup / value-object / category-filter / COUNT / top-N / OFFSET / negation / 2-hop — whose predicate/class slots fill from the 07.4 TBox walker; data-bound and execution-filtered to be non-empty; paired question templates + K LLM paraphrases for faithful, natural questions). This **consciously re-opens Phase 07.1's "synthetic generator out-of-scope" fence** in a narrower, safer form — query-first for a few-shot *pool*, not question-first for *eval* (dodging 07.1's oracle/external-validity reasons) — and follows 07.4's documented-null follow-up ("try selective/targeted surfacing, not a full dump"). Measured **mechanistically + directionally, not significance-gated** (the CK25 anchor is underpowered at n=49 and QALD's floor is an orthogonal entity-grounding bottleneck): shape-coverage of held-out failures + CK25 directional lift + QALD non-regression, overlap-audited, with the **same generator run across both CK25 and QALD** as the generalization signal. Full design: `.planning/research/query-first-synthetic-fewshot-bank-design.md`.
+**Requirements**: NL-GEN-01 (query-first synthetic few-shot bank generation; per-ontology adaptation, directionally-graded).
+**Depends on:** Phase 07.4 (TBox walker + predicate shape classification — reused for query construction), Phase 7 (few-shot seam / BM25 `FewShotIndex`).
+**Plans:** TBD
+**Status**: Not started
 
 ### Phase 07.4: NL→SPARQL predicate/schema-convention grounding (INSERTED)
 
