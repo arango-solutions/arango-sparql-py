@@ -32,6 +32,8 @@ to ``build_predicate_index`` (D-08).
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 # WR-01: built-in prefixes for CK25's own vocabulary (and the ``rdfs``
 # prefix every corpus needs). This is a DEFAULT, not the only place a
 # dataset can register a prefix: `build_label_index`'s `prefixes` parameter
@@ -329,3 +331,131 @@ def build_predicate_index(ontology_ttl: str):
         )
 
     return PredicateIndex.from_items(items)
+
+
+# --------------------------------------------------------------------------
+# Phase 07.5 Wave 0 (D-02): orderable-literal + optional-relation signals.
+#
+# These are additive, eval-side-ONLY signals that live in a sibling
+# structure (``PredicateSignals``) keyed by predicate IRI -- the engine's
+# frozen ``GroundedPredicate`` dataclass (``arango_query_core.nl.grounding``)
+# is byte-unchanged (no field added, no pin bump) so 07.4's existing
+# consumer (``runner.py``'s ``build_predicate_index`` call) stays
+# byte-identical (D-01: no engine change in Stage 1). Same mechanical,
+# schema-agnostic discipline as ``build_predicate_index`` above: every
+# signal is derived purely from a predicate's own ``rdfs:range``/
+# ``rdfs:domain`` declarations (+ instance-data probes) -- NEVER a
+# hand-authored, per-schema term-name hint.
+# --------------------------------------------------------------------------
+
+# Ordered XSD datatypes a ranking template (top-N / OFFSET / grouped-HAVING)
+# can meaningfully sort on. Derived purely from the range IRI captured in
+# Pass 1 above -- never a term-name special case. Confirmed against the real
+# CK25 TBox: the seven xsd:decimal predicates (amount/weight_g/height_mm/
+# width_mm/depth_mm/reliabilityIndex/quantity) flag True; pv:name/
+# addressCountry (xsd:string) flag False.
+_ORDERABLE_XSD = frozenset(
+    {
+        "http://www.w3.org/2001/XMLSchema#decimal",
+        "http://www.w3.org/2001/XMLSchema#integer",
+        "http://www.w3.org/2001/XMLSchema#float",
+        "http://www.w3.org/2001/XMLSchema#double",
+        "http://www.w3.org/2001/XMLSchema#dateTime",
+        "http://www.w3.org/2001/XMLSchema#date",
+    }
+)
+
+
+@dataclass(frozen=True)
+class PredicateSignals:
+    """Eval-side sibling of ``GroundedPredicate`` carrying the two new
+    Phase 07.5 (D-02) mechanical signals, keyed by predicate IRI.
+
+    ``iri`` mirrors :attr:`GroundedPredicate.iri` (opaque to this module).
+    ``orderable`` is True for a datatype predicate whose range is an
+    ordered XSD type (see ``_ORDERABLE_XSD``). ``optional_relation`` is
+    True for an object predicate whose domain class has BOTH instances
+    that carry it and instances that lack it (data-driven; always False
+    when no instance data is available -- never a crash).
+    """
+
+    iri: str
+    orderable: bool
+    optional_relation: bool
+
+
+def build_predicate_signals(
+    ontology_ttl: str, data_ttl: str | None = None
+) -> dict[str, PredicateSignals]:
+    """Build the eval-side ``{iri: PredicateSignals}`` map for a TBox
+    (+ optional instance data), per Phase 07.5 D-02.
+
+    ``ontology_ttl`` is the same Turtle TBox text ``build_predicate_index``
+    consumes. ``data_ttl``, if given, is the instance-data Turtle used for
+    the data-driven ``optional_relation`` probe (mirrors
+    ``build_label_index``'s ``data_ttl`` parameter); when omitted, every
+    predicate's ``optional_relation`` is unavailable -> False (the
+    TBox-only case, e.g. QALD -- never a crash).
+
+    Reuses the exact "one clear query per pass, function-local pyoxigraph
+    import" discipline as ``build_predicate_index``/``build_label_index``
+    above (D-08 packaging boundary).
+    """
+    from tests.helpers.oxi import load_store_from_string, oxi_query
+
+    def _clean(raw: str | None) -> str:
+        # Same normalization as build_predicate_index's nested ``_clean``
+        # (CR-02): split off the "^^<datatype>"/"@lang envelope BEFORE
+        # stripping quotes.
+        return (raw or "").split('"^^')[0].strip('"').split('"@')[0]
+
+    store = load_store_from_string(ontology_ttl)
+
+    pass1_query = """
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?p ?kind ?domain ?range WHERE {
+      { ?p a owl:ObjectProperty . BIND("object" AS ?kind) }
+      UNION
+      { ?p a owl:DatatypeProperty . BIND("datatype" AS ?kind) }
+      OPTIONAL { ?p rdfs:domain ?domain }
+      OPTIONAL { ?p rdfs:range ?range }
+    }"""
+
+    declared: dict[str, dict[str, str]] = {}
+    for row in oxi_query(store, pass1_query).rows or []:
+        iri = _strip_iri(row.get("p"))
+        if not iri:
+            continue
+        declared[iri] = {
+            "kind": _clean(row.get("kind")),
+            "domain_iri": _strip_iri(row.get("domain")),
+            "range_iri": _strip_iri(row.get("range")),
+        }
+
+    data_store = load_store_from_string(data_ttl) if data_ttl is not None else None
+
+    def _has_and_lacks(domain_iri: str, predicate_iri: str) -> bool:
+        # Data-driven probe (D-02): True iff the store contains BOTH a
+        # domain-C instance that has P and a domain-C instance that lacks
+        # it -- guarantees a FILTER NOT EXISTS negation example is
+        # non-empty (the execute-to-drop-empties discipline).
+        ask_with = f"ASK {{ ?e a <{domain_iri}> . ?e <{predicate_iri}> ?v . }}"
+        ask_without = (
+            f"ASK {{ ?e a <{domain_iri}> . FILTER NOT EXISTS {{ ?e <{predicate_iri}> ?v }} }}"
+        )
+        has_with = bool(oxi_query(data_store, ask_with).boolean)
+        has_without = bool(oxi_query(data_store, ask_without).boolean)
+        return has_with and has_without
+
+    signals: dict[str, PredicateSignals] = {}
+    for iri, p in declared.items():
+        orderable = p["kind"] == "datatype" and p["range_iri"] in _ORDERABLE_XSD
+        optional_relation = False
+        if p["kind"] == "object" and data_store is not None and p["domain_iri"]:
+            optional_relation = _has_and_lacks(p["domain_iri"], iri)
+        signals[iri] = PredicateSignals(
+            iri=iri, orderable=orderable, optional_relation=optional_relation
+        )
+
+    return signals

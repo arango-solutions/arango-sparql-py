@@ -29,7 +29,11 @@ import pytest
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
 from arango_sparql.nl2sparql.engine_adapter import PREDICATE_DUMP_THRESHOLD
-from tests.nl2sparql.eval.grounding_index_builder import build_label_index, build_predicate_index
+from tests.nl2sparql.eval.grounding_index_builder import (
+    build_label_index,
+    build_predicate_index,
+    build_predicate_signals,
+)
 
 _TTL = """
 @prefix ex: <http://ex.org/> .
@@ -253,3 +257,74 @@ def test_predicate_qald_dbpedia_subset_shape_distribution_recorded_honestly() ->
 
     print(f"QALD dbpedia_subset.ttl shape distribution (n={total}): {distribution}")
     assert sum(distribution.values()) == total, "every predicate must classify into exactly one shape"
+
+
+# --------------------------------------------------------------------------
+# Phase 07.5 Wave 0 (D-02): `build_predicate_signals` -- orderable-literal
+# + optional-relation walker-extension coverage against the REAL CK25
+# vendored TBox (+ instance data), per the plan's confirmed empirical
+# values (mechanical, zero per-schema hardcoding in the builder itself).
+# --------------------------------------------------------------------------
+
+_CK25_ONTOLOGY_PATH = Path(__file__).parent / "vendored" / "ck25" / "ontology.ttl"
+_CK25_DATA_PATH = Path(__file__).parent / "vendored" / "ck25" / "raw" / "prod-inst.ttl"
+_PV = "http://ld.company.org/prod-vocab/"
+
+# The seven xsd:decimal predicates confirmed against the real CK25 TBox
+# (RESEARCH.md "The 07.4-walker extension (D-02)").
+_CK25_ORDERABLE_PREDICATES = {
+    f"{_PV}amount",
+    f"{_PV}weight_g",
+    f"{_PV}height_mm",
+    f"{_PV}width_mm",
+    f"{_PV}depth_mm",
+    f"{_PV}reliabilityIndex",
+    f"{_PV}quantity",
+}
+
+
+def test_orderable_true_for_all_seven_ck25_decimal_predicates() -> None:
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    signals = build_predicate_signals(ontology_ttl, _CK25_DATA_PATH.read_text())
+
+    for iri in _CK25_ORDERABLE_PREDICATES:
+        assert signals[iri].orderable is True, f"{iri} should be orderable (xsd:decimal range)"
+
+
+def test_orderable_false_for_xsd_string_predicates() -> None:
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    signals = build_predicate_signals(ontology_ttl, _CK25_DATA_PATH.read_text())
+
+    assert signals[f"{_PV}name"].orderable is False, "pv:name (xsd:string) must not be orderable"
+    assert signals[f"{_PV}addressCountry"].orderable is False, (
+        "pv:addressCountry (xsd:string) must not be orderable"
+    )
+
+
+def test_optional_relation_is_data_driven_on_prod_inst() -> None:
+    """pv:country (domain pv:Supplier) is a genuine optional relation on the
+    real CK25 instance data: 227 suppliers carry it, 23 lack it. pv:hasManager
+    (domain pv:Employee) is NOT optional: every one of the 47 real Employee
+    instances carries it -- confirmed via direct oxi_query probes against
+    prod-inst.ttl before writing this test."""
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    signals = build_predicate_signals(ontology_ttl, _CK25_DATA_PATH.read_text())
+
+    assert signals[f"{_PV}country"].optional_relation is True, (
+        "pv:country must be flagged optional_relation (some Suppliers lack it)"
+    )
+    assert signals[f"{_PV}hasManager"].optional_relation is False, (
+        "pv:hasManager must NOT be flagged optional_relation (every Employee has one)"
+    )
+
+
+def test_optional_relation_unavailable_false_on_tbox_only() -> None:
+    """When data_ttl is None (TBox-only, e.g. QALD), optional_relation must
+    degrade to False for every predicate -- never crash."""
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    signals = build_predicate_signals(ontology_ttl, data_ttl=None)
+
+    assert signals[f"{_PV}country"].optional_relation is False
+    assert all(not s.optional_relation for s in signals.values()), (
+        "every predicate's optional_relation must be False/unavailable with no instance data"
+    )
