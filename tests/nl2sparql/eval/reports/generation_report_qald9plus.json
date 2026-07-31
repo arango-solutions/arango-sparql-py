@@ -1,0 +1,71 @@
+{
+  "ontology": "qald9plus",
+  "seed": 0,
+  "shapes": {
+    "lookup": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "value_object": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "category_filter": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "scalar_count": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "grouped_aggregation": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "top_n": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "offset": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "negation": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    },
+    "two_hop": {
+      "kept": 0,
+      "dropped": 0,
+      "reasons": [
+        "no instance data supplied (TBox-only) -- every Stage-1 shape here is data-bound"
+      ]
+    }
+  },
+  "total_kept": 0,
+  "total_dropped": 0
+}

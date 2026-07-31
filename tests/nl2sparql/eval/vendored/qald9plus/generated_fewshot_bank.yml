@@ -1,0 +1,16 @@
+# TBox-ONLY generation (Phase 07.5 Plan 04, D-04): the QALD DBpedia
+# subset (75 classes, 250 properties, 0 instance triples, 0 rdfs:domain/
+# rdfs:range declarations) is run through the SAME generate_bank_with_report
+# pipeline as CK25, with data_ttl=None -- NO DBpedia instance snapshot is
+# built from gold-query entities (that would leak held-out test entities).
+# This generator's Stage-1 pipeline is universally instance-data-bound (every
+# shape samples a real rdfs:label value for name-anchoring) -- confirmed by
+# the pre-existing test_generate_bank_degrades_to_empty_without_instance_data
+# (07.5-02/03) that data_ttl=None degrades to an empty bank for ANY ontology,
+# not just QALD. The generalization claim this bank supports is 'the SAME
+# generator RUNS unmodified and emits a structurally-valid (here: trivially
+# valid, zero-example) bank' -- never 'lifts QALD'. See
+# reports/generation_report_qald9plus.json for the honest per-shape drop
+# reasons (D-02 Pitfall 6 -- no silent gap).
+version: 1
+examples: []

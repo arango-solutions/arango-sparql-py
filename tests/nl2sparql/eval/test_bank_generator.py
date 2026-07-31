@@ -62,6 +62,24 @@ _CK25_CORPUS_PATH = Path(__file__).parent / "vendored" / "ck25" / "corpus.yml"
 _CK25_BANK_PATH = Path(__file__).parent / "vendored" / "ck25" / "generated_fewshot_bank.yml"
 _CK25_REPORT_PATH = Path(__file__).parent / "reports" / "generation_report_ck25.json"
 
+# Plan 04 (Wave 3, D-04): QALD has no dedicated ``ontology.ttl`` sibling file
+# (unlike CK25) -- its TBox lives in ``corpus.yml``'s own ``ontology:`` block
+# (verified byte-identical to ``dbpedia_subset.ttl`` -- both are the same
+# text, ``corpus.yml`` is simply the canonical eval-harness-consumed copy).
+# QALD has NO instance-data Turtle at all (0 instance triples, D-04: no
+# DBpedia snapshot is ever built from gold-query entities).
+_QALD_CORPUS_PATH = Path(__file__).parent / "vendored" / "qald9plus" / "corpus.yml"
+_QALD_BANK_PATH = Path(__file__).parent / "vendored" / "qald9plus" / "generated_fewshot_bank.yml"
+_QALD_REPORT_PATH = Path(__file__).parent / "reports" / "generation_report_qald9plus.json"
+
+
+def _load_qald_ontology() -> str:
+    import yaml
+
+    corpus = yaml.safe_load(_QALD_CORPUS_PATH.read_text())
+    return corpus["ontology"]
+
+
 _PV = "http://ld.company.org/prod-vocab/"
 _PRODI = "http://ld.company.org/prod-instances/"
 
@@ -498,3 +516,71 @@ def test_paraphrase_faithful_reemitted_ck25_bank() -> None:
     assert committed == bank
     exit_code = verify_bank(_CK25_BANK_PATH, _CK25_CORPUS_PATH, _CK25_DATA_PATH)
     assert exit_code == 0, "verify_generated_bank.py must exit 0 on the re-emitted, paraphrase-bearing bank"
+
+
+# --------------------------------------------------------------------------
+# Plan 04 (Wave 3, D-04/REQ-5): the SAME ``generate_bank``/
+# ``generate_bank_with_report`` pipeline, called UNMODIFIED (no QALD-
+# specific argument or branch), run against QALD's shallow, TBox-only
+# DBpedia subset (75 classes, 250 properties, 0 instance triples, 0
+# rdfs:domain/rdfs:range declarations -- 07.4-03). This TBox has no
+# instance-level ``rdfs:label`` at all, so EVERY Stage-1 shape here (not
+# only the 3 data-driven ones anticipated in RESEARCH -- negation, top_n,
+# offset) is unable to sample a real name-anchor filler and self-drops --
+# an honest, stronger-than-anticipated confirmation of the SAME degrade
+# path ``test_generate_bank_degrades_to_empty_without_instance_data``
+# already proves for CK25's own ontology with ``data_ttl=None``: this
+# generator's Stage-1 pipeline is universally instance-data-bound BY
+# DESIGN, not a QALD-specific gap. The generalization claim this
+# supports is "the SAME generator RUNS unmodified and emits a
+# structurally-valid bank" (D-04) -- never "lifts QALD".
+# --------------------------------------------------------------------------
+
+
+def test_qald_bank_degrades_to_empty_via_same_pipeline() -> None:
+    """REQ-5: calling ``generate_bank_with_report`` on QALD's own TBox with
+    ``data_ttl=None`` -- the exact same call shape as the CK25 TBox-only
+    proof above, no QALD-specific argument or branch -- degrades to the
+    same honest empty bank, with every one of the 9 catalog shapes
+    carrying a logged drop reason (D-02 Pitfall 6: no silent gap)."""
+    ontology_ttl = _load_qald_ontology()
+    bank, report = generate_bank_with_report(ontology_ttl, data_ttl=None, seed=0)
+
+    assert bank == {"version": 1, "examples": []}
+    for name in _SHAPE_NAMES:
+        assert report[name]["reasons"], f"shape {name!r} has no TBox-only degrade reason logged"
+
+
+def test_committed_qald_bank_matches_fresh_regeneration() -> None:
+    import yaml
+
+    ontology_ttl = _load_qald_ontology()
+    fresh = generate_bank(ontology_ttl, data_ttl=None, seed=0)
+
+    committed = yaml.safe_load(_QALD_BANK_PATH.read_text())
+    assert committed == fresh, "committed QALD generated_fewshot_bank.yml is stale vs. the current generator"
+
+
+def test_committed_qald_report_matches_fresh_regeneration() -> None:
+    import json
+
+    ontology_ttl = _load_qald_ontology()
+    _bank, fresh_report = generate_bank_with_report(ontology_ttl, data_ttl=None, seed=0)
+
+    committed = json.loads(_QALD_REPORT_PATH.read_text())
+    assert committed["shapes"] == fresh_report, (
+        "committed generation_report_qald9plus.json is stale vs. the current generator"
+    )
+    assert committed["total_kept"] == sum(r["kept"] for r in fresh_report.values())
+    assert committed["total_dropped"] == sum(r["dropped"] for r in fresh_report.values())
+
+
+def test_offline_validity_gate_green_on_committed_qald_bank() -> None:
+    """Structural-only mode (D-04, ``data_path=None``): trivially green on
+    a zero-example bank, but exercises the SAME code path as the CK25 gate
+    (``verify_bank``, no QALD-specific branch)."""
+    from tests.nl2sparql.eval.verify_generated_bank import verify_bank
+
+    exit_code = verify_bank(_QALD_BANK_PATH, _QALD_CORPUS_PATH)
+    assert exit_code == 0, "verify_generated_bank.py must exit 0 (structural mode) on the committed QALD bank"
+
