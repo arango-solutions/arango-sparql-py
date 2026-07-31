@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-07-31T16:35:00.321Z"
-last_activity: 2026-07-28
+status: executing
+last_updated: "2026-07-31T20:13:23.168Z"
+last_activity: 2026-07-31
 progress:
   total_phases: 15
   completed_phases: 9
-  total_plans: 43
-  completed_plans: 44
+  total_plans: 49
+  completed_plans: 45
   percent: 60
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 06 — nl sparql eval harness seed corpus
+**Current focus:** Phase 07.5 — nl-sparql-query-first-synthetic-few-shot-bank
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-28
+Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-07-31
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Progress: [██████████] 100%
 | Phase 04 P06 | 45min | 2 tasks | 3 files |
 | Phase 04 P07 | 55min | 1 tasks | 9 files |
 | Phase 04 P08 | 5min | 1 tasks | 2 files |
+| Phase 07.5 P01 | 15min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04]: Locked ARANGO_URL/ARANGO_TEST_DB env defaults before tests/perf/conftest.py's eager import chain to close a real .env-pollution race that made Docker-gated perf rows target the wrong port/database — This repo's dev .env silently overrides ARANGO_URL to the wrong port and ARANGO_DB to the forbidden _system via load_dotenv(), triggered transitively before tests.integration.conftest resolved its own defaults
 - [Phase 04]: Swapped test_concurrency.py's pinned ASK query for a SELECT after discovering /execute cannot represent ASK's boolean AQL result against a real ArangoDB — ASK translates to RETURN LENGTH(...) > 0 (scalar boolean), incompatible with SparqlExecuteResponse.bindings: list[dict]; deferred as a Known Gap rather than changing the API contract
 - [Phase 04-08]: Protégé/YASGUI recorded transcripts closed via operator CLOSE WITH PLACEHOLDERS decision -- recipes are the delivered documented-manual artifact (D-07); transcripts deferred to deferred-items.md, never fabricated
+- [Phase 07.5-01]: optional_relation probes the domain class via an EXACT rdf:type match (no subclass walk) -- mirrors build_predicate_index's own domain-exact-match discipline; on CK25 pv:country (domain Supplier) is a genuine positive (227 with/23 without) and pv:hasManager (domain Employee, all 47 have one) is a genuine negative, empirically verified via direct oxi_query probes before writing tests
+- [Phase 07.5-01]: verify_generated_bank.py's name-anchoring guard derives its allowed-namespace set structurally from the ontology's own declared owl:Class/ObjectProperty/DatatypeProperty subjects, not a hardcoded 'prodi:' string -- correctly separates CK25's pv: vocab namespace from its prodi: instance namespace even though both prefixes are declared in the same TBox header
+- [Phase 07.5-01]: verify_generated_bank.py's top-N strict-extremum check now reads an optional per-example probe field on the bank YAML (generalizing the spike's hardcoded TOPN_PROBES dict); the pre-existing spike bank has no such field yet so its 3 top-N examples pass without probe verification under the promoted gate
 
 ### Pending Todos
 
@@ -215,6 +219,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-31T16:35:00.207Z
+Last session: 2026-07-31T20:12:16.544Z
 Stopped at: Phase 07.5 context gathered
-Resume file: .planning/phases/07.5-nl-sparql-query-first-synthetic-few-shot-bank/07.5-CONTEXT.md
+Resume file: None
