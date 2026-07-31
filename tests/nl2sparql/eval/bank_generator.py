@@ -22,9 +22,22 @@ closures are fully implemented (schema-agnostic -- they read only
 vocabulary term), and ``generate_bank`` performs the real slot-fill +
 data-bind + execution-non-empty-filter + strict-extremum-gate pipeline,
 emitting a name-anchored bank + a first-class per-shape yield report.
-Paraphrase generation (``k_paraphrases``) remains a no-op this plan
-(a single templated question per example) -- K=3 paraphrasing lands in
-Plan 03/04.
+
+Wave 2 (Plan 03, this file): adds ``paraphrase()`` (K=3, config knob) via
+the SAME human-held-key ``OpenAICompatibleClient`` provider
+``runner._client_for`` constructs (function-local import here too -- this
+is a build-time LLM dependency, per D-03: "auto-onboard any ontology"
+means auto GIVEN LLM access at build time, not hands-free), plus the
+PRIMARY faithfulness guard ``slot_preserving`` -- pure, offline,
+deterministic, and NEVER calling an LLM -- which rejects any paraphrase
+that drops a bound literal filler or flips a shape's intent/ordering
+direction. Offline tests and offline bank regeneration inject a scripted
+``client=`` (no key, no network); the CK25 bank committed alongside this
+plan carries SCRIPTED/PLACEHOLDER paraphrases (offline provenance only)
+-- it is SUPERSEDED by Plan 05's real-paraphrase regeneration against the
+live provider before any REQ-4/REQ-6 measurement. The secondary
+>=20-pair LLM-judge faithfulness audit (REQ-3's credentialed half) is
+also human-run in Plan 05.
 
 Name-anchoring discipline (spike carry-forward #1, MUST): every entity
 slot is resolved via ``rdfs:label`` -- verified against the real CK25
@@ -41,6 +54,7 @@ instance-namespace IRI (CK25's ``prodi:``), satisfying the
 
 from __future__ import annotations
 
+import os
 import random
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -829,12 +843,159 @@ _CANDIDATE_BUILDERS: dict[str, Callable[..., list[tuple[dict[str, Any], str, str
 }
 
 
+# --------------------------------------------------------------------------
+# Paraphrase (D-03, Plan 03/Wave 2): K guard-passing natural paraphrases
+# per example via the same human-held-key OpenAICompatibleClient provider,
+# gated by the PRIMARY offline/deterministic slot-preservation guard.
+# --------------------------------------------------------------------------
+
+# Ranking shapes (top_n/offset) are ALWAYS rendered by this generator's own
+# ``_ranking_candidate`` in descending/"highest" order -- there is no
+# per-example "ascending" variant to preserve, so the guard below checks a
+# FIXED canonical direction, not a value read out of ``binding`` (Q7-style
+# generator invariant, not a per-example fact).
+_SUPERLATIVE_POSITIVE = frozenset({"most", "highest", "largest", "greatest", "top"})
+_SUPERLATIVE_NEGATIVE = frozenset(
+    {"least", "lowest", "smallest", "cheapest", "fewest", "minimum", "bottom", "worst"}
+)
+
+# ``binding`` keys that carry a literal filler value a faithful paraphrase
+# MUST preserve verbatim (case-insensitive) -- the template + binding pair
+# is D-03's ground truth, per the plan's own scope ("every literal filler
+# in binding"). Not every shape's binding carries one of these (e.g.
+# top_n/offset/negation bind only IRIs, no user-facing literal) -- absent
+# keys are silently skipped, never treated as a violation.
+_FILLER_BINDING_KEYS = ("filler_label", "threshold")
+
+
+def slot_preserving(paraphrase: str, template: ShapeTemplate, binding: dict[str, Any]) -> bool:
+    """PRIMARY faithfulness guard (D-03) -- pure, offline, deterministic,
+    and NEVER calls an LLM (mechanical text checks only, no client/generate
+    call anywhere in this function).
+
+    A *paraphrase* is faithful to its paired *template* + *binding* iff:
+
+    1. Every literal filler value bound into the query (``binding``'s
+       ``filler_label``/``threshold``, when present) still appears in
+       *paraphrase*, case-insensitively -- a paraphrase that drops the
+       category/department/country/threshold filler is REJECTED.
+    2. For a shape carrying a non-empty ``intent_lexicon``, *paraphrase*
+       contains at least one of that shape's intent tokens (e.g.
+       scalar_count needs "how many"/"number of"/"count"; negation needs
+       "without"/"no"/"lacking"/...) -- dropping the shape's own intent
+       entirely is REJECTED.
+    3. For the two ranking shapes (``top_n``/``offset`` -- both always
+       rendered in descending/"highest" order by this generator), a
+       paraphrase using an OPPOSITE-direction superlative (e.g. "cheapest"/
+       "lowest" on a "most expensive"/"highest" question) is REJECTED even
+       though it may otherwise look fluent -- this is the shape-intent
+       FLIP the guard exists to catch (D-03's own worked example).
+
+    The paired template is ground truth (D-03); this is the primary guard.
+    An LLM-judge sample check is a *secondary* audit, run separately
+    (human-run, Plan 05) -- never folded into this function.
+    """
+    text = paraphrase.lower()
+
+    for key in _FILLER_BINDING_KEYS:
+        value = binding.get(key)
+        if value is None:
+            continue
+        if str(value).strip().lower() not in text:
+            return False
+
+    if template.name in ("top_n", "offset"):
+        if any(token in text for token in _SUPERLATIVE_NEGATIVE):
+            return False
+        if not any(token in text for token in _SUPERLATIVE_POSITIVE):
+            return False
+        return True
+
+    lexicon = template.intent_lexicon
+    if not lexicon:
+        return True
+    return any(token in text for token in lexicon)
+
+
+def paraphrase(
+    question: str,
+    template: ShapeTemplate,
+    binding: dict[str, Any],
+    *,
+    k: int = 3,
+    client: Any = None,
+) -> list[str]:
+    """Up to *k* guard-passing natural paraphrases of *question* for the
+    paired *template* (+ *binding*) -- D-03.
+
+    Build-time LLM dependency (D-03): "auto-onboard any ontology" means
+    auto GIVEN LLM access at build time, not hands-free -- this function's
+    default path constructs an ``OpenAICompatibleClient`` exactly as
+    ``runner._client_for`` does (``provider="openai"``, model default
+    ``"gpt-4o-mini"``; function-local import, mirroring this module's own
+    pyoxigraph-import discipline so a caller with no ``requests``/key
+    configured can still import this module and use ``slot_preserving``
+    offline) and reads the human-held ``NL2SPARQL_API_KEY``.
+
+    Offline tests / offline bank regeneration inject a scripted double (no
+    key, no network) via *client* -- any object satisfying the
+    ``LLMClient`` duck-typing protocol (``.generate(messages) ->
+    LLMResponse``, e.g. ``ScriptedLLMClient``).
+
+    When *client* is ``None`` and no ``NL2SPARQL_API_KEY`` is configured,
+    this degrades to an empty list -- callers keep the single templated
+    *question* with no paraphrases (an honest, documented degrade; NEVER a
+    crash, and NEVER a silent live call made without a key).
+
+    Candidates failing :func:`slot_preserving` are rejected and another is
+    requested, bounded by ``k * 3`` total attempts (a paraphrase that
+    cannot be made faithful within the retry budget is simply dropped --
+    the example still ships with fewer than *k* paraphrases, or none).
+    """
+    if client is None:
+        if not os.getenv("NL2SPARQL_API_KEY"):
+            return []
+        from arango_sparql.nl2sparql.client import OpenAICompatibleClient
+
+        client = OpenAICompatibleClient(provider="openai", model="gpt-4o-mini")
+
+    accepted: list[str] = []
+    seen: set[str] = {question.strip().lower()}
+    max_attempts = max(k * 3, 1)
+    for _attempt in range(max_attempts):
+        if len(accepted) >= k:
+            break
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Paraphrase the given natural-language question in a "
+                    "single sentence. Preserve every named entity, value, "
+                    "and the question's exact intent (do not drop or flip "
+                    "any filter, count, ordering, or negation). Return ONLY "
+                    "the paraphrased question text, no extra commentary."
+                ),
+            },
+            {"role": "user", "content": question},
+        ]
+        response = client.generate(messages)
+        candidate = (response.content or "").strip()
+        normalized = candidate.lower()
+        if not candidate or normalized in seen:
+            continue
+        seen.add(normalized)
+        if slot_preserving(candidate, template, binding):
+            accepted.append(candidate)
+    return accepted
+
+
 def generate_bank_with_report(
     ontology_ttl: str,
     data_ttl: str | None = None,
     *,
     k_paraphrases: int = 3,
     seed: int = 0,
+    client: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Full pipeline: build the predicate index + Wave 0 signals, enumerate
     real slot fillers per (shape, applicable-predicate) via a seeded
@@ -847,10 +1008,16 @@ def generate_bank_with_report(
     yielding ~0 is a measured, logged finding, never a silent gap,
     RESEARCH Pitfall 6).
 
-    ``k_paraphrases`` is accepted but unused this plan (a no-op / single
-    templated question per example -- K=3 paraphrasing lands in Plan
-    03/04). ``seed`` seeds a per-shape deterministic ``random.Random``
-    substream (Q7 -- regeneration with the same seed is byte-stable).
+    ``k_paraphrases`` is the K passed to :func:`paraphrase` for each kept
+    example (D-03); ``client`` is forwarded to :func:`paraphrase` unchanged
+    (``None`` -> the human-held-key ``OpenAICompatibleClient`` default, or
+    an honest empty-paraphrases degrade when no key is configured; a
+    scripted double for offline tests / offline bank regeneration). An
+    example whose paraphrases list ends up empty still ships (the single
+    templated ``question`` is always present) -- ``paraphrases`` is only
+    added to an example when non-empty. ``seed`` seeds a per-shape
+    deterministic ``random.Random`` substream (Q7 -- regeneration with the
+    same seed AND the same deterministic ``client`` is byte-stable).
 
     When *data_ttl* is omitted (TBox-only, e.g. QALD, D-04), every Stage-1
     shape here is data-bound (label sampling, execution-filter,
@@ -913,6 +1080,9 @@ def generate_bank_with_report(
                 example: dict[str, Any] = {"question": question, "query": query, "shape": shape.name}
                 if probe is not None:
                     example["probe"] = probe
+                paraphrases = paraphrase(question, shape, binding, k=k_paraphrases, client=client)
+                if paraphrases:
+                    example["paraphrases"] = paraphrases
                 examples.append(example)
                 report[shape.name]["kept"] += 1
         if not shape_hit:
@@ -930,16 +1100,20 @@ def generate_bank(
     *,
     k_paraphrases: int = 3,
     seed: int = 0,
+    client: Any = None,
 ) -> dict[str, Any]:
     """Emit a per-ontology few-shot bank dict from *ontology_ttl*
     (+ optional *data_ttl*) via ``SHAPE_CATALOG``'s compositional templates.
 
     Thin wrapper over :func:`generate_bank_with_report` that discards the
     per-shape yield report -- see that function for the full pipeline
-    description and the report's shape. Callers that need the report
+    description (including ``client``/``k_paraphrases`` -- D-03 paraphrase
+    generation) and the report's shape. Callers that need the report
     (e.g. the CK25 bank-generation step, or a unit test asserting every
     catalog shape is accounted for) should call
     :func:`generate_bank_with_report` directly.
     """
-    bank, _report = generate_bank_with_report(ontology_ttl, data_ttl, k_paraphrases=k_paraphrases, seed=seed)
+    bank, _report = generate_bank_with_report(
+        ontology_ttl, data_ttl, k_paraphrases=k_paraphrases, seed=seed, client=client
+    )
     return bank
