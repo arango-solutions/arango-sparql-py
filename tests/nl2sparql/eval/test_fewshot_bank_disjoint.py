@@ -242,3 +242,186 @@ def test_bank_similarity_ceiling() -> None:
         f"a bank item sits too close (cosine={max_cos:.4f} >= {_SIMILARITY_CEILING}) "
         f"to an eval-corpus question -- possible near-clone leakage: {closest[0]}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Generated-bank overlap audit (Phase 07.5 Plan 05, D-05/REQ-6) -- extends
+# the curated-bank disjointness gate above to the GENERATED (query-first
+# synthetic) banks. Two DISTINCT axes, per RESEARCH's "Measurement &
+# Overlap-Audit Design":
+#
+#   1. SHAPE overlap -- reuses `_skeleton` (this module's own canonical-
+#      algebra-with-abstracted-literals/URIs helper, the seed for this axis
+#      per RESEARCH): a generated example whose skeleton equals a held-out
+#      gold's skeleton is a near-duplicate-SHAPE. This axis is EXPECTED to
+#      be non-trivial by design -- the generator's whole purpose is
+#      producing SAME-shape examples for BM25 retrieval -- so it is
+#      REPORTED (indices exported for exclusion), never asserted empty.
+#   2. ENTITY overlap (new, D-04/D-05 leakage axis, Pitfall 4) -- literal
+#      fillers appearing in BOTH the generated bank and the held-out gold
+#      queries. Unlike shape overlap, entity-level leakage is a genuine
+#      contamination risk (the model could see the SAME real-world name a
+#      held-out question is grounded in).
+#
+# Both helpers are importable so `run_generated_sweep.py` (Plan 05 Task 2)
+# computes the overlap-EXCLUDED delta from this exact source of truth,
+# never a re-derived copy (REQ-6).
+# ---------------------------------------------------------------------------
+
+GENERATED_CK25_BANK_PATH = EVAL_DIR / "vendored" / "ck25" / "generated_fewshot_bank.yml"
+GENERATED_QALD_BANK_PATH = EVAL_DIR / "vendored" / "qald9plus" / "generated_fewshot_bank.yml"
+CK25_CORPUS_PATH = EVAL_DIR / "vendored" / "ck25" / "corpus.yml"
+QALD_CORPUS_PATH = EVAL_DIR / "vendored" / "qald9plus" / "corpus.yml"
+
+_QUOTED_LITERAL_RE = re.compile(r'"([^"]*)"')
+
+
+def _load_generated_bank(path: Path) -> list[dict[str, Any]]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    examples = data.get("examples", [])
+    return examples if isinstance(examples, list) else []
+
+
+def _positive_cases_for(corpus_path: Path) -> list[dict[str, Any]]:
+    """Every non-refusal case from an arbitrary (ck25/qald9plus) corpus
+    file -- the generalized form of ``_positive_corpus_cases`` (which is
+    pinned to the curated bank's own ``corpus.yml``)."""
+    corpus = _load_corpus(corpus_path)
+    return [c for c in corpus["cases"] if not c.get("expect_refusal")]
+
+
+def _query_literals(sparql: str) -> set[str]:
+    """Quoted string literal fillers appearing in *sparql*'s raw text --
+    name-anchor values the generator injects (``rdfs:label "Marketing"``)
+    or a corpus gold's own literal FILTER/binding value
+    (``pv:addressCountry "France"``). The entity-level axis of the overlap
+    audit (D-04/D-05, Pitfall 4)."""
+    return set(_QUOTED_LITERAL_RE.findall(sparql))
+
+
+def shape_overlap_indices(
+    bank: list[dict[str, Any]], corpus: list[dict[str, Any]]
+) -> set[int]:
+    """Indices into *bank* whose canonical-algebra SKELETON (``_skeleton``,
+    literals/URIs abstracted) collides with ANY held-out *corpus* gold's
+    skeleton -- a near-duplicate-SHAPE example. Exported for the sweep
+    harness to compute the shape-overlap-excluded delta (REQ-6); this axis
+    is expected to be non-trivial by design (BM25 retrieval WANTS
+    same-shape examples) and is never asserted empty.
+    """
+    corpus_skeletons = {_skeleton(c["expected"]) for c in corpus}
+    corpus_skeletons.discard(None)
+    overlap: set[int] = set()
+    for i, example in enumerate(bank):
+        skel = _skeleton(example["query"])
+        if skel is not None and skel in corpus_skeletons:
+            overlap.add(i)
+    return overlap
+
+
+def entity_overlap(bank: list[dict[str, Any]], corpus: list[dict[str, Any]]) -> set[str]:
+    """Literal fillers appearing in BOTH the generated *bank* and the
+    held-out *corpus* golds -- the entity-level leakage axis (D-04/D-05,
+    Pitfall 4). A real-world label collision is still possible even on a
+    leakage-conscious generator (there is only one "Marketing" department
+    in the company) and, when found, is reported here (never silently
+    dropped) so the sweep can exclude the affected held-out case from the
+    measured delta.
+    """
+    bank_entities: set[str] = set()
+    for example in bank:
+        bank_entities |= _query_literals(example["query"])
+    corpus_entities: set[str] = set()
+    for case in corpus:
+        corpus_entities |= _query_literals(case["expected"])
+    return bank_entities & corpus_entities
+
+
+def overlapping_case_names(
+    bank: list[dict[str, Any]], corpus: list[dict[str, Any]]
+) -> set[str]:
+    """Held-out *corpus* case NAMES that collide with the generated *bank*
+    on EITHER axis (shape skeleton OR shared entity literal) -- the
+    case-indexed view ``run_generated_sweep.py`` needs to exclude cases
+    from the paired McNemar/bootstrap delta (REQ-6 overlap-excluded
+    delta), derived from the exact same ``shape_overlap_indices``/
+    ``entity_overlap`` source of truth (never re-implemented).
+    """
+    bank_skeletons = {_skeleton(e["query"]) for e in bank}
+    bank_skeletons.discard(None)
+    bank_entities: set[str] = set()
+    for example in bank:
+        bank_entities |= _query_literals(example["query"])
+
+    names: set[str] = set()
+    for case in corpus:
+        skel = _skeleton(case["expected"])
+        if skel is not None and skel in bank_skeletons:
+            names.add(case["name"])
+            continue
+        if _query_literals(case["expected"]) & bank_entities:
+            names.add(case["name"])
+    return names
+
+
+def test_generated_ck25_bank_shape_overlap_reported() -> None:
+    """SHAPE overlap axis over the GENERATED CK25 bank (D-05): report,
+    don't gate -- a generated example sharing a held-out gold's skeleton
+    is the expected, desired retrieval behavior (same-shape few-shot), not
+    a defect. ``shape_overlap_indices`` must run cleanly and return valid
+    bank indices so ``run_generated_sweep.py`` can exclude the
+    corresponding held-out cases from the measured delta."""
+    bank = _load_generated_bank(GENERATED_CK25_BANK_PATH)
+    corpus = _positive_cases_for(CK25_CORPUS_PATH)
+    overlap = shape_overlap_indices(bank, corpus)
+    assert isinstance(overlap, set)
+    assert all(isinstance(i, int) and 0 <= i < len(bank) for i in overlap)
+    overlapping_names = overlapping_case_names(bank, corpus)
+    assert isinstance(overlapping_names, set)
+    print(
+        f"\nCK25 generated-bank shape-overlap: {len(overlap)}/{len(bank)} bank "
+        f"examples collide with {len(overlapping_names)}/{len(corpus)} held-out cases"
+    )
+
+
+def test_generated_ck25_bank_entity_overlap_pinned() -> None:
+    """ENTITY overlap axis over the GENERATED CK25 bank (D-04/D-05,
+    Pitfall 4). EMPIRICAL FINDING (Plan 05): the generator's seeded
+    sampler (Plan 02, ``generate_bank_with_report(..., seed=0)``) draws
+    filler labels from the FULL CK25 instance graph -- the SAME graph the
+    held-out corpus's golds are grounded in -- so a real-world label can
+    legitimately appear in both pools by sheer coincidence (there is
+    exactly one "Marketing" department in the company; the generator's
+    ``two_hop`` shape sampled it independently of ck25-4/ck25-10's own
+    "Marketing" literal). This is precisely the scenario D-05's mitigation
+    targets: REPORT the overlap and EXCLUDE the affected held-out case
+    from the measured delta (never force a false ``== set()`` by mutating
+    the committed, already regression-tested Plan 02/03 bank --
+    ``test_committed_ck25_bank_matches_fresh_regeneration`` pins that
+    artifact byte-for-byte). Pinned to the single known collision so the
+    audit doubles as a regression gate: a NEW, larger collision surfacing
+    on a future regeneration must be investigated, not silently absorbed.
+    """
+    bank = _load_generated_bank(GENERATED_CK25_BANK_PATH)
+    corpus = _positive_cases_for(CK25_CORPUS_PATH)
+    overlap = entity_overlap(bank, corpus)
+    assert overlap == {"Marketing"}, (
+        f"CK25 generated-bank entity-overlap axis drifted from the known "
+        f"Plan-05 finding ({overlap!r}) -- investigate before excluding "
+        "in run_generated_sweep.py; if this shrank to empty, tighten this "
+        "assertion to `== set()`"
+    )
+
+
+def test_generated_qald_bank_overlap_axes_vacuously_empty() -> None:
+    """QALD's generated bank is empty (0 examples -- Plan 04's honest,
+    TBox-only finding); both overlap axes are therefore vacuously empty --
+    an empty bank cannot near-duplicate or leak anything. Guards against a
+    future QALD bank regeneration silently growing without this test
+    covering it."""
+    bank = _load_generated_bank(GENERATED_QALD_BANK_PATH)
+    assert bank == []
+    corpus = _positive_cases_for(QALD_CORPUS_PATH)
+    assert shape_overlap_indices(bank, corpus) == set()
+    assert entity_overlap(bank, corpus) == set()
+    assert overlapping_case_names(bank, corpus) == set()
