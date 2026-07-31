@@ -252,6 +252,67 @@ configs:
     predicate_grounding:
       k: 20
 
+  # --------------------------------------------------------------------
+  # Phase 07.5 Plan 05 (D-05/REQ-4/REQ-6): additive GENERATED-bank few-shot
+  # arms. Unlike the curated fewshot_bank.yml arms below (openai-gpt4o-
+  # mini-{dense,bm25}), these point `few_shot:` at the query-first
+  # SYNTHETIC (generator-authored) bank via the additive `bank:` sub-key
+  # (mirrors the corpus:/data_path: precedent) — absent `bank:` stays
+  # today's curated-bank behavior for every existing few_shot arm
+  # (byte-identical). scripted-ck25-generated-fewshot is a PLUMBING gate
+  # only (config -> BM25 retrieval over the generated bank -> prompt ->
+  # judge does not crash) — NOT accuracy evidence; scripted stays the CI
+  # default regardless (mirrors the seam-6/seam-7 scripted-*-grounded
+  # precedent). k=20 (not the curated arms' k=3) per the Plan 05 spec —
+  # the generated CK25 bank has 77 examples across 9 shapes, a wider pool
+  # than the curated bank's 23.
+  # --------------------------------------------------------------------
+
+  # CK25 generated-fewshot — no network, deterministic; plumbing gate.
+  scripted-ck25-generated-fewshot:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
+  # Live CK25 generated-fewshot sweep — human-run credentialed adopt/kill
+  # measurement (Plan 05 Task 3 checkpoint). Not run in CI — gated behind
+  # RUN_EVAL=1 + NL2SPARQL_API_KEY.
+  openai-gpt4o-mini-ck25-generated-fewshot:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
+  # Live QALD-9-plus generated-fewshot sweep — non-regression arm (Plan 05
+  # Task 3 step 2). QALD's generated bank is empty (0 examples, Plan 04
+  # honest TBox-only finding), so BM25 retrieval trivially returns nothing
+  # and this arm is EXPECTED to reproduce the flat
+  # `openai-gpt4o-mini-qald9plus` zero-shot number exactly — a PASS per
+  # RESEARCH OQ-4, not a failure.
+  openai-gpt4o-mini-qald9plus-generated-fewshot:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: canonical
+    max_repairs: 2
+    corpus: vendored/qald9plus/corpus.yml
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/qald9plus/generated_fewshot_bank.yml
+
   # gpt-4o-mini — the anchor model (06.2's committed live baseline).
   openai-gpt4o-mini-dense:
     provider:

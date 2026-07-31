@@ -519,13 +519,21 @@ def run(config_name: str) -> Report:
     few_shot_cfg = config.get("few_shot", {})
     few_shot_mode = few_shot_cfg.get("mode", "zero")
     few_shot_k = few_shot_cfg.get("k", 0)
+    # Additive `few_shot.bank:` sub-key (07.5-05 / RESEARCH OQ-3): mirrors
+    # the corpus:/data_path: additive precedent — an arm names its OWN bank
+    # file (e.g. a generated query-first-synthetic bank) without
+    # monkeypatching `BANK_PATH`. Absent `bank:` == today's curated
+    # `fewshot_bank.yml`, byte-identical for every existing few_shot arm.
+    few_shot_bank_path = (
+        EVAL_DIR / few_shot_cfg["bank"] if few_shot_cfg.get("bank") else BANK_PATH
+    )
 
     # Build the index ONCE per arm, outside the per-case loop (Pitfall 1 —
     # never per-case; a fresh FewShotIndex would reload the SentenceTransformer
     # model + re-embed the whole bank on every one of the 25 corpus cases).
     few_shot_index: FewShotIndex | None = None
     if few_shot_mode in ("dense", "bm25"):
-        few_shot_index = cached_few_shot_index(str(BANK_PATH), few_shot_mode)
+        few_shot_index = cached_few_shot_index(str(few_shot_bank_path), few_shot_mode)
         if few_shot_mode == "dense":
             # D-06 belt-and-suspenders: a wrong-mode/degraded retriever must
             # never be silently filed as a dense number.
