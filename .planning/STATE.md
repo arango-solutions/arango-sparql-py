@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-31T21:26:26.180Z"
+status: paused
+last_updated: "2026-07-31T23:19:43.661Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 49
-  completed_plans: 48
+  completed_plans: 49
   percent: 60
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
 Plan: 5 of 6
-Status: Ready to execute
+Status: PAUSED at 07.5-05 Task 3 (human-action checkpoint: credentialed CK25+QALD sweep)
 Last activity: 2026-07-31
 
 Progress: [██████████] 98%
@@ -206,6 +206,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-04]: QALD's dbpedia_subset.ttl has 0 rdfs:domain/rdfs:range declarations AND 0 instance-level rdfs:label triples -- combined with generate_bank_with_report's universal instance-data-bound design (Plan 02), ALL 9 catalog shapes self-drop on TBox-only QALD, not just the 3 data-driven ones (negation/top_n/offset) RESEARCH anticipated -- honest, stronger-than-anticipated finding, not a bug (D-04/D-02 forbid both possible fixes)
 - [Phase 07.5-04]: generate_bank_with_report called completely unmodified on QALD (byte-identical to CK25 call); no code change needed -- the committed report JSON's dropped field key already satisfies the plan's grep -q drop check, giving REQ-5's no-ontology-branch claim in its strongest form
 - [Phase 07.5-04]: test_generator_no_ontology_branch uses a tokenize-based comment-stripped static scan (not naive str.split) so IRIs containing # are never corrupted and historical Rule-1-fix docstring prose (pv:Product/pv:Agent/weight_g) is correctly excluded as legitimate, non-forbidden documentation
+- [Phase 07.5-05]: entity-overlap axis pinned to the real, discovered single-item collision ({'Marketing'}) rather than force-asserted empty — D-05's mitigation design is report+exclude, not zero-tolerance-by-construction; mutating the already regression-tested Plan 02/03 bank would have desynced test_committed_ck25_bank_matches_fresh_regeneration's fixed-seed reproducibility guarantee
+- [Phase 07.5-05]: chose the additive few_shot.bank: runner.py config key (RESEARCH OQ-3) over monkeypatch isolation for the generated-bank arms — a committed scripted-ck25-generated-fewshot plumbing arm must be reachable via the standard test_eval.py path -- verified byte-identical for every existing few_shot arm (705 passed/1 skipped)
 
 ### Pending Todos
 
@@ -220,6 +222,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [RESOLVED, 07.4-06 re-fold] The fresh credentialed live CK25 sweep on the fixed dump mode (standalone + additive, both re-paired against a same-session fresh entity-alone arm) has been run by the human and folded into baseline.json/REQUIREMENTS.md. NL-ACC-02 is closed as a VALID documented-null; no further re-run is anticipated for this phase.
 - [Phase 04-07] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (7 report-only perf test files) committed (901ed75). Human must: (1) docker compose up -d arangodb (host 8532, DB sparql-to-aql), (2) RUN_INTEGRATION=1 pytest tests/perf -m perf -k "not translate_latency and not execute_overhead and not nl_latency" -q to populate the 6 Docker-gated rows in tests/perf/LATENCY_REPORT.md, (3) optionally RUN_INTEGRATION=1 NL2SPARQL_API_KEY=... pytest tests/perf/test_nl_latency.py -m perf -q for the live-LLM row (never paste the key into any file), (4) confirm LATENCY_REPORT.md is populated and secret-free, (5) reply approved or describe issues. Continuation folds in the final SUMMARY once approved.
 - [Phase 04-08] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (5 docs/howto recipes) committed (f149998). Human must: (1) docker compose up -d arangodb + uv run python main.py so /sparql is reachable, (2) run SELECT+ASK+Service-Description via rsparql --service / Protege SPARQL panel per docs/howto/protege.md and paste the real output into protege.md's transcript block, (3) point a YASGUI instance at /sparql per docs/howto/yasgui.md, run the same SELECT+ASK+Service Description, paste real output into yasgui.md's transcript block, (4) confirm both transcripts are secret-free, (5) reply approved or describe issues. Continuation completes the plan, writes 04-08-SUMMARY.md, and runs the final metadata commit once approved.
+- [Phase 07.5-05] AWAITING HUMAN CHECKPOINT (Task 3, checkpoint:human-verify, gate=blocking-human): Tasks 1-2 (overlap audit c677193, additive config arms + run_generated_sweep.py 3a5bcc2, README runbook fbe2069) committed. Human must (0) regenerate CK25 bank paraphrases for real via the live OpenAICompatibleClient (README.md Section 11.0, BLOCKER), (1) re-run verify_generated_bank.py, (2) update test_committed_ck25_bank_matches_fresh_regeneration to exclude paraphrase-text equality, (3) run RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python tests/nl2sparql/eval/run_generated_sweep.py --sweep x3 + the QALD non-regression arm + the >=20-pair faithfulness judge, (4) paste back aggregate + per-case verdicts + McNemar/bootstrap (raw and overlap-excluded) + coverage% + faithfulness% + corpus_sha. Continuation folds results into baseline.json (new sibling key), records the adopt/kill decision, updates REQUIREMENTS.md NL-GEN-01, and completes the plan.
 
 ## Deferred Items
 
@@ -231,6 +234,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-31T21:26:26.175Z
-Stopped at: Completed 07.5-03-PLAN.md
-Resume file: None
+Last session: 2026-07-31T23:19:08.544Z
+Stopped at: 07.5-05 Tasks 1-2 complete, PAUSED at Task 3 (human-action checkpoint: credentialed CK25+QALD sweep)
+Resume file: tests/nl2sparql/eval/README.md#11-generated-bank-paraphrase-regeneration--generalization-adoptkill-sweep--nl-gen-01-phase-075-plan-05
