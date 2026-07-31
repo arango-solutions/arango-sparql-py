@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-31T21:10:02.732Z"
+last_updated: "2026-07-31T21:26:26.180Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 49
-  completed_plans: 47
+  completed_plans: 48
   percent: 60
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
-Progress: [██████████] 96%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Progress: [██████████] 96%
 | Phase 07.5 P01 | 15min | 3 tasks | 4 files |
 | Phase 07.5 P02 | 32min | 2 tasks | 4 files |
 | Phase 07.5 P03 | 25min | 2 tasks | 3 files |
+| Phase 07.5 P04 | ~12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -202,6 +203,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-03]: slot_preserving checks ONLY binding's filler_label/threshold values (the plan's explicit scope) -- predicate labels/domain names are covered structurally by the intent_lexicon check instead, never re-derived from binding
 - [Phase 07.5-03]: Ranking-shape (top_n/offset) direction-flip guard uses a broader antonym set (least/lowest/smallest/cheapest/fewest/minimum/bottom/worst) than either shape's intent_lexicon -- a fixed canonical-direction check since this generator always renders descending/highest order, not a per-example fact
 - [Phase 07.5-03]: CK25 bank re-emitted via a test-local _EchoParaphraseClient (deterministic verbatim-echo-with-prefix double) rather than a fixed-list ScriptedLLMClient -- question-aware, scales to all 77 examples, fully offline/no-key; committed paraphrases are SCRIPTED/PLACEHOLDER (flagged in file header + test docstring), superseded by Plan 05's real regeneration
+- [Phase 07.5-04]: QALD's dbpedia_subset.ttl has 0 rdfs:domain/rdfs:range declarations AND 0 instance-level rdfs:label triples -- combined with generate_bank_with_report's universal instance-data-bound design (Plan 02), ALL 9 catalog shapes self-drop on TBox-only QALD, not just the 3 data-driven ones (negation/top_n/offset) RESEARCH anticipated -- honest, stronger-than-anticipated finding, not a bug (D-04/D-02 forbid both possible fixes)
+- [Phase 07.5-04]: generate_bank_with_report called completely unmodified on QALD (byte-identical to CK25 call); no code change needed -- the committed report JSON's dropped field key already satisfies the plan's grep -q drop check, giving REQ-5's no-ontology-branch claim in its strongest form
+- [Phase 07.5-04]: test_generator_no_ontology_branch uses a tokenize-based comment-stripped static scan (not naive str.split) so IRIs containing # are never corrupted and historical Rule-1-fix docstring prose (pv:Product/pv:Agent/weight_g) is correctly excluded as legitimate, non-forbidden documentation
 
 ### Pending Todos
 
@@ -227,6 +231,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-31T21:10:02.726Z
+Last session: 2026-07-31T21:26:26.175Z
 Stopped at: Completed 07.5-03-PLAN.md
 Resume file: None
