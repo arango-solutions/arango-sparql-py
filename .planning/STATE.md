@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-31T20:47:38.600Z"
+last_updated: "2026-07-31T21:10:02.732Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 49
-  completed_plans: 46
+  completed_plans: 47
   percent: 60
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
-Progress: [█████████░] 94%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [█████████░] 94%
 | Phase 04 P08 | 5min | 1 tasks | 2 files |
 | Phase 07.5 P01 | 15min | 3 tasks | 4 files |
 | Phase 07.5 P02 | 32min | 2 tasks | 4 files |
+| Phase 07.5 P03 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -198,6 +199,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-02]: Removed subject-side domain-type constraint from every ShapeTemplate closure (Rule 1 fix) -- CK25's pv:Product/pv:Agent are TBox-declared domains with zero direct instances, silently zeroing value_object/two_hop until fixed; took CK25 bank from 30 to 77 examples, all 9 shapes present
 - [Phase 07.5-02]: Used rdfs:label (not CK25's pv:name) as the sole name-anchor predicate in every closure -- empirically verified rdfs:label covers a strict superset of pv:name-carrying subjects, keeping the generator genuinely schema-agnostic
 - [Phase 07.5-02]: Force-added reports/generation_report_ck25.json past the reports/ gitignore rule -- that rule targets per-run LLM eval reports; this is a deterministic offline-generator artifact in baseline.json's tier
+- [Phase 07.5-03]: slot_preserving checks ONLY binding's filler_label/threshold values (the plan's explicit scope) -- predicate labels/domain names are covered structurally by the intent_lexicon check instead, never re-derived from binding
+- [Phase 07.5-03]: Ranking-shape (top_n/offset) direction-flip guard uses a broader antonym set (least/lowest/smallest/cheapest/fewest/minimum/bottom/worst) than either shape's intent_lexicon -- a fixed canonical-direction check since this generator always renders descending/highest order, not a per-example fact
+- [Phase 07.5-03]: CK25 bank re-emitted via a test-local _EchoParaphraseClient (deterministic verbatim-echo-with-prefix double) rather than a fixed-list ScriptedLLMClient -- question-aware, scales to all 77 examples, fully offline/no-key; committed paraphrases are SCRIPTED/PLACEHOLDER (flagged in file header + test docstring), superseded by Plan 05's real regeneration
 
 ### Pending Todos
 
@@ -223,6 +227,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-31T20:47:38.593Z
-Stopped at: Completed 07.5-02-PLAN.md
+Last session: 2026-07-31T21:10:02.726Z
+Stopped at: Completed 07.5-03-PLAN.md
 Resume file: None
