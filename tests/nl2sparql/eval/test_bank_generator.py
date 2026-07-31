@@ -1,27 +1,45 @@
-"""Phase 07.5 Plan 02 Task 1 -- unit coverage for ``bank_generator.py``'s 9
-real ``ShapeTemplate`` closures (``applies``/``build_sparql``).
+"""Phase 07.5 Plan 02 (Wave 1) -- unit + offline-gate coverage for
+``bank_generator.py``'s 9 real ``ShapeTemplate`` closures and the
+``generate_bank``/``generate_bank_with_report`` pipeline.
 
-Hand-crafted ``binding`` dicts (never going through a data-binding
-pipeline -- that lands in Task 2) exercise every shape's ``build_sparql``
-in isolation, proving each closure:
+Two complementary test styles, matching the plan's own two tasks:
 
-- parses (``_canonical`` is not ``None``);
-- never emits an instance-namespace IRI (``prodi:``-style);
-- name-anchors via ``rdfs:label`` wherever a label filler is used;
-- carries NO hardcoded CK25 vocabulary term -- re-run against a second,
-  completely synthetic (non-CK25) ontology's own IRIs, every closure
-  still parses cleanly and references only that ontology's own
-  namespace + the well-known ``rdfs:label``.
+- **Task 1** (direct closure tests): hand-crafted ``binding`` dicts
+  (never going through the full data-binding pipeline) exercise every
+  shape's ``build_sparql`` in isolation -- proving each closure parses,
+  never emits an instance-namespace IRI, and carries NO hardcoded
+  vocabulary term (re-run against a synthetic, non-CK25 ontology).
+- **Task 2** (pipeline tests): the full ``generate_bank_with_report``
+  pipeline against the REAL, fixed CK25 vendored ontology + instance
+  data -- proving >=7 (target 9) distinct shapes survive the
+  execution-non-empty + strict-extremum gates, the per-shape yield
+  report accounts for every catalog shape, generation is byte-stable
+  under a fixed seed, and the committed
+  ``vendored/ck25/generated_fewshot_bank.yml`` matches a fresh
+  regeneration + passes the offline ``verify_generated_bank.py`` gate.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
-from tests.nl2sparql.eval.bank_generator import RDFS_LABEL_IRI, SHAPE_CATALOG
+from tests.nl2sparql.eval.bank_generator import (
+    RDFS_LABEL_IRI,
+    SHAPE_CATALOG,
+    generate_bank,
+    generate_bank_with_report,
+)
 from tests.nl2sparql.eval.runner import _canonical
+
+_CK25_ONTOLOGY_PATH = Path(__file__).parent / "vendored" / "ck25" / "ontology.ttl"
+_CK25_DATA_PATH = Path(__file__).parent / "vendored" / "ck25" / "raw" / "prod-inst.ttl"
+_CK25_CORPUS_PATH = Path(__file__).parent / "vendored" / "ck25" / "corpus.yml"
+_CK25_BANK_PATH = Path(__file__).parent / "vendored" / "ck25" / "generated_fewshot_bank.yml"
+_CK25_REPORT_PATH = Path(__file__).parent / "reports" / "generation_report_ck25.json"
 
 _PV = "http://ld.company.org/prod-vocab/"
 _PRODI = "http://ld.company.org/prod-instances/"
@@ -34,8 +52,9 @@ def _shape(name: str):
 
 
 # --------------------------------------------------------------------------
-# Direct build_sparql closure tests (hand-crafted bindings) -- every
-# closure must parse and be instance-IRI-free for REAL CK25 IRIs.
+# Task 1: direct build_sparql closure tests (hand-crafted bindings, no
+# data-binding pipeline involved) -- every closure must parse and be
+# instance-IRI-free for REAL CK25 IRIs.
 # --------------------------------------------------------------------------
 
 _CK25_BINDINGS: dict[str, dict] = {
@@ -66,14 +85,6 @@ _CK25_BINDINGS: dict[str, dict] = {
         "filler_label": "Engineering",
     },
 }
-
-
-def test_shape_catalog_has_nine_real_closures() -> None:
-    assert len(SHAPE_CATALOG) == 9
-    assert len(set(_SHAPE_NAMES)) == 9
-    for shape in SHAPE_CATALOG:
-        assert shape.applies.__name__ != "_unimplemented_applies"
-        assert shape.build_sparql.__name__ != "_unimplemented_build_sparql"
 
 
 @pytest.mark.parametrize("shape_name", _SHAPE_NAMES)
@@ -109,7 +120,7 @@ def test_grouped_aggregation_distinct_from_scalar_count() -> None:
 
 
 # --------------------------------------------------------------------------
-# Schema-agnostic proof -- every closure re-run against a SECOND,
+# Task 1: schema-agnostic proof -- every closure re-run against a SECOND,
 # synthetic (non-CK25) ontology must produce valid, IRI-consistent SPARQL
 # with NO leaked CK25 vocabulary term baked into the closure itself.
 # --------------------------------------------------------------------------
@@ -167,9 +178,126 @@ def test_build_sparql_is_schema_agnostic_on_synthetic_ontology(shape_name: str) 
         )
 
 
-def test_generate_bank_is_still_a_stub() -> None:
-    """Task 1 status check: the pipeline itself is Task 2's job."""
-    from tests.nl2sparql.eval.bank_generator import generate_bank
+# --------------------------------------------------------------------------
+# Task 2: full generate_bank_with_report pipeline against the REAL, fixed
+# CK25 vendored ontology + instance data.
+# --------------------------------------------------------------------------
 
-    with pytest.raises(NotImplementedError):
-        generate_bank("", "")
+
+@pytest.fixture(scope="module")
+def ck25_bank_and_report():
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+    return generate_bank_with_report(ontology_ttl, data_ttl, seed=0)
+
+
+def test_ck25_bank_has_at_least_seven_distinct_shapes(ck25_bank_and_report) -> None:
+    bank, report = ck25_bank_and_report
+    kept_shapes = {name for name, r in report.items() if r["kept"] > 0}
+    example_shapes = {ex["shape"] for ex in bank["examples"]}
+
+    assert kept_shapes == example_shapes, "report kept-count and emitted examples disagree on shape coverage"
+    assert len(kept_shapes) >= 7, (
+        f"expected >=7 (target 9) distinct shapes, got {len(kept_shapes)}: {kept_shapes}"
+    )
+
+
+def test_ck25_generation_report_accounts_for_every_catalog_shape(ck25_bank_and_report) -> None:
+    _bank, report = ck25_bank_and_report
+
+    assert set(report.keys()) == set(_SHAPE_NAMES), "report must list every one of the 9 catalog shapes"
+    for name, stats in report.items():
+        assert "kept" in stats and "dropped" in stats and "reasons" in stats
+        if stats["kept"] == 0:
+            assert stats["reasons"], (
+                f"shape {name!r} kept 0 examples with NO logged drop reason "
+                "(D-02 / Pitfall 6: a silent 0-yield shape is forbidden)"
+            )
+
+
+def test_ck25_bank_examples_are_valid_and_name_anchored(ck25_bank_and_report) -> None:
+    bank, _report = ck25_bank_and_report
+    assert len(bank["examples"]) > 0
+    for example in bank["examples"]:
+        assert _canonical(example["query"]) is not None, f"failed to parse: {example['query']}"
+        assert _PRODI not in example["query"], f"instance-namespace IRI leaked: {example['query']}"
+
+
+def test_ck25_bank_version_and_examples_only_shape() -> None:
+    """The bank dict's top-level keys are exactly ``version``/``examples``
+    (no ``ontology:`` block -- that would trip the curated-bank-specific
+    ``test_bank_ontology_matches_corpus``, per RESEARCH)."""
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+    bank = generate_bank(ontology_ttl, data_ttl, seed=0)
+
+    assert bank["version"] == 1
+    assert "ontology" not in bank
+    for example in bank["examples"]:
+        assert "question" in example and "query" in example
+
+
+def test_generation_is_byte_stable_under_fixed_seed() -> None:
+    """Q7 reproducibility: regenerating with the same seed must be
+    byte-stable (identical bank + report)."""
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+
+    bank1, report1 = generate_bank_with_report(ontology_ttl, data_ttl, seed=0)
+    bank2, report2 = generate_bank_with_report(ontology_ttl, data_ttl, seed=0)
+
+    assert bank1 == bank2
+    assert report1 == report2
+
+
+def test_generate_bank_degrades_to_empty_without_instance_data() -> None:
+    """D-04: every Stage-1 shape here is data-bound -- without *data_ttl*
+    (TBox-only), generation must degrade to an honest empty bank (every
+    shape's drop reason recorded), never crash."""
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    bank, report = generate_bank_with_report(ontology_ttl, data_ttl=None, seed=0)
+
+    assert bank == {"version": 1, "examples": []}
+    for name in _SHAPE_NAMES:
+        assert report[name]["reasons"], f"shape {name!r} has no TBox-only degrade reason logged"
+
+
+# --------------------------------------------------------------------------
+# Committed-artifact regression: the checked-in
+# vendored/ck25/generated_fewshot_bank.yml must match a fresh
+# regeneration (no generator/artifact drift) and pass the offline
+# validity gate.
+# --------------------------------------------------------------------------
+
+
+def test_committed_ck25_bank_matches_fresh_regeneration() -> None:
+    import yaml
+
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+    fresh = generate_bank(ontology_ttl, data_ttl, seed=0)
+
+    committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
+    assert committed == fresh, "committed generated_fewshot_bank.yml is stale vs. the current generator"
+
+
+def test_committed_ck25_report_matches_fresh_regeneration() -> None:
+    import json
+
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+    _bank, fresh_report = generate_bank_with_report(ontology_ttl, data_ttl, seed=0)
+
+    committed = json.loads(_CK25_REPORT_PATH.read_text())
+    assert committed["shapes"] == fresh_report, (
+        "committed generation_report_ck25.json is stale vs. the current generator"
+    )
+    assert committed["total_kept"] == sum(r["kept"] for r in fresh_report.values())
+    assert committed["total_dropped"] == sum(r["dropped"] for r in fresh_report.values())
+
+
+def test_offline_validity_gate_green_on_committed_ck25_bank() -> None:
+    from tests.nl2sparql.eval.verify_generated_bank import verify_bank
+
+    exit_code = verify_bank(_CK25_BANK_PATH, _CK25_CORPUS_PATH, _CK25_DATA_PATH)
+    assert exit_code == 0, "verify_generated_bank.py must exit 0 on the committed CK25 bank"

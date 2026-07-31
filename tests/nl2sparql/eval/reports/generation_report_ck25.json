@@ -1,0 +1,89 @@
+{
+  "ontology": "ck25",
+  "seed": 0,
+  "shapes": {
+    "lookup": {
+      "kept": 28,
+      "dropped": 0,
+      "reasons": []
+    },
+    "value_object": {
+      "kept": 2,
+      "dropped": 0,
+      "reasons": []
+    },
+    "category_filter": {
+      "kept": 14,
+      "dropped": 6,
+      "reasons": [
+        "compatible product (http://ld.company.org/prod-vocab/compatibleProduct): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "country (http://ld.company.org/prod-vocab/country): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "eligible for (http://ld.company.org/prod-vocab/eligibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has direct report (http://ld.company.org/prod-vocab/hasDirectReport): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "part (http://ld.company.org/prod-vocab/hasPart): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "responsible for (http://ld.company.org/prod-vocab/responsibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    },
+    "scalar_count": {
+      "kept": 14,
+      "dropped": 6,
+      "reasons": [
+        "compatible product (http://ld.company.org/prod-vocab/compatibleProduct): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "country (http://ld.company.org/prod-vocab/country): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "eligible for (http://ld.company.org/prod-vocab/eligibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has direct report (http://ld.company.org/prod-vocab/hasDirectReport): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "part (http://ld.company.org/prod-vocab/hasPart): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "responsible for (http://ld.company.org/prod-vocab/responsibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    },
+    "grouped_aggregation": {
+      "kept": 7,
+      "dropped": 6,
+      "reasons": [
+        "compatible product (http://ld.company.org/prod-vocab/compatibleProduct): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "eligible for (http://ld.company.org/prod-vocab/eligibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has BOM Part (http://ld.company.org/prod-vocab/hasBomPart): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has direct report (http://ld.company.org/prod-vocab/hasDirectReport): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "part (http://ld.company.org/prod-vocab/hasPart): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "responsible for (http://ld.company.org/prod-vocab/responsibleFor): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    },
+    "top_n": {
+      "kept": 1,
+      "dropped": 6,
+      "reasons": [
+        "depth (mm) (http://ld.company.org/prod-vocab/depth_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "height (mm) (http://ld.company.org/prod-vocab/height_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "quantity (http://ld.company.org/prod-vocab/quantity): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has reliability index (http://ld.company.org/prod-vocab/reliabilityIndex): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "weight (g) (http://ld.company.org/prod-vocab/weight_g): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "width (mm) (http://ld.company.org/prod-vocab/width_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    },
+    "offset": {
+      "kept": 2,
+      "dropped": 5,
+      "reasons": [
+        "depth (mm) (http://ld.company.org/prod-vocab/depth_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "height (mm) (http://ld.company.org/prod-vocab/height_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "has reliability index (http://ld.company.org/prod-vocab/reliabilityIndex): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "weight (g) (http://ld.company.org/prod-vocab/weight_g): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)",
+        "width (mm) (http://ld.company.org/prod-vocab/width_mm): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    },
+    "negation": {
+      "kept": 1,
+      "dropped": 0,
+      "reasons": []
+    },
+    "two_hop": {
+      "kept": 8,
+      "dropped": 1,
+      "reasons": [
+        "compatible product (http://ld.company.org/prod-vocab/compatibleProduct): no viable data-bound candidate (empty filler pool / saturated-tied orderable / no surviving threshold)"
+      ]
+    }
+  },
+  "total_kept": 77,
+  "total_dropped": 30
+}
