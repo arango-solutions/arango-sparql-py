@@ -29,6 +29,7 @@ import pytest
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
 from arango_sparql.nl2sparql.engine_adapter import PREDICATE_DUMP_THRESHOLD
+from tests.nl2sparql.eval.bank_generator import SHAPE_CATALOG, ShapeTemplate
 from tests.nl2sparql.eval.grounding_index_builder import (
     build_label_index,
     build_predicate_index,
@@ -328,3 +329,26 @@ def test_optional_relation_unavailable_false_on_tbox_only() -> None:
     assert all(not s.optional_relation for s in signals.values()), (
         "every predicate's optional_relation must be False/unavailable with no instance data"
     )
+
+
+# --------------------------------------------------------------------------
+# Phase 07.5 Wave 0 Task 2: bank_generator.py's ShapeTemplate catalog
+# scaffold -- 9 distinct registered shape names, and ShapeTemplate is a
+# genuinely frozen (immutable) dataclass.
+# --------------------------------------------------------------------------
+
+
+def test_shape_catalog_registers_nine_distinct_shape_names() -> None:
+    names = [t.name for t in SHAPE_CATALOG]
+    assert len(names) == 9, f"expected 9 registered shapes, got {len(names)}: {names}"
+    assert len(set(names)) == 9, f"shape names must be distinct, got: {names}"
+    assert "grouped_aggregation" in names and "scalar_count" in names, (
+        "grouped_aggregation must be registered SEPARATELY from scalar_count (spike carry-forward #2)"
+    )
+
+
+def test_shape_template_is_frozen() -> None:
+    template = SHAPE_CATALOG[0]
+    assert isinstance(template, ShapeTemplate)
+    with pytest.raises(Exception):  # noqa: B017 - dataclasses.FrozenInstanceError, not imported for its own sake
+        template.name = "mutated"  # type: ignore[misc]
