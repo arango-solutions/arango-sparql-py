@@ -923,3 +923,231 @@ Same secret hygiene as §6: **never commit a key or raw prompts/completions**
   live config is reachable only via an explicit, human-run
   `run("openai-gpt4o-mini-...-predicate-grounded")` call, never from the
   default test path.
+
+## 11. Generated-bank paraphrase regeneration + generalization adopt/kill sweep — NL-GEN-01 (Phase 07.5 Plan 05)
+
+This section documents the credentialed, human-run measurement behind
+NL-GEN-01's terminal question: does the **GENERATED** (query-first
+synthetic, mechanically authored by `bank_generator.py` — never
+hand-curated) CK25 few-shot bank reproduce Spike 001's directional lift
+(§ Spike 001, `.planning/spikes/001-ck25-thin-fewshot-signal/`) on the
+held-out corpus? Same discipline as §§3–10 (key-gated, `scripted` stays the
+CI default, manual human-reviewed fold-in, fresh same-session zero arm as
+the ONLY confirmatory comparator — never a stale committed number, Pitfall
+7), plus a NEW blocking prerequisite (step 0) this phase adds.
+
+**Everything up to the live calls below is already committed and green,
+offline, with no key:** the 9-shape generator (`bank_generator.py`), the
+77-example CK25 bank + empty (honest, TBox-only) QALD bank, the
+`verify_generated_bank.py` validity gate, the shape+entity overlap audit
+(`test_fewshot_bank_disjoint.py::shape_overlap_indices`/`entity_overlap`/
+`overlapping_case_names` — D-05), the additive `configs.yml` generated-bank
+arms + `few_shot.bank:` config key, and `run_generated_sweep.py`
+(`--dry-run` proven: the generated bank loads via BM25 and injects a real
+`## Examples` prompt block, REQ-4). The agent has **not** run the live
+sweep — `NL2SPARQL_API_KEY` is human-held only (07.3-06/07.4-05
+precedent) — and is **forbidden** from fabricating paraphrases, McNemar/
+bootstrap numbers, per-case verdicts, or the faithfulness-judge output.
+
+### 11.0 STEP 0 (BLOCKER, do this FIRST) — regenerate CK25's paraphrases for REAL
+
+The committed `vendored/ck25/generated_fewshot_bank.yml` carries
+**SCRIPTED/PLACEHOLDER** paraphrases (Plan 03's offline, deterministic
+`_EchoParaphraseClient` double — see the bank file's own header comment
+and `test_bank_generator.py`'s docstring) — echo-style text, never a real
+LLM paraphrase. REQ-3's full target (≥3 **genuine** paraphrases/example,
+≥95% faithful on ≥20 judged pairs) is not met until this step regenerates
+them against the live `OpenAICompatibleClient`. No subsequent step (§11.1+)
+may be measured against the placeholder bank.
+
+`bank_generator.paraphrase()`'s default path (`client=None`) already
+constructs a real `OpenAICompatibleClient(provider="openai",
+model="gpt-4o-mini")` from `NL2SPARQL_API_KEY` when the env var is set —
+no explicit client wiring needed:
+
+Write a small one-off script (do NOT commit it — it's a throwaway
+regeneration tool, not part of the harness) rather than an inline `-c`
+one-liner, to avoid shell-quoting hazards around the header text:
+
+```bash
+uv sync --extra dev --extra nl   # dev: pyoxigraph (execution filter); nl: openai client
+export NL2SPARQL_API_KEY=sk-...  # your OpenAI key — this shell only, never OPENAI_API_KEY (Pitfall 1)
+
+cat > /tmp/regen_ck25_paraphrases.py <<'PYEOF'
+from pathlib import Path
+import yaml
+from tests.nl2sparql.eval.bank_generator import generate_bank
+
+EVAL_DIR = Path("tests/nl2sparql/eval")
+ontology_ttl = (EVAL_DIR / "vendored/ck25/ontology.ttl").read_text()
+data_ttl = (EVAL_DIR / "vendored/ck25/raw/prod-inst.ttl").read_text()
+
+# client=None -> generate_bank's paraphrase() step auto-builds a REAL
+# OpenAICompatibleClient from NL2SPARQL_API_KEY (bank_generator.py
+# docstring) -- this is NOT the scripted _EchoParaphraseClient double.
+bank = generate_bank(ontology_ttl, data_ttl, seed=0, k_paraphrases=3)
+
+n = len(bank["examples"])
+min_k = min(len(e["paraphrases"]) for e in bank["examples"])
+print(f"examples={n} min_paraphrases_per_example={min_k}")
+assert min_k >= 3, "REQ-3 full target requires K>=3 genuine paraphrases per example"
+
+header = (
+    "# REAL paraphrases (Phase 07.5 Plan 05, credentialed provenance):\n"
+    "# every example's paraphrases list below was regenerated against the\n"
+    "# LIVE OpenAICompatibleClient (gpt-4o-mini, human-held NL2SPARQL_API_KEY)\n"
+    "# -- superseding Plan 03's SCRIPTED/PLACEHOLDER echo-double bank. Slot-\n"
+    "# preservation was enforced at generation time via slot_preserving().\n"
+)
+out_path = EVAL_DIR / "vendored/ck25/generated_fewshot_bank.yml"
+out_path.write_text(header + yaml.safe_dump(bank, sort_keys=False, allow_unicode=True))
+print(f"wrote {out_path}")
+PYEOF
+
+RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python /tmp/regen_ck25_paraphrases.py
+```
+
+Then confirm REQ-1/REQ-2 still hold on the regenerated bank (paraphrases
+never touch the `query` field, so this should be unaffected, but re-verify
+rather than assume):
+
+```bash
+uv run python tests/nl2sparql/eval/verify_generated_bank.py \
+  --bank tests/nl2sparql/eval/vendored/ck25/generated_fewshot_bank.yml \
+  --corpus tests/nl2sparql/eval/vendored/ck25/corpus.yml \
+  --data tests/nl2sparql/eval/vendored/ck25/raw/prod-inst.ttl
+# expect exit 0 / ALL GREEN
+```
+
+**Known follow-up test update (do this in the same commit as step 0):**
+`tests/nl2sparql/eval/test_bank_generator.py::test_committed_ck25_bank_matches_
+fresh_regeneration` asserts the committed bank equals a FRESH regeneration
+using the scripted `_EchoParaphraseClient()` double — that assertion is
+true only while the committed bank's own paraphrases are the scripted
+placeholder. Once step 0 regenerates with REAL paraphrases, this exact
+equality will (correctly) fail, since a fresh scripted-double regen no
+longer matches the committed, now-real-paraphrase artifact. Update that
+test to compare everything EXCEPT the `paraphrases` list per example (e.g.
+`question`/`query`/`shape` equality, plus `len(paraphrases) >= 3` and
+`slot_preserving` re-verification on the committed paraphrases) rather than
+relaxing or deleting the regression gate outright — the intent (committed
+bank must not silently drift from the generator's slot-fill/sampling
+logic) still holds; only the paraphrase-text equality no longer applies
+once paraphrases come from a live, non-reproducible LLM call.
+
+### 11.1 The three live arms (exact commands)
+
+Capture the corpus revision (the `corpus_sha` provenance field):
+
+```bash
+git log -1 --format=%h -- tests/nl2sparql/eval/vendored/ck25/corpus.yml
+```
+
+**Arm 1 — CK25 generated-fewshot** (the lever under test; run this 3x per
+REQ-6's "delta>0 across 3 runs" — each run is a fresh process invocation):
+
+```bash
+RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python -c "from tests.nl2sparql.eval.runner import run, write_report; r=run('openai-gpt4o-mini-ck25-generated-fewshot'); write_report(r); print('generated', r.pass_rate); [print(c.name, c.passed) for c in r.cases]"
+```
+
+**Arm 2 — a FRESH, same-session CK25 zero arm** (the confirmatory
+baseline — never the stale committed `openai-gpt4o-mini-ck25` entry from a
+prior session; §9/§10's same-session discipline applies identically here):
+
+```bash
+RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python -c "from tests.nl2sparql.eval.runner import run, write_report; r=run('openai-gpt4o-mini-ck25'); write_report(r); print('zero', r.pass_rate); [print(c.name, c.passed) for c in r.cases]"
+```
+
+**Arm 3 — QALD-9-plus generated-fewshot** (non-regression check only; the
+generated QALD bank is empty so this is EXPECTED to reproduce the flat
+`openai-gpt4o-mini-qald9plus` zero-shot number exactly — a PASS per
+RESEARCH OQ-4, not a failure):
+
+```bash
+RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python -c "from tests.nl2sparql.eval.runner import run, write_report; r=run('openai-gpt4o-mini-qald9plus-generated-fewshot'); write_report(r); print('qald_generated', r.pass_rate)"
+```
+
+The easiest way to run Arms 1+2 together with the paired stats (raw AND
+overlap-excluded, REQ-6) in one session is the harness itself:
+
+```bash
+RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python tests/nl2sparql/eval/run_generated_sweep.py --sweep
+```
+
+This prints `b`/`c`/`p` + bootstrap delta both RAW and with the
+shape+entity overlap-audited cases excluded (via
+`test_fewshot_bank_disjoint.py::overlapping_case_names` — Task 1's exact
+source of truth), the QALD non-regression arm's pass_rate, and writes
+`generated_sweep_result.json` next to the script (gitignored — never
+committed as-is; the numbers below are what cross into `baseline.json`).
+**Run this 3 times** (REQ-6) — each invocation is a fresh process, so each
+one is a genuine independent same-session zero-vs-generated pairing.
+
+### 11.2 The REQ-6 adopt/kill bar
+
+Per `07.5-SPEC.md`, **ADOPT** requires ALL of:
+
+- Shape-coverage ≥70% of held-out failing cases' gold shapes.
+- CK25 net pass-delta > 0 across all 3 runs, with **zero regressions**
+  (`c == 0`, or at minimum `b > c` on every run).
+- The delta stays > 0 after excluding the shape+entity overlap-audited
+  cases (`generated_sweep_result.json`'s `bootstrap_delta_overlap_excluded.
+  delta`).
+- QALD non-regression (Arm 3's pass_rate does not drop below the existing
+  committed `openai-gpt4o-mini-qald9plus` zero-shot number).
+
+**KILL** if the CK25 delta ≤ 0 post-exclusion on any run, or only one
+ontology shows any signal. If the bar is not met, close via the
+human-accepted-documented-null path (NL-FEW-02/07.4 precedent) — record
+the honest `b`/`c`/`p` and delta, never reframe a null as a pass.
+
+Also run the secondary faithfulness judge on ≥20 random (question, query)
+pairs from the REGENERATED bank (REQ-3 secondary): an LLM-judge call
+(same `OpenAICompatibleClient` shape as `paraphrase()`) asking "does this
+SPARQL query correctly answer this question, preserving every named
+entity/value/filter/count/ordering?" — confirm ≥95% match. Compute
+shape-coverage of held-out failing cases' gold shapes (REQ-6 ≥70%) by
+cross-referencing the gains/regressions case names against
+`bank_generator.SHAPE_CATALOG`.
+
+### 11.3 MANUAL fold-in into `baseline.json` (never CI-auto-regenerated)
+
+Same discipline as §§5/7.9/8.5/9.4/10.6 — a human-reviewed copy, never an
+automated script. Add a **new sibling key**
+(`phase07_5_generated_fewshot_sweep`, mirroring the
+`phase07_dense_few_shot_sweep`/`phase07_4_predicate_grounding_sweep`
+precedent) — do **not** overwrite the existing
+`configs.openai-gpt4o-mini-ck25` zero entry — carrying:
+
+- The 3 CK25 run results: each run's generated-arm pass_rate, the fresh
+  zero-arm pass_rate from that same run, `b`/`c`/`p_value` (raw), the
+  bootstrap `paired_delta`/`ci_95` (raw AND overlap-excluded), the
+  `excluded_case_names` list, `model: "gpt-4o-mini"`, `temperature: 0.1`,
+  `corpus_sha`.
+- The QALD non-regression arm's pass_rate + `role:
+  "directional_generalization_check"`.
+- The shape-coverage percentage + the ≥20-pair faithfulness-judge result
+  (match rate, sample pairs).
+- The `nl_gen_01_disposition` (adopt vs. documented-null/kill) per §11.2's
+  bar.
+
+Commit the regenerated `vendored/ck25/generated_fewshot_bank.yml` (real
+paraphrases, step 0) alongside the `baseline.json` fold-in and the
+`test_bank_generator.py` test-comparison update (step 0's follow-up note).
+Update `REQUIREMENTS.md`'s `NL-GEN-01` disposition. Same secret hygiene as
+§6: **never commit a key or raw prompts/completions** — only aggregate
+numbers, per-case verdicts, and provenance cross into `baseline.json`.
+
+### 11.4 Non-regression re-confirm (unchanged, re-confirm before closing NL-GEN-01)
+
+- `pytest tests/w3c/test_coverage_gate.py -q` green (QUERY_EVAL ≥ 96.4%) or
+  skips key-free when the W3C corpus isn't fetched locally.
+- `git diff --stat -- arango_sparql/translate/` empty across every phase
+  commit — the transpiler is untouched by NL-GEN-01.
+- `scripted`/`scripted-ck25-generated-fewshot`/
+  `scripted-qald9plus-predicate-grounded`-style plumbing configs remain the
+  only CI-reachable configs (`test_ci_gate_only_ever_runs_scripted`); every
+  generated-fewshot live config is reachable only via an explicit,
+  human-run `run("openai-gpt4o-mini-...-generated-fewshot")` call or
+  `run_generated_sweep.py --sweep`, never from the default test path.
+- `RUN_EVAL=1 uv run pytest tests/nl2sparql/eval/test_fewshot_bank_disjoint.py tests/nl2sparql/eval/test_eval.py -q` green.
