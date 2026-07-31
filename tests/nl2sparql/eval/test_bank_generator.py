@@ -584,3 +584,99 @@ def test_offline_validity_gate_green_on_committed_qald_bank() -> None:
     exit_code = verify_bank(_QALD_BANK_PATH, _QALD_CORPUS_PATH)
     assert exit_code == 0, "verify_generated_bank.py must exit 0 (structural mode) on the committed QALD bank"
 
+
+# --------------------------------------------------------------------------
+# Plan 04 Task 2 (REQ-5 / T-07.5-10 mitigation): static-inspection proof
+# that NO ontology-specific (CK25- or DBpedia-specific) hardcoded
+# vocabulary term/branch is smuggled into the generator's logic, and that
+# both banks are emitted by the identical ``generate_bank`` entry point.
+# --------------------------------------------------------------------------
+
+# CK25 (prod-vocab/prod-instances) and DBpedia/QALD vocabulary term
+# literals that must NEVER appear baked into ``bank_generator.py``'s
+# actual code (comments/docstrings discussing a historical Rule-1 fix by
+# NAME, e.g. "pv:Product"/"pv:Agent"/"weight_g", are legitimate prose and
+# are excluded by the comment-stripping below -- this check targets
+# hardcoded terms in generator/template LOGIC, per the plan's own
+# "baked as a constant" framing).
+_FORBIDDEN_ONTOLOGY_TERMS = (
+    "prod-vocab",
+    "prod-instances",
+    "Resistor",
+    "Engineering",
+    "hasCategory",
+    "hasSupplier",
+    "hasManager",
+    "hasProductManager",
+    "compatibleProduct",
+    "addressCountry",
+    "dbpedia.org",
+    "dbo:",
+    "dbp:",
+    "yago",
+    "phys:collectionName",
+    "phys:edgeCollectionName",
+)
+
+
+def _strip_comments(source: str) -> str:
+    """Reconstruct *source* with every ``#`` COMMENT token removed,
+    preserving original layout/spacing for every other token (the
+    standard ``tokenize``-based recipe) -- correctly leaves ``#`` inside a
+    string literal (e.g. ``"http://.../rdf-schema#label"``) untouched,
+    unlike a naive per-line ``str.split("#")``."""
+    import io
+    import tokenize
+
+    out: list[str] = []
+    last_lineno = -1
+    last_col = 0
+    tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+    for token_type, token_string, start, end, _line in tokens:
+        start_line, start_col = start
+        if start_line > last_lineno:
+            last_col = 0
+        if start_col > last_col:
+            out.append(" " * (start_col - last_col))
+        if token_type != tokenize.COMMENT:
+            out.append(token_string)
+        last_col = end[1]
+        last_lineno = end[0]
+    return "".join(out)
+
+
+def test_generator_no_ontology_branch() -> None:
+    """REQ-5 (D-02; T-07.5-10 mitigation): ``bank_generator.py`` contains
+    NO hardcoded CK25- or DBpedia-specific vocabulary term/branch anywhere
+    in its actual generator/template logic (a static source scan, comments
+    stripped so historical-fix prose mentioning a term BY NAME is not a
+    false positive), and the CK25 + QALD banks are both emitted by the
+    IDENTICAL ``generate_bank`` entry point -- no ontology-specific
+    argument, no per-ontology branch."""
+    import inspect
+
+    import tests.nl2sparql.eval.bank_generator as bank_generator_module
+
+    source = inspect.getsource(bank_generator_module)
+    code_only = _strip_comments(source)
+    for term in _FORBIDDEN_ONTOLOGY_TERMS:
+        assert term not in code_only, (
+            f"bank_generator.py bakes the ontology-specific vocabulary term {term!r} into its "
+            "generator/template logic -- REQ-5/D-02 forbid any per-schema hint or branch here"
+        )
+
+    ck25_ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    ck25_data_ttl = _CK25_DATA_PATH.read_text()
+    qald_ontology_ttl = _load_qald_ontology()
+
+    # Same entry point, same signature shape -- only the arguments differ
+    # (CK25 supplies rich instance data; QALD is TBox-only, D-04).
+    ck25_bank = generate_bank(ck25_ontology_ttl, ck25_data_ttl, seed=0)
+    qald_bank = generate_bank(qald_ontology_ttl, data_ttl=None, seed=0)
+
+    for bank in (ck25_bank, qald_bank):
+        assert set(bank.keys()) == {"version", "examples"}
+        assert bank["version"] == 1
+        assert isinstance(bank["examples"], list)
+    assert len(ck25_bank["examples"]) > 0, "CK25 (data-bound) must still yield real examples"
+    assert qald_bank["examples"] == [], "QALD (TBox-only) is the honest empty-bank degrade (D-04)"
