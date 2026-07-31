@@ -31,4 +31,4 @@ Design decisions that constrain the spike (and the eventual build), from the
 
 | # | Name | Type | Validates | Verdict | Tags |
 |---|------|------|-----------|---------|------|
-| 001 | ck25-thin-fewshot-signal | standard | Thin hand-built 3-shape entity-disjoint bank, injected via BM25, moves ≥1 held-out CK25 case fail→pass (b>c) | PENDING (offline gates green; awaiting human `--sweep`) | nl2sparql, few-shot, ck25, phase-07.5, stage-0-gate |
+| 001 | ck25-thin-fewshot-signal | standard | Thin hand-built 3-shape entity-disjoint bank, injected via BM25, moves ≥1 held-out CK25 case fail→pass (b>c) | **VALIDATED** — CK25 5/49→15/49, McNemar b=11/c=1, p=0.0063, delta +0.204 CI[+0.082,+0.327]; D-01 gate OPEN | nl2sparql, few-shot, ck25, phase-07.5, stage-0-gate |

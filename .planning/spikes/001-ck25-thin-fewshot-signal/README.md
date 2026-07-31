@@ -3,7 +3,7 @@ spike: 001
 name: ck25-thin-fewshot-signal
 type: standard
 validates: "Given a thin, hand-built, entity-disjoint few-shot bank (3 shapes) injected via the existing BM25 FewShotIndex, when the 49 held-out CK25 questions are run through the live NL→SPARQL pipeline, then at least one currently-failing case flips fail→pass with net gains > 0 (b > c)."
-verdict: PENDING
+verdict: VALIDATED
 related: []
 tags: [nl2sparql, few-shot, ck25, phase-07.5, stage-0-gate, bm25, de-risk]
 ---
@@ -118,39 +118,58 @@ the run is foldable into the phase record without re-running.
    strictly unique). Re-verified `ALL GREEN`.
 5. **Proved drop-in integration with zero LLM cost** via `--dry-run`: BM25
    retrieval is shape-aware and the real `## Examples` block injects.
-6. **Verdict pending the one credentialed sweep** (human-held key) — the only
-   step the agent cannot run.
+6. **Credentialed sweep run** (human key, gpt-4o-mini @ temp 0.1, 2026-07-31) —
+   decisive NON-NULL (see Results). The one step the agent could not run.
 
 ## Results
 
-**PENDING** — awaiting the credentialed `--sweep`. Everything the agent can
-verify offline is green:
+**VALIDATED** — the lever exists. Credentialed paired sweep (gpt-4o-mini @ temp
+0.1, same 49 held-out cases, thin-bank arm vs fresh same-session zero arm;
+`spike_result.json`):
 
-- 9/9 examples parse, transpile to non-empty AQL, execute non-empty vs CK25
-  data, and are algebra-disjoint from all 49 held-out golds.
-- The 3 top-N examples have strictly-unique extrema (deterministic under LIMIT 1).
-- The bank loads through the production BM25 `FewShotIndex`, retrieves same-shape
-  examples for the held-out questions, and injects a real `## Examples` prompt
-  section.
+| Metric | Value |
+|--------|-------|
+| Zero arm | **5 / 49** passed |
+| Thin-bank arm | **15 / 49** passed |
+| McNemar | **b (gains) = 11, c (regressions) = 1, p = 0.0063** |
+| Bootstrap delta | **+0.204, 95% CI [+0.082, +0.327]** (excludes 0) |
 
-The fail→pass signal itself is what the human sweep decides.
+**Gains (11, fail→pass):** ck25-2, 7, 10, 11, 12, 13, 15, 17, 18, 19, 45.
+**Regression (1, pass→fail):** ck25-30.
 
-╔══════════════════════════════════════════════════════════════╗
-║  CHECKPOINT: Verification Required (human, credentialed)      ║
-╚══════════════════════════════════════════════════════════════╝
+- **The gains land exactly on the targeted shapes** — 2-hop (7, 10, 11, 12, 17),
+  scalar COUNT (13), top-N (15, 18, 19, 45) — plus a lookup bonus (ck25-2). This
+  is the failure analysis confirmed: examples helped precisely the buckets they
+  targeted, and the name-anchored composition pattern generalized (the model
+  produced shape-correct queries that execute to the gold answer set, sidestepping
+  the IRI-grounding problem as designed).
+- **The single regression is honest and expected.** ck25-30 is a
+  `GROUP BY … HAVING(COUNT > 5)` grouped-aggregation — a shape **not** in the thin
+  bank; the scalar-COUNT examples plausibly nudged it toward a scalar count. It is
+  a distraction loss, and it is dwarfed 11:1 by the gains. It also foreshadows a
+  real design point for the full generator: grouped aggregation (GROUP BY/HAVING)
+  is a distinct shape that needs its own coverage, not just scalar COUNT.
 
-**Spike 001 — CK25 thin few-shot signal**
-**Run:**
-```
-RUN_EVAL=1 NL2SPARQL_API_KEY=… \
-  uv run python .planning/spikes/001-ck25-thin-fewshot-signal/run_spike.py --sweep
-```
-**What to expect:** two arms over the same 49 held-out CK25 cases, then
-`b`(gains)/`c`(regressions)/McNemar `p`/bootstrap delta and the flipped-case
-lists; `spike_result.json` written next to this README.
+**Offline gates (all green, pre-sweep):** 9/9 examples parse, transpile to
+non-empty AQL, execute non-empty vs CK25 data, and are algebra-disjoint from the
+49 held-out golds; the 3 top-N examples have strictly-unique extrema; the bank
+loads through the production BM25 `FewShotIndex` and injects a real `## Examples`
+section.
 
-──────────────────────────────────────────────────────────────
-→ Paste back the printed block (or `spike_result.json`). Non-null (b ≥ 1, b > c)
-  → the D-01 gate opens and the full generator build is justified. Null → kill or
-  rethink the lever before building.
-──────────────────────────────────────────────────────────────
+### D-01 gate: OPEN
+
+The Stage 0 signal is non-null (b=11 ≫ c=1, p=0.0063). Per D-01 the full
+generator build (Stage 1 eval prototype → Stage 2 engine promotion) is justified.
+Carry-forward requirements the spike surfaced for Phase 07.5:
+
+1. **Name-anchored composition is the winning example form** — the generator
+   should emit label/name-resolved patterns, not hardcoded instance IRIs (it
+   sidesteps the orthogonal entity-grounding bottleneck and is what generalized
+   here).
+2. **Grouped aggregation (GROUP BY/HAVING) is its own shape** — the ck25-30
+   regression shows scalar-COUNT coverage does not cover it and can even distract
+   it; the generator's ≥7-shape target must treat grouped aggregation distinctly
+   and the per-shape-yield report (D-02) must track it.
+3. **Watch net regressions at scale** — one distraction loss appeared even in a
+   9-example bank; the full measurement's "zero regressions" adopt bar (SPEC
+   REQ-6) is a real constraint, not a formality.
