@@ -1,3 +1,10 @@
+# SCRIPTED/PLACEHOLDER paraphrases (Phase 07.5 Plan 03, offline provenance):
+# every example's `paraphrases` list below was produced by an offline,
+# deterministic echo-style scripted client (tests/nl2sparql/eval/test_bank_generator.py::_EchoParaphraseClient)
+# -- NOT genuine LLM paraphrases, no key, no network. This bank is
+# SUPERSEDED by Plan 05's real-paraphrase regeneration against the live,
+# human-held-key OpenAICompatibleClient before any REQ-4/REQ-6
+# measurement is taken from it.
 version: 1
 examples:
 - question: Which Agent are in the Coil category?
@@ -5,219 +12,419 @@ examples:
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Coil\" .\n  ?result <http://ld.company.org/prod-vocab/areaOfExpertise>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'I would like to know: Which Agent are in the Coil category?'
+  - 'Please answer this: Which Agent are in the Coil category?'
+  - 'As a follow-up: Which Agent are in the Coil category?'
 - question: Which Agent are in the Gauge category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Gauge\" .\n  ?result <http://ld.company.org/prod-vocab/areaOfExpertise>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Please answer this: Which Agent are in the Gauge category?'
+  - 'As a follow-up: Which Agent are in the Gauge category?'
+  - 'Could you tell me: Which Agent are in the Gauge category?'
 - question: Which Agent are in the Product Management category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Department> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Product Management\" .\n  ?result <http://ld.company.org/prod-vocab/memberOf>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'I would like to know: Which Agent are in the Product Management category?'
+  - 'Please answer this: Which Agent are in the Product Management category?'
+  - 'As a follow-up: Which Agent are in the Product Management category?'
 - question: Which Agent are in the Production category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Department> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Production\" .\n  ?result <http://ld.company.org/prod-vocab/memberOf>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Please answer this: Which Agent are in the Production category?'
+  - 'As a follow-up: Which Agent are in the Production category?'
+  - 'Could you tell me: Which Agent are in the Production category?'
 - question: Which BillOfMaterial are in the I409-8215134 (70) category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/BomPart> .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label>\
     \ \"I409-8215134 (70)\" .\n  ?result <http://ld.company.org/prod-vocab/hasBomPart> ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'As a follow-up: Which BillOfMaterial are in the I409-8215134 (70) category?'
+  - 'Could you tell me: Which BillOfMaterial are in the I409-8215134 (70) category?'
+  - 'I would like to know: Which BillOfMaterial are in the I409-8215134 (70) category?'
 - question: Which BillOfMaterial are in the V382-3883746 (3) category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/BomPart> .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label>\
     \ \"V382-3883746 (3)\" .\n  ?result <http://ld.company.org/prod-vocab/hasBomPart> ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Could you tell me: Which BillOfMaterial are in the V382-3883746 (3) category?'
+  - 'I would like to know: Which BillOfMaterial are in the V382-3883746 (3) category?'
+  - 'Please answer this: Which BillOfMaterial are in the V382-3883746 (3) category?'
 - question: Which Employee are in the Elena Herzog category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Manager> .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label>\
     \ \"Elena Herzog\" .\n  ?result <http://ld.company.org/prod-vocab/hasManager> ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'As a follow-up: Which Employee are in the Elena Herzog category?'
+  - 'Could you tell me: Which Employee are in the Elena Herzog category?'
+  - 'I would like to know: Which Employee are in the Elena Herzog category?'
 - question: Which Employee are in the Franz Kornhaeusel category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Manager> .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label>\
     \ \"Franz Kornhaeusel\" .\n  ?result <http://ld.company.org/prod-vocab/hasManager> ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Could you tell me: Which Employee are in the Franz Kornhaeusel category?'
+  - 'I would like to know: Which Employee are in the Franz Kornhaeusel category?'
+  - 'Please answer this: Which Employee are in the Franz Kornhaeusel category?'
 - question: Which Product are in the Jones PLC (Philippines) category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Jones PLC (Philippines)\" .\n  ?result <http://ld.company.org/prod-vocab/hasSupplier>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Could you tell me: Which Product are in the Jones PLC (Philippines) category?'
+  - 'I would like to know: Which Product are in the Jones PLC (Philippines) category?'
+  - 'Please answer this: Which Product are in the Jones PLC (Philippines) category?'
 - question: Which Product are in the Karen Brant category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Karen Brant\" .\n  ?result <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'I would like to know: Which Product are in the Karen Brant category?'
+  - 'Please answer this: Which Product are in the Karen Brant category?'
+  - 'As a follow-up: Which Product are in the Karen Brant category?'
 - question: Which Product are in the LCD category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"LCD\" .\n  ?result <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Please answer this: Which Product are in the LCD category?'
+  - 'As a follow-up: Which Product are in the LCD category?'
+  - 'Could you tell me: Which Product are in the LCD category?'
 - question: Which Product are in the Marius Fux category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Marius Fux\" .\n  ?result <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'Please answer this: Which Product are in the Marius Fux category?'
+  - 'As a follow-up: Which Product are in the Marius Fux category?'
+  - 'Could you tell me: Which Product are in the Marius Fux category?'
 - question: Which Product are in the Multiplexer category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Multiplexer\" .\n  ?result <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'I would like to know: Which Product are in the Multiplexer category?'
+  - 'Please answer this: Which Product are in the Multiplexer category?'
+  - 'As a follow-up: Which Product are in the Multiplexer category?'
 - question: Which Product are in the Scott, Frazier and Cooper (Germany) category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Scott, Frazier and Cooper (Germany)\" .\n  ?result\
     \ <http://ld.company.org/prod-vocab/hasSupplier> ?c .\n}"
   shape: category_filter
+  paraphrases:
+  - 'As a follow-up: Which Product are in the Scott, Frazier and Cooper (Germany) category?'
+  - 'Could you tell me: Which Product are in the Scott, Frazier and Cooper (Germany) category?'
+  - 'I would like to know: Which Product are in the Scott, Frazier and Cooper (Germany) category?'
 - question: Which Country have more than 18 Supplier?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/country> ?result .\n\
     }\nGROUP BY ?result\nHAVING (COUNT(?x) > 18)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'I would like to know: Which Country have more than 18 Supplier?'
+  - 'Please answer this: Which Country have more than 18 Supplier?'
+  - 'As a follow-up: Which Country have more than 18 Supplier?'
 - question: Which Department have more than 10 Agent?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/memberOf> ?result .\n\
     }\nGROUP BY ?result\nHAVING (COUNT(?x) > 10)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'Could you tell me: Which Department have more than 10 Agent?'
+  - 'I would like to know: Which Department have more than 10 Agent?'
+  - 'Please answer this: Which Department have more than 10 Agent?'
 - question: Which Employee have more than 26 Product?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/hasProductManager> ?result\
     \ .\n}\nGROUP BY ?result\nHAVING (COUNT(?x) > 26)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'Please answer this: Which Employee have more than 26 Product?'
+  - 'As a follow-up: Which Employee have more than 26 Product?'
+  - 'Could you tell me: Which Employee have more than 26 Product?'
 - question: Which Manager have more than 9 Employee?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/hasManager> ?result\
     \ .\n}\nGROUP BY ?result\nHAVING (COUNT(?x) > 9)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'As a follow-up: Which Manager have more than 9 Employee?'
+  - 'Could you tell me: Which Manager have more than 9 Employee?'
+  - 'I would like to know: Which Manager have more than 9 Employee?'
 - question: Which ProductCategory have more than 104 Product?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/hasCategory> ?result\
     \ .\n}\nGROUP BY ?result\nHAVING (COUNT(?x) > 104)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'Could you tell me: Which ProductCategory have more than 104 Product?'
+  - 'I would like to know: Which ProductCategory have more than 104 Product?'
+  - 'Please answer this: Which ProductCategory have more than 104 Product?'
 - question: Which ProductCategory have more than 9 Agent?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/areaOfExpertise> ?result\
     \ .\n}\nGROUP BY ?result\nHAVING (COUNT(?x) > 9)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'Please answer this: Which ProductCategory have more than 9 Agent?'
+  - 'As a follow-up: Which ProductCategory have more than 9 Agent?'
+  - 'Could you tell me: Which ProductCategory have more than 9 Agent?'
 - question: Which Supplier have more than 11 Product?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://ld.company.org/prod-vocab/hasSupplier> ?result\
     \ .\n}\nGROUP BY ?result\nHAVING (COUNT(?x) > 11)"
   shape: grouped_aggregation
+  paraphrases:
+  - 'I would like to know: Which Supplier have more than 11 Product?'
+  - 'Please answer this: Which Supplier have more than 11 Product?'
+  - 'As a follow-up: Which Supplier have more than 11 Product?'
 - question: What is the address country code of Harper PLC (India)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Harper\
     \ PLC (India)\" .\n  ?x <http://ld.company.org/prod-vocab/addressCountryCode> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the address country code of Harper PLC (India)?'
+  - 'Please answer this: What is the address country code of Harper PLC (India)?'
+  - 'As a follow-up: What is the address country code of Harper PLC (India)?'
 - question: What is the address country code of Maxwell Inc (India)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Maxwell\
     \ Inc (India)\" .\n  ?x <http://ld.company.org/prod-vocab/addressCountryCode> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the address country code of Maxwell Inc (India)?'
+  - 'As a follow-up: What is the address country code of Maxwell Inc (India)?'
+  - 'Could you tell me: What is the address country code of Maxwell Inc (India)?'
 - question: What is the address country of Cook LLC (Morocco)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Cook LLC\
     \ (Morocco)\" .\n  ?x <http://ld.company.org/prod-vocab/addressCountry> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the address country of Cook LLC (Morocco)?'
+  - 'Could you tell me: What is the address country of Cook LLC (Morocco)?'
+  - 'I would like to know: What is the address country of Cook LLC (Morocco)?'
 - question: What is the address country of Davidson, Rosales and Stewart (Italy)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Davidson,\
     \ Rosales and Stewart (Italy)\" .\n  ?x <http://ld.company.org/prod-vocab/addressCountry> ?result\
     \ .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the address country of Davidson, Rosales and Stewart (Italy)?'
+  - 'I would like to know: What is the address country of Davidson, Rosales and Stewart (Italy)?'
+  - 'Please answer this: What is the address country of Davidson, Rosales and Stewart (Italy)?'
 - question: What is the address locality of Brown, Torres and Bautista (Bangladesh)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Brown,\
     \ Torres and Bautista (Bangladesh)\" .\n  ?x <http://ld.company.org/prod-vocab/addressLocality> ?result\
     \ .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the address locality of Brown, Torres and Bautista (Bangladesh)?'
+  - 'Could you tell me: What is the address locality of Brown, Torres and Bautista (Bangladesh)?'
+  - 'I would like to know: What is the address locality of Brown, Torres and Bautista (Bangladesh)?'
 - question: What is the address locality of Griffith-Stout (United Kingdom)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Griffith-Stout\
     \ (United Kingdom)\" .\n  ?x <http://ld.company.org/prod-vocab/addressLocality> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the address locality of Griffith-Stout (United Kingdom)?'
+  - 'I would like to know: What is the address locality of Griffith-Stout (United Kingdom)?'
+  - 'Please answer this: What is the address locality of Griffith-Stout (United Kingdom)?'
 - question: What is the address text of Frauke Faerber?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Frauke\
     \ Faerber\" .\n  ?x <http://ld.company.org/prod-vocab/addressText> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the address text of Frauke Faerber?'
+  - 'Please answer this: What is the address text of Frauke Faerber?'
+  - 'As a follow-up: What is the address text of Frauke Faerber?'
 - question: What is the address text of Ratt Hartmann?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Ratt Hartmann\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/addressText> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the address text of Ratt Hartmann?'
+  - 'As a follow-up: What is the address text of Ratt Hartmann?'
+  - 'Could you tell me: What is the address text of Ratt Hartmann?'
 - question: What is the amount of 0,38 EUR?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"0,38 EUR\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/amount> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the amount of 0,38 EUR?'
+  - 'Could you tell me: What is the amount of 0,38 EUR?'
+  - 'I would like to know: What is the amount of 0,38 EUR?'
 - question: What is the amount of 2,60 EUR?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"2,60 EUR\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/amount> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the amount of 2,60 EUR?'
+  - 'I would like to know: What is the amount of 2,60 EUR?'
+  - 'Please answer this: What is the amount of 2,60 EUR?'
 - question: What is the currency of 4,46 EUR?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"4,46 EUR\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/currency> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the currency of 4,46 EUR?'
+  - 'Please answer this: What is the currency of 4,46 EUR?'
+  - 'As a follow-up: What is the currency of 4,46 EUR?'
 - question: What is the currency of 5,60 EUR?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"5,60 EUR\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/currency> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the currency of 5,60 EUR?'
+  - 'As a follow-up: What is the currency of 5,60 EUR?'
+  - 'Could you tell me: What is the currency of 5,60 EUR?'
 - question: What is the depth (mm) of G378-7132339 - Resistor Dipole?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"G378-7132339\
     \ - Resistor Dipole\" .\n  ?x <http://ld.company.org/prod-vocab/depth_mm> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the depth (mm) of G378-7132339 - Resistor Dipole?'
+  - 'I would like to know: What is the depth (mm) of G378-7132339 - Resistor Dipole?'
+  - 'Please answer this: What is the depth (mm) of G378-7132339 - Resistor Dipole?'
 - question: What is the depth (mm) of S321-8453459 - Resonator Transformer?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"S321-8453459\
     \ - Resonator Transformer\" .\n  ?x <http://ld.company.org/prod-vocab/depth_mm> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the depth (mm) of S321-8453459 - Resonator Transformer?'
+  - 'Could you tell me: What is the depth (mm) of S321-8453459 - Resonator Transformer?'
+  - 'I would like to know: What is the depth (mm) of S321-8453459 - Resonator Transformer?'
 - question: What is the email of Dietlinde Boehme?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Dietlinde\
     \ Boehme\" .\n  ?x <http://ld.company.org/prod-vocab/email> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the email of Dietlinde Boehme?'
+  - 'As a follow-up: What is the email of Dietlinde Boehme?'
+  - 'Could you tell me: What is the email of Dietlinde Boehme?'
 - question: What is the email of Ratt Hartmann?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Ratt Hartmann\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/email> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the email of Ratt Hartmann?'
+  - 'Please answer this: What is the email of Ratt Hartmann?'
+  - 'As a follow-up: What is the email of Ratt Hartmann?'
 - question: What is the has reliability index of M810-8954183 - Aluminum Gauge Resonator?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"M810-8954183\
     \ - Aluminum Gauge Resonator\" .\n  ?x <http://ld.company.org/prod-vocab/reliabilityIndex> ?result\
     \ .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the has reliability index of M810-8954183 - Aluminum Gauge Resonator?'
+  - 'As a follow-up: What is the has reliability index of M810-8954183 - Aluminum Gauge Resonator?'
+  - 'Could you tell me: What is the has reliability index of M810-8954183 - Aluminum Gauge Resonator?'
 - question: What is the has reliability index of U733-5722614 - Network Breaker Compensator?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"U733-5722614\
     \ - Network Breaker Compensator\" .\n  ?x <http://ld.company.org/prod-vocab/reliabilityIndex> ?result\
     \ .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the has reliability index of U733-5722614 - Network Breaker Compensator?'
+  - 'Please answer this: What is the has reliability index of U733-5722614 - Network Breaker Compensator?'
+  - 'As a follow-up: What is the has reliability index of U733-5722614 - Network Breaker Compensator?'
 - question: What is the height (mm) of R786-6586508 - Coil LCD Rheostat?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"R786-6586508\
     \ - Coil LCD Rheostat\" .\n  ?x <http://ld.company.org/prod-vocab/height_mm> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the height (mm) of R786-6586508 - Coil LCD Rheostat?'
+  - 'Could you tell me: What is the height (mm) of R786-6586508 - Coil LCD Rheostat?'
+  - 'I would like to know: What is the height (mm) of R786-6586508 - Coil LCD Rheostat?'
 - question: What is the height (mm) of T995-5683542 - Resonator Rheostat?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"T995-5683542\
     \ - Resonator Rheostat\" .\n  ?x <http://ld.company.org/prod-vocab/height_mm> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the height (mm) of T995-5683542 - Resonator Rheostat?'
+  - 'I would like to know: What is the height (mm) of T995-5683542 - Resonator Rheostat?'
+  - 'Please answer this: What is the height (mm) of T995-5683542 - Resonator Rheostat?'
 - question: What is the phone number of Jarvis Jans?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Jarvis\
     \ Jans\" .\n  ?x <http://ld.company.org/prod-vocab/phone> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the phone number of Jarvis Jans?'
+  - 'As a follow-up: What is the phone number of Jarvis Jans?'
+  - 'Could you tell me: What is the phone number of Jarvis Jans?'
 - question: What is the phone number of Wanja Hoffmann?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"Wanja Hoffmann\"\
     \ .\n  ?x <http://ld.company.org/prod-vocab/phone> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the phone number of Wanja Hoffmann?'
+  - 'Please answer this: What is the phone number of Wanja Hoffmann?'
+  - 'As a follow-up: What is the phone number of Wanja Hoffmann?'
 - question: What is the quantity of G439-8153345 (96)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"G439-8153345\
     \ (96)\" .\n  ?x <http://ld.company.org/prod-vocab/quantity> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the quantity of G439-8153345 (96)?'
+  - 'I would like to know: What is the quantity of G439-8153345 (96)?'
+  - 'Please answer this: What is the quantity of G439-8153345 (96)?'
 - question: What is the quantity of V382-3883746 (3)?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"V382-3883746\
     \ (3)\" .\n  ?x <http://ld.company.org/prod-vocab/quantity> ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the quantity of V382-3883746 (3)?'
+  - 'Could you tell me: What is the quantity of V382-3883746 (3)?'
+  - 'I would like to know: What is the quantity of V382-3883746 (3)?'
 - question: What is the weight (g) of B918-9468392 - Multiplexer Resistor Memristor?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"B918-9468392\
     \ - Multiplexer Resistor Memristor\" .\n  ?x <http://ld.company.org/prod-vocab/weight_g> ?result .\n\
     }"
   shape: lookup
+  paraphrases:
+  - 'As a follow-up: What is the weight (g) of B918-9468392 - Multiplexer Resistor Memristor?'
+  - 'Could you tell me: What is the weight (g) of B918-9468392 - Multiplexer Resistor Memristor?'
+  - 'I would like to know: What is the weight (g) of B918-9468392 - Multiplexer Resistor Memristor?'
 - question: What is the weight (g) of X946-6308579 - Field-effect Resistor Encoder?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"X946-6308579\
     \ - Field-effect Resistor Encoder\" .\n  ?x <http://ld.company.org/prod-vocab/weight_g> ?result .\n\
     }"
   shape: lookup
+  paraphrases:
+  - 'Could you tell me: What is the weight (g) of X946-6308579 - Field-effect Resistor Encoder?'
+  - 'I would like to know: What is the weight (g) of X946-6308579 - Field-effect Resistor Encoder?'
+  - 'Please answer this: What is the weight (g) of X946-6308579 - Field-effect Resistor Encoder?'
 - question: What is the width (mm) of H173-1200706 - Memristor Rheostat Transformer?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"H173-1200706\
     \ - Memristor Rheostat Transformer\" .\n  ?x <http://ld.company.org/prod-vocab/width_mm> ?result .\n\
     }"
   shape: lookup
+  paraphrases:
+  - 'I would like to know: What is the width (mm) of H173-1200706 - Memristor Rheostat Transformer?'
+  - 'Please answer this: What is the width (mm) of H173-1200706 - Memristor Rheostat Transformer?'
+  - 'As a follow-up: What is the width (mm) of H173-1200706 - Memristor Rheostat Transformer?'
 - question: What is the width (mm) of W986-7950553 - Field-effect Memristor Resonator Compensator?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"W986-7950553\
     \ - Field-effect Memristor Resonator Compensator\" .\n  ?x <http://ld.company.org/prod-vocab/width_mm>\
     \ ?result .\n}"
   shape: lookup
+  paraphrases:
+  - 'Please answer this: What is the width (mm) of W986-7950553 - Field-effect Memristor Resonator Compensator?'
+  - 'As a follow-up: What is the width (mm) of W986-7950553 - Field-effect Memristor Resonator Compensator?'
+  - 'Could you tell me: What is the width (mm) of W986-7950553 - Field-effect Memristor Resonator Compensator?'
 - question: Which Supplier do not have a country?
   query: "SELECT DISTINCT ?result WHERE {\n  ?result a <http://ld.company.org/prod-vocab/Supplier> .\n\
     \  FILTER NOT EXISTS { ?result <http://ld.company.org/prod-vocab/country> ?v }\n}"
   shape: negation
+  paraphrases:
+  - 'Could you tell me: Which Supplier do not have a country?'
+  - 'I would like to know: Which Supplier do not have a country?'
+  - 'Please answer this: Which Supplier do not have a country?'
 - question: Which BomPart has the second-highest quantity?
   query: "SELECT DISTINCT ?result WHERE {\n  ?result a <http://ld.company.org/prod-vocab/BomPart> .\n\
     \  ?result <http://ld.company.org/prod-vocab/quantity> ?v .\n}\nORDER BY DESC(?v)\nLIMIT 1 OFFSET\
@@ -225,135 +432,243 @@ examples:
   shape: offset
   probe: "SELECT ?v WHERE {\n  ?result a <http://ld.company.org/prod-vocab/BomPart> .\n  ?result <http://ld.company.org/prod-vocab/quantity>\
     \ ?v .\n}\nORDER BY DESC(?v)\nLIMIT 2 OFFSET 1"
+  paraphrases:
+  - 'I would like to know: Which BomPart has the second-highest quantity?'
+  - 'Please answer this: Which BomPart has the second-highest quantity?'
+  - 'As a follow-up: Which BomPart has the second-highest quantity?'
 - question: Which Price has the second-highest amount?
   query: "SELECT DISTINCT ?result WHERE {\n  ?result a <http://ld.company.org/prod-vocab/Price> .\n  ?result\
     \ <http://ld.company.org/prod-vocab/amount> ?v .\n}\nORDER BY DESC(?v)\nLIMIT 1 OFFSET 1"
   shape: offset
   probe: "SELECT ?v WHERE {\n  ?result a <http://ld.company.org/prod-vocab/Price> .\n  ?result <http://ld.company.org/prod-vocab/amount>\
     \ ?v .\n}\nORDER BY DESC(?v)\nLIMIT 2 OFFSET 1"
+  paraphrases:
+  - 'Please answer this: Which Price has the second-highest amount?'
+  - 'As a follow-up: Which Price has the second-highest amount?'
+  - 'Could you tell me: Which Price has the second-highest amount?'
 - question: How many Agent are there for Compensator?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Compensator\" .\n  ?member <http://ld.company.org/prod-vocab/areaOfExpertise>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'As a follow-up: How many Agent are there for Compensator?'
+  - 'Could you tell me: How many Agent are there for Compensator?'
+  - 'I would like to know: How many Agent are there for Compensator?'
 - question: How many Agent are there for Engineering?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Department>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Engineering\" .\n  ?member <http://ld.company.org/prod-vocab/memberOf>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Could you tell me: How many Agent are there for Engineering?'
+  - 'I would like to know: How many Agent are there for Engineering?'
+  - 'Please answer this: How many Agent are there for Engineering?'
 - question: How many Agent are there for Multiplexer?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Multiplexer\" .\n  ?member <http://ld.company.org/prod-vocab/areaOfExpertise>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Could you tell me: How many Agent are there for Multiplexer?'
+  - 'I would like to know: How many Agent are there for Multiplexer?'
+  - 'Please answer this: How many Agent are there for Multiplexer?'
 - question: How many Agent are there for Procurement?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Department>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Procurement\" .\n  ?member <http://ld.company.org/prod-vocab/memberOf>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'As a follow-up: How many Agent are there for Procurement?'
+  - 'Could you tell me: How many Agent are there for Procurement?'
+  - 'I would like to know: How many Agent are there for Procurement?'
 - question: How many BillOfMaterial are there for V104-2082346 (64)?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/BomPart>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"V104-2082346 (64)\" .\n  ?member <http://ld.company.org/prod-vocab/hasBomPart>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'I would like to know: How many BillOfMaterial are there for V104-2082346 (64)?'
+  - 'Please answer this: How many BillOfMaterial are there for V104-2082346 (64)?'
+  - 'As a follow-up: How many BillOfMaterial are there for V104-2082346 (64)?'
 - question: How many BillOfMaterial are there for Z775-8853334 (97)?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/BomPart>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Z775-8853334 (97)\" .\n  ?member <http://ld.company.org/prod-vocab/hasBomPart>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Please answer this: How many BillOfMaterial are there for Z775-8853334 (97)?'
+  - 'As a follow-up: How many BillOfMaterial are there for Z775-8853334 (97)?'
+  - 'Could you tell me: How many BillOfMaterial are there for Z775-8853334 (97)?'
 - question: How many Employee are there for Dietlinde Boehme?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Manager>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Dietlinde Boehme\" .\n  ?member <http://ld.company.org/prod-vocab/hasManager>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Please answer this: How many Employee are there for Dietlinde Boehme?'
+  - 'As a follow-up: How many Employee are there for Dietlinde Boehme?'
+  - 'Could you tell me: How many Employee are there for Dietlinde Boehme?'
 - question: How many Employee are there for Thomas Mueller?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Manager>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Thomas Mueller\" .\n  ?member <http://ld.company.org/prod-vocab/hasManager>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'I would like to know: How many Employee are there for Thomas Mueller?'
+  - 'Please answer this: How many Employee are there for Thomas Mueller?'
+  - 'As a follow-up: How many Employee are there for Thomas Mueller?'
 - question: How many Product are there for Arnelle Gerber?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Arnelle Gerber\" .\n  ?member <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Could you tell me: How many Product are there for Arnelle Gerber?'
+  - 'I would like to know: How many Product are there for Arnelle Gerber?'
+  - 'Please answer this: How many Product are there for Arnelle Gerber?'
 - question: How many Product are there for Carr, Smith and Webb (Mozambique)?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Carr, Smith and Webb (Mozambique)\" .\n \
     \ ?member <http://ld.company.org/prod-vocab/hasSupplier> ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Please answer this: How many Product are there for Carr, Smith and Webb (Mozambique)?'
+  - 'As a follow-up: How many Product are there for Carr, Smith and Webb (Mozambique)?'
+  - 'Could you tell me: How many Product are there for Carr, Smith and Webb (Mozambique)?'
 - question: How many Product are there for Carroll, Nguyen and Martin (Slovakia)?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Carroll, Nguyen and Martin (Slovakia)\" .\n\
     \  ?member <http://ld.company.org/prod-vocab/hasSupplier> ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'I would like to know: How many Product are there for Carroll, Nguyen and Martin (Slovakia)?'
+  - 'Please answer this: How many Product are there for Carroll, Nguyen and Martin (Slovakia)?'
+  - 'As a follow-up: How many Product are there for Carroll, Nguyen and Martin (Slovakia)?'
 - question: How many Product are there for Driver?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Driver\" .\n  ?member <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'Could you tell me: How many Product are there for Driver?'
+  - 'I would like to know: How many Product are there for Driver?'
+  - 'Please answer this: How many Product are there for Driver?'
 - question: How many Product are there for Sensor?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Sensor\" .\n  ?member <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'As a follow-up: How many Product are there for Sensor?'
+  - 'Could you tell me: How many Product are there for Sensor?'
+  - 'I would like to know: How many Product are there for Sensor?'
 - question: How many Product are there for Xochitl Aue?
   query: "SELECT (COUNT(DISTINCT ?member) AS ?result) WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee>\
     \ .\n  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Xochitl Aue\" .\n  ?member <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n}"
   shape: scalar_count
+  paraphrases:
+  - 'As a follow-up: How many Product are there for Xochitl Aue?'
+  - 'Could you tell me: How many Product are there for Xochitl Aue?'
+  - 'I would like to know: How many Product are there for Xochitl Aue?'
 - question: Which Price has the highest amount?
   query: "SELECT DISTINCT ?result WHERE {\n  ?result a <http://ld.company.org/prod-vocab/Price> .\n  ?result\
     \ <http://ld.company.org/prod-vocab/amount> ?v .\n}\nORDER BY DESC(?v)\nLIMIT 1"
   shape: top_n
   probe: "SELECT ?v WHERE {\n  ?result a <http://ld.company.org/prod-vocab/Price> .\n  ?result <http://ld.company.org/prod-vocab/amount>\
     \ ?v .\n}\nORDER BY DESC(?v)\nLIMIT 2"
+  paraphrases:
+  - 'As a follow-up: Which Price has the highest amount?'
+  - 'Could you tell me: Which Price has the highest amount?'
+  - 'I would like to know: Which Price has the highest amount?'
 - question: Which Department is linked to Memristor via area of expertise?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Memristor\" .\n  ?x <http://ld.company.org/prod-vocab/areaOfExpertise>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/memberOf> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'As a follow-up: Which Department is linked to Memristor via area of expertise?'
+  - 'Could you tell me: Which Department is linked to Memristor via area of expertise?'
+  - 'I would like to know: Which Department is linked to Memristor via area of expertise?'
 - question: Which Employee is linked to Carter Group (Cuba) via supplier?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Carter Group (Cuba)\" .\n  ?x <http://ld.company.org/prod-vocab/hasSupplier>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/hasProductManager> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'I would like to know: Which Employee is linked to Carter Group (Cuba) via supplier?'
+  - 'Please answer this: Which Employee is linked to Carter Group (Cuba) via supplier?'
+  - 'As a follow-up: Which Employee is linked to Carter Group (Cuba) via supplier?'
 - question: Which Employee is linked to Encoder via has category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Encoder\" .\n  ?x <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/hasProductManager> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'Please answer this: Which Employee is linked to Encoder via has category?'
+  - 'As a follow-up: Which Employee is linked to Encoder via has category?'
+  - 'Could you tell me: Which Employee is linked to Encoder via has category?'
 - question: Which Product is linked to Anamchara Foerstner via has product manager?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Anamchara Foerstner\" .\n  ?x <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/compatibleProduct> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'Could you tell me: Which Product is linked to Anamchara Foerstner via has product manager?'
+  - 'I would like to know: Which Product is linked to Anamchara Foerstner via has product manager?'
+  - 'Please answer this: Which Product is linked to Anamchara Foerstner via has product manager?'
 - question: Which Product is linked to Martin-Mcbride (China) via supplier?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Supplier> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Martin-Mcbride (China)\" .\n  ?x <http://ld.company.org/prod-vocab/hasSupplier>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/compatibleProduct> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'Please answer this: Which Product is linked to Martin-Mcbride (China) via supplier?'
+  - 'As a follow-up: Which Product is linked to Martin-Mcbride (China) via supplier?'
+  - 'Could you tell me: Which Product is linked to Martin-Mcbride (China) via supplier?'
 - question: Which ProductCategory is linked to Marketing via member of?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Department> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Marketing\" .\n  ?x <http://ld.company.org/prod-vocab/memberOf>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/areaOfExpertise> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'Could you tell me: Which ProductCategory is linked to Marketing via member of?'
+  - 'I would like to know: Which ProductCategory is linked to Marketing via member of?'
+  - 'Please answer this: Which ProductCategory is linked to Marketing via member of?'
 - question: Which Supplier is linked to Marius Fux via has product manager?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/Employee> .\n  ?c\
     \ <http://www.w3.org/2000/01/rdf-schema#label> \"Marius Fux\" .\n  ?x <http://ld.company.org/prod-vocab/hasProductManager>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/hasSupplier> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'As a follow-up: Which Supplier is linked to Marius Fux via has product manager?'
+  - 'Could you tell me: Which Supplier is linked to Marius Fux via has product manager?'
+  - 'I would like to know: Which Supplier is linked to Marius Fux via has product manager?'
 - question: Which Supplier is linked to Transistor via has category?
   query: "SELECT DISTINCT ?result WHERE {\n  ?c a <http://ld.company.org/prod-vocab/ProductCategory> .\n\
     \  ?c <http://www.w3.org/2000/01/rdf-schema#label> \"Transistor\" .\n  ?x <http://ld.company.org/prod-vocab/hasCategory>\
     \ ?c .\n  ?x <http://ld.company.org/prod-vocab/hasSupplier> ?result .\n}"
   shape: two_hop
+  paraphrases:
+  - 'I would like to know: Which Supplier is linked to Transistor via has category?'
+  - 'Please answer this: Which Supplier is linked to Transistor via has category?'
+  - 'As a follow-up: Which Supplier is linked to Transistor via has category?'
 - question: What is the price amount of F146-1429118 - Flow Gauge Rheostat Encoder?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"F146-1429118\
     \ - Flow Gauge Rheostat Encoder\" .\n  ?x <http://ld.company.org/prod-vocab/price> ?mid .\n  ?mid\
     \ <http://ld.company.org/prod-vocab/amount> ?result .\n}"
   shape: value_object
+  paraphrases:
+  - 'Could you tell me: What is the price amount of F146-1429118 - Flow Gauge Rheostat Encoder?'
+  - 'I would like to know: What is the price amount of F146-1429118 - Flow Gauge Rheostat Encoder?'
+  - 'Please answer this: What is the price amount of F146-1429118 - Flow Gauge Rheostat Encoder?'
 - question: What is the price amount of K375-1173149 - Inductor Breaker?
   query: "SELECT DISTINCT ?result WHERE {\n  ?x <http://www.w3.org/2000/01/rdf-schema#label> \"K375-1173149\
     \ - Inductor Breaker\" .\n  ?x <http://ld.company.org/prod-vocab/price> ?mid .\n  ?mid <http://ld.company.org/prod-vocab/amount>\
     \ ?result .\n}"
   shape: value_object
+  paraphrases:
+  - 'As a follow-up: What is the price amount of K375-1173149 - Inductor Breaker?'
+  - 'Could you tell me: What is the price amount of K375-1173149 - Inductor Breaker?'
+  - 'I would like to know: What is the price amount of K375-1173149 - Inductor Breaker?'

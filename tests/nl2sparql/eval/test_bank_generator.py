@@ -1,22 +1,39 @@
-"""Phase 07.5 Plan 02 (Wave 1) -- unit + offline-gate coverage for
-``bank_generator.py``'s 9 real ``ShapeTemplate`` closures and the
-``generate_bank``/``generate_bank_with_report`` pipeline.
+"""Phase 07.5 Plan 02 (Wave 1) + Plan 03 (Wave 2) -- unit + offline-gate
+coverage for ``bank_generator.py``'s 9 real ``ShapeTemplate`` closures,
+the ``generate_bank``/``generate_bank_with_report`` pipeline, and (Plan 03)
+``paraphrase()``/``slot_preserving()``.
 
-Two complementary test styles, matching the plan's own two tasks:
+Three complementary test styles, matching the plan's own tasks:
 
-- **Task 1** (direct closure tests): hand-crafted ``binding`` dicts
-  (never going through the full data-binding pipeline) exercise every
-  shape's ``build_sparql`` in isolation -- proving each closure parses,
-  never emits an instance-namespace IRI, and carries NO hardcoded
+- **Task 1 (Plan 02)** (direct closure tests): hand-crafted ``binding``
+  dicts (never going through the full data-binding pipeline) exercise
+  every shape's ``build_sparql`` in isolation -- proving each closure
+  parses, never emits an instance-namespace IRI, and carries NO hardcoded
   vocabulary term (re-run against a synthetic, non-CK25 ontology).
-- **Task 2** (pipeline tests): the full ``generate_bank_with_report``
-  pipeline against the REAL, fixed CK25 vendored ontology + instance
-  data -- proving >=7 (target 9) distinct shapes survive the
-  execution-non-empty + strict-extremum gates, the per-shape yield
-  report accounts for every catalog shape, generation is byte-stable
-  under a fixed seed, and the committed
+- **Task 2 (Plan 02)** (pipeline tests): the full
+  ``generate_bank_with_report`` pipeline against the REAL, fixed CK25
+  vendored ontology + instance data -- proving >=7 (target 9) distinct
+  shapes survive the execution-non-empty + strict-extremum gates, the
+  per-shape yield report accounts for every catalog shape, generation is
+  byte-stable under a fixed seed, and the committed
   ``vendored/ck25/generated_fewshot_bank.yml`` matches a fresh
   regeneration + passes the offline ``verify_generated_bank.py`` gate.
+- **Task 2 (Plan 03)** (``*paraphrase_faithful*`` tests, offline/scripted,
+  no key, no network): the PRIMARY D-03 faithfulness guard
+  (``slot_preserving``) accepts a faithful paraphrase and rejects both a
+  slot-dropping and an intent-flipping one; ``paraphrase()`` fed a
+  ``ScriptedLLMClient`` returning a mix of faithful/unfaithful candidates
+  keeps only the guard-passing ones; and the CK25 bank re-emitted with a
+  deterministic offline ``_EchoParaphraseClient`` (SCRIPTED/PLACEHOLDER
+  provenance -- see that class's docstring and the bank file's own header
+  comment) carries >=3 paraphrases per example and still passes
+  ``verify_generated_bank.py`` (paraphrases never change the query, so
+  REQ-1/REQ-2 parse+transpile+execute-non-empty stay unaffected). This
+  committed bank's paraphrases are SUPERSEDED by Plan 05's real-paraphrase
+  regeneration against the live ``OpenAICompatibleClient`` (human-held
+  ``NL2SPARQL_API_KEY``) before any REQ-4/REQ-6 measurement; the secondary
+  >=20-pair LLM-judge faithfulness audit (REQ-3's credentialed half) is
+  also human-run in Plan 05.
 """
 
 from __future__ import annotations
@@ -27,11 +44,15 @@ import pytest
 
 pytest.importorskip("pyoxigraph", reason="[dev] extra required for the eval-only oxi helpers")
 
+from arango_sparql.nl2sparql.client import ScriptedLLMClient
+from arango_sparql.nl2sparql.models import LLMResponse
 from tests.nl2sparql.eval.bank_generator import (
     RDFS_LABEL_IRI,
     SHAPE_CATALOG,
     generate_bank,
     generate_bank_with_report,
+    paraphrase,
+    slot_preserving,
 )
 from tests.nl2sparql.eval.runner import _canonical
 
@@ -45,6 +66,48 @@ _PV = "http://ld.company.org/prod-vocab/"
 _PRODI = "http://ld.company.org/prod-instances/"
 
 _SHAPE_NAMES = [t.name for t in SHAPE_CATALOG]
+
+
+class _EchoParaphraseClient:
+    """Deterministic, OFFLINE, SCRIPTED/PLACEHOLDER paraphrase double
+    (Plan 03 D-03) -- NOT a real LLM, no key, no network.
+
+    Echoes the input question back wrapped in one of a small rotating set
+    of fixed prefixes. Because the original question text is preserved
+    verbatim (only wrapped, never altered), every literal filler and
+    intent-lexicon token the PRIMARY ``slot_preserving`` guard checks for
+    survives by construction -- giving :func:`paraphrase` >=3
+    guard-passing "paraphrases" per example with zero LLM calls, so the
+    committed CK25 bank (regenerated with this double) can carry a real
+    ``paraphrases`` list while staying fully offline/reproducible.
+
+    Satisfies the ``LLMClient`` duck-typing protocol (``provider``/
+    ``model`` attributes + ``generate(messages) -> LLMResponse``) so it
+    drops straight into ``generate_bank(..., client=...)`` exactly like a
+    real client would. These are PLACEHOLDER paraphrases only -- SUPERSEDED
+    by Plan 05's real-paraphrase regeneration against the live,
+    human-held-key ``OpenAICompatibleClient`` before any REQ-4/REQ-6
+    measurement is taken from this bank.
+    """
+
+    _PREFIXES = (
+        "Could you tell me: {q}",
+        "I would like to know: {q}",
+        "Please answer this: {q}",
+        "As a follow-up: {q}",
+    )
+
+    provider = "scripted"
+    model = "placeholder-echo"
+
+    def __init__(self) -> None:
+        self._counter = 0
+
+    def generate(self, messages: list[dict[str, str]]) -> LLMResponse:
+        question = messages[-1]["content"]
+        prefix = self._PREFIXES[self._counter % len(self._PREFIXES)]
+        self._counter += 1
+        return LLMResponse(content=prefix.format(q=question))
 
 
 def _shape(name: str):
@@ -275,7 +338,10 @@ def test_committed_ck25_bank_matches_fresh_regeneration() -> None:
 
     ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
     data_ttl = _CK25_DATA_PATH.read_text()
-    fresh = generate_bank(ontology_ttl, data_ttl, seed=0)
+    # Plan 03: the committed bank now carries SCRIPTED/PLACEHOLDER
+    # paraphrases (see _EchoParaphraseClient's docstring) -- a fresh
+    # instance reproduces them byte-stably (deterministic call order).
+    fresh = generate_bank(ontology_ttl, data_ttl, seed=0, client=_EchoParaphraseClient(), k_paraphrases=3)
 
     committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
     assert committed == fresh, "committed generated_fewshot_bank.yml is stale vs. the current generator"
@@ -301,3 +367,134 @@ def test_offline_validity_gate_green_on_committed_ck25_bank() -> None:
 
     exit_code = verify_bank(_CK25_BANK_PATH, _CK25_CORPUS_PATH, _CK25_DATA_PATH)
     assert exit_code == 0, "verify_generated_bank.py must exit 0 on the committed CK25 bank"
+
+
+# --------------------------------------------------------------------------
+# Plan 03 Task 2: offline scripted ``paraphrase``/``slot_preserving``
+# faithfulness tests (D-03's PRIMARY guard) -- no RUN_EVAL, no key, no
+# network. Every test name below contains ``paraphrase_faithful`` so
+# ``pytest -k paraphrase_faithful`` (the plan's own verify command)
+# selects all of them.
+# --------------------------------------------------------------------------
+
+_CATEGORY_FILTER_BINDING = {
+    "range_iri": f"{_PV}ProductCategory",
+    "predicate_iri": f"{_PV}hasCategory",
+    "filler_label": "Crystal",
+}
+_SCALAR_COUNT_BINDING = {
+    "range_iri": f"{_PV}ProductCategory",
+    "predicate_iri": f"{_PV}hasCategory",
+    "filler_label": "Crystal",
+}
+_TOP_N_BINDING = {"domain_iri": f"{_PV}Hardware", "predicate_iri": f"{_PV}amount"}
+
+
+def test_paraphrase_faithful_slot_preservation() -> None:
+    """The PRIMARY guard (``slot_preserving``, pure/offline/deterministic,
+    no client/generate call anywhere in it -- see the module-level grep
+    gate) accepts a faithful paraphrase and rejects both a slot-dropping
+    and an intent-flipping one, per the plan's own three worked cases."""
+    category_filter = _shape("category_filter")
+
+    # (1) A faithful scripted paraphrase (preserves the filler + intent) passes.
+    faithful = "What products belong to the Crystal category?"
+    assert slot_preserving(faithful, category_filter, _CATEGORY_FILTER_BINDING)
+
+    # (2) A slot-dropping scripted paraphrase (drops the category filler) is rejected.
+    slot_dropping = "What products are in that category?"
+    assert not slot_preserving(slot_dropping, category_filter, _CATEGORY_FILTER_BINDING)
+
+    # (3) An intent-flipping scripted paraphrase (superlative -> "cheapest" on
+    # a "most expensive"/top_n template) is rejected; the faithful sibling
+    # phrasing (same direction, different superlative synonym) still passes.
+    top_n = _shape("top_n")
+    faithful_ranking = "Which Hardware item has the most expensive amount?"
+    flipped_ranking = "Which Hardware item has the cheapest amount?"
+    assert slot_preserving(faithful_ranking, top_n, _TOP_N_BINDING)
+    assert not slot_preserving(flipped_ranking, top_n, _TOP_N_BINDING)
+
+    # scalar_count's own intent lexicon ("how many"/"number of"/"count") is
+    # a plain-text check (no direction concept) -- dropping it is rejected.
+    scalar_count = _shape("scalar_count")
+    faithful_count = "How many products are there for the Crystal category?"
+    no_intent = "Tell me about products in the Crystal category."
+    assert slot_preserving(faithful_count, scalar_count, _SCALAR_COUNT_BINDING)
+    assert not slot_preserving(no_intent, scalar_count, _SCALAR_COUNT_BINDING)
+
+
+def test_paraphrase_faithful_filters_scripted_candidates() -> None:
+    """``paraphrase()`` fed a ``ScriptedLLMClient`` returning a mix of
+    faithful + unfaithful candidates keeps ONLY the guard-passing ones,
+    and >=3 survive (the plan's own K target)."""
+    category_filter = _shape("category_filter")
+    question = "Which Product are in the Crystal category?"
+    responses = [
+        LLMResponse(content="Which items fall under the Crystal category?"),  # faithful
+        LLMResponse(content="Which items are in that category?"),  # drops filler -- rejected
+        LLMResponse(content="What is in the Crystal group?"),  # faithful
+        LLMResponse(content="List the Crystal-category members."),  # faithful
+    ]
+    client = ScriptedLLMClient(responses, latency_ms=0)
+
+    result = paraphrase(question, category_filter, _CATEGORY_FILTER_BINDING, k=3, client=client)
+
+    assert len(result) >= 3
+    for candidate in result:
+        assert slot_preserving(candidate, category_filter, _CATEGORY_FILTER_BINDING)
+    # The rejected slot-dropping candidate must never appear in the output.
+    assert "Which items are in that category?" not in result
+
+
+def test_paraphrase_faithful_degrades_to_empty_without_client_or_key(monkeypatch) -> None:
+    """No client injected AND no ``NL2SPARQL_API_KEY`` configured -> an
+    honest empty list (never a live call, never a crash) -- D-03's
+    documented degrade path."""
+    monkeypatch.delenv("NL2SPARQL_API_KEY", raising=False)
+    category_filter = _shape("category_filter")
+    question = "Which Product are in the Crystal category?"
+
+    result = paraphrase(question, category_filter, _CATEGORY_FILTER_BINDING)
+
+    assert result == []
+
+
+def test_paraphrase_faithful_reemitted_ck25_bank() -> None:
+    """The CK25 bank re-emitted with the offline, deterministic
+    ``_EchoParaphraseClient`` (SCRIPTED/PLACEHOLDER provenance) carries
+    >=3 paraphrases per example and still passes the offline validity
+    gate -- paraphrases never change ``query``, so REQ-1/REQ-2
+    (parse+transpile+execute-non-empty) stay unaffected."""
+    import yaml
+
+    from tests.nl2sparql.eval.verify_generated_bank import verify_bank
+
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    data_ttl = _CK25_DATA_PATH.read_text()
+    bank = generate_bank(ontology_ttl, data_ttl, seed=0, client=_EchoParaphraseClient(), k_paraphrases=3)
+
+    assert len(bank["examples"]) > 0
+    for example in bank["examples"]:
+        paraphrases = example.get("paraphrases", [])
+        assert len(paraphrases) >= 3, (
+            f"expected >=3 paraphrases, got {len(paraphrases)}: {example['question']!r}"
+        )
+        # _EchoParaphraseClient wraps the ORIGINAL templated question
+        # verbatim behind a fixed prefix -- every literal filler and
+        # intent-lexicon token the guard would check is therefore
+        # preserved by construction; assert that verbatim-preservation
+        # invariant directly here (a stronger, human-inspectable check
+        # than re-deriving the shape's own binding, which the emitted
+        # bank does not persist).
+        for candidate in paraphrases:
+            assert example["question"] in candidate, (
+                f"echo paraphrase dropped the original question text: {candidate!r}"
+            )
+
+    # Matches the committed artifact exactly (see
+    # test_committed_ck25_bank_matches_fresh_regeneration) and still
+    # passes the same offline validity gate as the paraphrase-free bank.
+    committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
+    assert committed == bank
+    exit_code = verify_bank(_CK25_BANK_PATH, _CK25_CORPUS_PATH, _CK25_DATA_PATH)
+    assert exit_code == 0, "verify_generated_bank.py must exit 0 on the re-emitted, paraphrase-bearing bank"
