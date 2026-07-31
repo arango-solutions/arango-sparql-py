@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-31T20:13:23.168Z"
+last_updated: "2026-07-31T20:47:38.600Z"
 last_activity: 2026-07-31
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 49
-  completed_plans: 45
+  completed_plans: 46
   percent: 60
 ---
 
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-07-31
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Progress: [█████████░] 92%
 | Phase 04 P07 | 55min | 1 tasks | 9 files |
 | Phase 04 P08 | 5min | 1 tasks | 2 files |
 | Phase 07.5 P01 | 15min | 3 tasks | 4 files |
+| Phase 07.5 P02 | 32min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -194,6 +195,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-01]: optional_relation probes the domain class via an EXACT rdf:type match (no subclass walk) -- mirrors build_predicate_index's own domain-exact-match discipline; on CK25 pv:country (domain Supplier) is a genuine positive (227 with/23 without) and pv:hasManager (domain Employee, all 47 have one) is a genuine negative, empirically verified via direct oxi_query probes before writing tests
 - [Phase 07.5-01]: verify_generated_bank.py's name-anchoring guard derives its allowed-namespace set structurally from the ontology's own declared owl:Class/ObjectProperty/DatatypeProperty subjects, not a hardcoded 'prodi:' string -- correctly separates CK25's pv: vocab namespace from its prodi: instance namespace even though both prefixes are declared in the same TBox header
 - [Phase 07.5-01]: verify_generated_bank.py's top-N strict-extremum check now reads an optional per-example probe field on the bank YAML (generalizing the spike's hardcoded TOPN_PROBES dict); the pre-existing spike bank has no such field yet so its 3 top-N examples pass without probe verification under the promoted gate
+- [Phase 07.5-02]: Removed subject-side domain-type constraint from every ShapeTemplate closure (Rule 1 fix) -- CK25's pv:Product/pv:Agent are TBox-declared domains with zero direct instances, silently zeroing value_object/two_hop until fixed; took CK25 bank from 30 to 77 examples, all 9 shapes present
+- [Phase 07.5-02]: Used rdfs:label (not CK25's pv:name) as the sole name-anchor predicate in every closure -- empirically verified rdfs:label covers a strict superset of pv:name-carrying subjects, keeping the generator genuinely schema-agnostic
+- [Phase 07.5-02]: Force-added reports/generation_report_ck25.json past the reports/ gitignore rule -- that rule targets per-run LLM eval reports; this is a deterministic offline-generator artifact in baseline.json's tier
 
 ### Pending Todos
 
@@ -219,6 +223,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-07-31T20:12:16.544Z
-Stopped at: Phase 07.5 context gathered
+Last session: 2026-07-31T20:47:38.593Z
+Stopped at: Completed 07.5-02-PLAN.md
 Resume file: None
