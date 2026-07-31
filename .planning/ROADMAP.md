@@ -246,8 +246,22 @@ Plans:
 **Goal:** At build time for any new ontology, auto-generate a **query-first** `(question, gold-SPARQL)` few-shot bank from the TBox, and load it through the existing BM25 `FewShotIndex` seam so NL→SPARQL specializes to any new ontology without hand-curation. Query-first construction (hand-written ontology-agnostic compositional SPARQL templates — lookup / value-object / category-filter / COUNT / top-N / OFFSET / negation / 2-hop — whose predicate/class slots fill from the 07.4 TBox walker; data-bound and execution-filtered to be non-empty; paired question templates + K LLM paraphrases for faithful, natural questions). This **consciously re-opens Phase 07.1's "synthetic generator out-of-scope" fence** in a narrower, safer form — query-first for a few-shot *pool*, not question-first for *eval* (dodging 07.1's oracle/external-validity reasons) — and follows 07.4's documented-null follow-up ("try selective/targeted surfacing, not a full dump"). Measured **mechanistically + directionally, not significance-gated** (the CK25 anchor is underpowered at n=49 and QALD's floor is an orthogonal entity-grounding bottleneck): shape-coverage of held-out failures + CK25 directional lift + QALD non-regression, overlap-audited, with the **same generator run across both CK25 and QALD** as the generalization signal. Full design: `.planning/research/query-first-synthetic-fewshot-bank-design.md`.
 **Requirements**: NL-GEN-01 (query-first synthetic few-shot bank generation; per-ontology adaptation, directionally-graded).
 **Depends on:** Phase 07.4 (TBox walker + predicate shape classification — reused for query construction), Phase 7 (few-shot seam / BM25 `FewShotIndex`).
-**Plans:** TBD
-**Status**: Not started
+**Plans:** 6 plans (5 Stage-1 waves + 1 conditional Stage-2)
+
+Plans:
+**Wave 1**
+- [ ] 07.5-01-PLAN.md — Walker signals (orderable + optional-relation) + ShapeTemplate catalog scaffold + promote verify_bank.py -> verify_generated_bank.py [NL-GEN-01]
+**Wave 2**
+- [ ] 07.5-02-PLAN.md — Generator core (9 name-anchored templates + slot-fill + data-bind + execution non-empty filter + strict-extremum) -> CK25 bank + per-shape yield report (REQ-1/REQ-2) [NL-GEN-01]
+**Wave 3**
+- [ ] 07.5-03-PLAN.md — K=3 paraphrases (OpenAICompatibleClient) + offline primary slot-preservation faithfulness guard (REQ-3) [NL-GEN-01]
+**Wave 4**
+- [ ] 07.5-04-PLAN.md — Same generator on QALD TBox (structural-only, D-04) + generator_no_ontology_branch proof (REQ-5) [NL-GEN-01]
+**Wave 5** *(human-run, credentialed)*
+- [ ] 07.5-05-PLAN.md — Shape+entity overlap audit + additive config arms + run_generated_sweep.py + human-run CK25/QALD adopt/kill sweep + baseline.json fold-in (REQ-4/REQ-6) [NL-GEN-01]
+**Wave 6** *(CONDITIONAL — only if the SPEC adopt bar clears)*
+- [ ] 07.5-06-PLAN.md — Stage 2 engine promotion: pure construction core -> arango_query_core seam + pyproject.toml git-pin bump (D-01, OQ-2) [NL-GEN-01]
+**Status**: Planned
 
 ### Phase 07.4: NL→SPARQL predicate/schema-convention grounding (INSERTED)
 
