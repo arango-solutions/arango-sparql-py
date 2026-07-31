@@ -1,0 +1,126 @@
+# Spike 001 — thin, HAND-BUILT few-shot bank for the D-01 Stage 0 gate.
+#
+# NOT the Phase 07.5 generator. These 9 examples stand in for what the
+# query-first generator WOULD emit for three shape buckets, so we can ask the
+# load-bearing question cheaply: does injecting same-shape examples move ANY
+# held-out CK25 case?
+#
+# Design discipline (D-05 leakage-safety):
+#   * Same SHAPE as the failing held-out cases (2-hop join / scalar COUNT /
+#     top-N), so BM25 retrieves them for the matching held-out questions.
+#   * ENTITY-DISJOINT from all 49 held-out golds: different departments
+#     (Engineering/Procurement, never Data Services/Marketing), different
+#     product categories (Crystal/Capacitor/Resistor/Transformer/Multiplexer/
+#     Gauge, never Compensator/Sensor/Oscillator/Inductor/Encoder/Coil/…),
+#     different country (India, never France/Germany/US/Poland/Russia).
+#   * NAME-ANCHORED composition (`?d pv:name "Engineering"`), never a hardcoded
+#     instance IRI — this is the IRI-free, generalizable pattern the generator
+#     would produce, and (under the answer-set execution judge) it yields the
+#     same answers as an IRI-hardcoded gold. So a lift here is real compositional
+#     learning, not memorized test answers.
+#
+# Every query below is verified by verify_bank.py: parses (rdflib), transpiles
+# to non-empty AQL (real transpiler), executes non-empty against prod-inst.ttl
+# (pyoxigraph), and — for the top-N three — has a STRICTLY unique extremum so
+# LIMIT 1 is deterministic.
+
+version: 1
+examples:
+  # ---- Shape A: 2-hop / multi-hop join (targets ck25-7/12/14/26/47/48) ----
+  - question: "Who is the manager of the Engineering department?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?dept pv:name "Engineering" .
+        ?person pv:memberOf ?dept .
+        ?person pv:hasManager ?result .
+      }
+
+  - question: "Which suppliers deliver Crystal products?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?category pv:name "Crystal" .
+        ?hardware pv:hasCategory ?category .
+        ?hardware pv:hasSupplier ?result .
+      }
+
+  - question: "In which countries are the suppliers of Multiplexer products located?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?category pv:name "Multiplexer" .
+        ?product pv:hasCategory ?category .
+        ?product pv:hasSupplier ?supplier .
+        ?supplier pv:country ?result .
+      }
+
+  # ---- Shape B: scalar COUNT (targets ck25-9/13/49) ----
+  - question: "How many suppliers do we have in India?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT (COUNT(DISTINCT ?supplier) AS ?result)
+      WHERE {
+        ?product pv:hasSupplier ?supplier .
+        ?supplier pv:addressCountry "India" .
+      }
+
+  - question: "How many products are in the Capacitor category?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT (COUNT(DISTINCT ?product) AS ?result)
+      WHERE {
+        ?category pv:name "Capacitor" .
+        ?product pv:hasCategory ?category .
+      }
+
+  - question: "How many employees are in the Procurement department?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT (COUNT(DISTINCT ?employee) AS ?result)
+      WHERE {
+        ?dept pv:name "Procurement" .
+        ?employee pv:memberOf ?dept .
+      }
+
+  # ---- Shape C: top-N (ORDER BY + LIMIT) (targets ck25-18/19/21/45) ----
+  - question: "What is the most expensive Resistor we offer?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?category pv:name "Resistor" .
+        ?result pv:hasCategory ?category .
+        ?result pv:price ?priceObj .
+        ?priceObj pv:amount ?amount .
+      }
+      ORDER BY DESC(?amount)
+      LIMIT 1
+
+  - question: "Which Rheostat is the widest?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?category pv:name "Rheostat" .
+        ?result pv:hasCategory ?category .
+        ?result pv:width_mm ?width .
+      }
+      ORDER BY DESC(?width)
+      LIMIT 1
+
+  - question: "Which supplier delivers the most reliable Gauge?"
+    query: |
+      PREFIX pv: <http://ld.company.org/prod-vocab/>
+      SELECT DISTINCT ?result
+      WHERE {
+        ?category pv:name "Gauge" .
+        ?hardware pv:hasCategory ?category .
+        ?hardware pv:reliabilityIndex ?reliabilityIndex .
+        ?hardware pv:hasSupplier ?result .
+      }
+      ORDER BY DESC(?reliabilityIndex)
+      LIMIT 1
