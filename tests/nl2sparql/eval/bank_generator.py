@@ -77,6 +77,7 @@ from __future__ import annotations
 
 import os
 import random
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -917,6 +918,23 @@ _SUPERLATIVE_NEGATIVE = frozenset(
 _FILLER_BINDING_KEYS = ("filler_label", "threshold")
 
 
+def _normalize_filler_text(text: str) -> str:
+    """Conservatively normalize *text* for the filler-substring
+    faithfulness check (Plan 05 mid-plan deviation fix, Change C):
+    unify a decimal comma (a comma directly between two digits, e.g.
+    ``"0,38"`` -> ``"0.38"``) to a period, and collapse any run of
+    whitespace to a single space.
+
+    Deliberately narrow -- never strips digits, currency codes/symbols,
+    or any other token, so the numeric value + unit must still be
+    present in *some* normalized form: a paraphrase that CHANGES the
+    value (e.g. ``"0,38"`` -> ``"0,39"``) or the currency (e.g. ``"EUR"``
+    -> ``"USD"``) still fails the substring check after this
+    normalization -- faithfulness holds (see the paired unit tests)."""
+    normalized = re.sub(r"(?<=\d),(?=\d)", ".", text)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
 def slot_preserving(paraphrase: str, template: ShapeTemplate, binding: dict[str, Any]) -> bool:
     """PRIMARY faithfulness guard (D-03) -- pure, offline, deterministic,
     and NEVER calls an LLM (mechanical text checks only, no client/generate
@@ -927,7 +945,13 @@ def slot_preserving(paraphrase: str, template: ShapeTemplate, binding: dict[str,
     1. Every literal filler value bound into the query (``binding``'s
        ``filler_label``/``threshold``, when present) still appears in
        *paraphrase*, case-insensitively -- a paraphrase that drops the
-       category/department/country/threshold filler is REJECTED.
+       category/department/country/threshold filler is REJECTED. The
+       comparison is normalized for a decimal-comma/period and
+       whitespace-run mismatch ONLY (Change C, :func:`_normalize_filler_text`)
+       -- a paraphrase that reformats ``"0,38 EUR"`` to ``"0.38 EUR"`` still
+       passes, but one that CHANGES the value or currency (e.g. ``"0,39
+       EUR"``, ``"0.38 USD"``) still fails, since no digit/currency-code is
+       ever stripped.
     2. For a shape carrying a non-empty ``intent_lexicon``, *paraphrase*
        contains at least one of that shape's intent tokens (e.g.
        scalar_count needs "how many"/"number of"/"count"; negation needs
@@ -944,13 +968,14 @@ def slot_preserving(paraphrase: str, template: ShapeTemplate, binding: dict[str,
     An LLM-judge sample check is a *secondary* audit, run separately
     (human-run, Plan 05) -- never folded into this function.
     """
-    text = paraphrase.lower()
+    text = _normalize_filler_text(paraphrase.lower())
 
     for key in _FILLER_BINDING_KEYS:
         value = binding.get(key)
         if value is None:
             continue
-        if str(value).strip().lower() not in text:
+        filler = _normalize_filler_text(str(value).strip().lower())
+        if filler not in text:
             return False
 
     if template.name in ("top_n", "offset"):
