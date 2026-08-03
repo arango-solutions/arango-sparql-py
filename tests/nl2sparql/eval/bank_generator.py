@@ -597,12 +597,66 @@ _SHAPES_BY_NAME: dict[str, ShapeTemplate] = {t.name: t for t in SHAPE_CATALOG}
 # Data-binding helpers (function-local pyoxigraph, D-08).
 # --------------------------------------------------------------------------
 
+# Plan 05 mid-plan deviation fix (Change D): a handful of lookup/
+# value_object subject entities are themselves bare monetary/numeric
+# VALUES (e.g. a money-value node whose own rdfs:label IS "0,38 EUR")
+# rather than a real-world named entity -- the live-LLM regen diagnosis
+# (mechanism 3) found these produce genuinely degenerate questions ("what
+# is the amount of 0,38 EUR?", i.e. "what is the amount of <the amount
+# itself>?") with no faithful natural paraphrase. ``_is_degenerate_value_label``
+# below excludes them at generation time; matched narrowly (a pure amount
+# [+ unit/currency-code/-symbol] token or two) so a genuine name (e.g. a
+# person's name, a product code) never matches.
+_CURRENCY_SYMBOLS = frozenset({"$", "€", "£", "¥"})
+_NUMERIC_VALUE_TOKEN_RE = re.compile(r"^[$€£¥]?-?\d+(?:[.,]\d+)*$")
 
-def _sample_labels(store: Any, class_iri: str, extra_pattern: str, cap: int, rng: random.Random) -> list[str]:
+
+def _is_degenerate_value_label(label: str) -> bool:
+    """True when *label* is itself a bare numeric/monetary VALUE (e.g.
+    ``"0,38 EUR"``, ``"€0.38"``) rather than a real-world named
+    entity -- see the module comment above this function for the
+    rationale and its own paired unit tests.
+
+    Deliberately conservative: a bare digit-only single token (e.g.
+    ``"42"``) is NOT flagged -- with no currency-symbol prefix and no
+    unit suffix it could be a legitimate entity code, so this only fires
+    when an explicit currency signal (a leading symbol OR a trailing
+    currency-code/symbol/percent unit) is also present."""
+    tokens = label.strip().split()
+    if not tokens or len(tokens) > 2:
+        return False
+    first = tokens[0]
+    if not _NUMERIC_VALUE_TOKEN_RE.match(first):
+        return False
+    if len(tokens) == 2:
+        unit = tokens[1]
+        if unit in _CURRENCY_SYMBOLS or unit == "%":
+            return True
+        return unit.isalpha() and unit.isupper() and 2 <= len(unit) <= 4
+    # Single token: only degenerate with an explicit leading currency symbol.
+    return first[0] in _CURRENCY_SYMBOLS
+
+
+def _sample_labels(
+    store: Any,
+    class_iri: str,
+    extra_pattern: str,
+    cap: int,
+    rng: random.Random,
+    *,
+    exclude: Callable[[str], bool] | None = None,
+) -> list[str]:
     """Up to *cap* distinct ``rdfs:label`` values for ``?x`` matching
     *extra_pattern* (a SPARQL graph pattern referencing ``?x``) -- sorted
-    (removing store iteration-order nondeterminism) then seeded-shuffled
-    (Q7 reproducibility) before capping.
+    (removing store iteration-order nondeterminism), then seeded-shuffled
+    (Q7 reproducibility), THEN optionally filtered by *exclude* (Change D
+    -- e.g. :func:`_is_degenerate_value_label`) before capping. Filtering
+    AFTER the shuffle (not before) is deliberate: every predicate in a
+    shape's generation loop shares the same per-shape ``rng``, and
+    filtering-then-shuffling would change the shuffle's input length for
+    THIS predicate and silently desync every subsequent predicate's
+    shuffle draws -- shuffling first keeps every other predicate's
+    sampling byte-identical to the pre-Change-D sequence.
 
     *class_iri*, when non-empty, additionally constrains ``?x a
     <class_iri>``. Left empty (Rule-1 fix, verified against the real CK25
@@ -626,7 +680,18 @@ def _sample_labels(store: Any, class_iri: str, extra_pattern: str, cap: int, rng
     """
     rows = oxi_query(store, query).rows or []
     labels = sorted({_clean_literal(r.get("label")) for r in rows if r.get("label")})
+    # Shuffle the FULL (unfiltered) list FIRST, then filter -- NOT the
+    # other way around. Every predicate in a shape's generation loop
+    # shares the SAME per-shape ``rng`` instance (Q7 reproducibility), and
+    # ``rng.shuffle``'s draw count depends on the input list's length;
+    # filtering before shuffling would change that length for THIS
+    # predicate and silently desync every subsequent predicate's shuffle
+    # draws from the pre-Change-D sequence (unrelated examples would
+    # change too). Shuffling first keeps every OTHER predicate's sampling
+    # byte-identical -- only this predicate's own final selection changes.
     rng.shuffle(labels)
+    if exclude is not None:
+        labels = [label for label in labels if not exclude(label)]
     return labels[:cap]
 
 
@@ -681,8 +746,18 @@ def _execution_nonempty(store: Any, query: str) -> bool:
 def _candidates_lookup(pred: Any, index: Any, class_iri_map: dict[str, str], store: Any, rng: random.Random):
     # No domain-class anchor for the label sample (Rule-1 fix, see
     # ``_build_lookup_sparql``/``_sample_labels`` docstrings) -- the
-    # predicate's own presence is the real, precise constraint.
-    labels = _sample_labels(store, "", f"?x <{pred.iri}> ?v .", _MAX_FILLERS_PER_PREDICATE, rng)
+    # predicate's own presence is the real, precise constraint. Change D:
+    # exclude a subject whose OWN label is a bare monetary/numeric value
+    # -- "what is the amount/currency of <the amount itself>?" is a
+    # degenerate question with no faithful natural paraphrase.
+    labels = _sample_labels(
+        store,
+        "",
+        f"?x <{pred.iri}> ?v .",
+        _MAX_FILLERS_PER_PREDICATE,
+        rng,
+        exclude=_is_degenerate_value_label,
+    )
     template = _SHAPES_BY_NAME["lookup"].question_template
     out = []
     for label in labels:
@@ -703,7 +778,11 @@ def _candidates_value_object(
         return []
     hop_pred = hop_candidates[0]
     pattern = f"?x <{pred.iri}> ?mid . ?mid <{hop_pred.iri}> ?v ."
-    labels = _sample_labels(store, "", pattern, _MAX_FILLERS_PER_PREDICATE, rng)
+    # Change D (same rationale as ``_candidates_lookup``): exclude a
+    # subject whose own label is a bare monetary/numeric value.
+    labels = _sample_labels(
+        store, "", pattern, _MAX_FILLERS_PER_PREDICATE, rng, exclude=_is_degenerate_value_label
+    )
     template = _SHAPES_BY_NAME["value_object"].question_template
     out = []
     for label in labels:
