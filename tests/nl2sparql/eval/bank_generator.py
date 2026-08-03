@@ -509,7 +509,20 @@ _register(
         build_sparql=_build_grouped_aggregation_sparql,
         question_template="Which {group_type} have more than {threshold} {member_type}?",
         semantic_slots=("group_type", "member_type", "threshold"),
-        intent_lexicon=("more than", "at least", "per"),
+        # Plan 05 mid-plan deviation fix (Change B): broadened with
+        # "over"/"greater than"/"greater than or equal"/"exceeding"/
+        # "at minimum" -- fluent HAVING(>K) synonyms the live-LLM regen
+        # diagnosis showed the original 3-token lexicon wrongly rejected.
+        intent_lexicon=(
+            "more than",
+            "at least",
+            "per",
+            "over",
+            "greater than",
+            "greater than or equal",
+            "exceeding",
+            "at minimum",
+        ),
     )
 )
 
@@ -542,7 +555,22 @@ _register(
         build_sparql=_build_negation_sparql,
         question_template="Which {member_type} do not have a {predicate}?",
         semantic_slots=("member_type", "predicate"),
-        intent_lexicon=("without", "no", "lacking", "don't have", "missing"),
+        # Plan 05 mid-plan deviation fix (Change B): broadened with
+        # "lack"/"lacks"/"do not have"/"have no"/"not have" -- fluent
+        # negation synonyms the live-LLM regen diagnosis showed the
+        # original 5-token lexicon wrongly rejected.
+        intent_lexicon=(
+            "without",
+            "no",
+            "lacking",
+            "don't have",
+            "missing",
+            "lack",
+            "lacks",
+            "do not have",
+            "have no",
+            "not have",
+        ),
     )
 )
 
