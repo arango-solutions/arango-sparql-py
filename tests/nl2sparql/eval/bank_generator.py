@@ -969,36 +969,72 @@ def paraphrase(
     crash, and NEVER a silent live call made without a key).
 
     Candidates failing :func:`slot_preserving` are rejected and another is
-    requested, bounded by ``k * 3`` total attempts (a paraphrase that
+    requested, bounded by ``k * 5`` total attempts (a paraphrase that
     cannot be made faithful within the retry budget is simply dropped --
     the example still ships with fewer than *k* paraphrases, or none).
+
+    Plan 05 mid-plan deviation fix (Change A): two credentialed regen runs
+    (temp 0.1 then 0.9) proved the OLD ``k * 3`` budget + unprompted
+    request left a real LLM settling into near-repeats that the exact-
+    lowercased ``seen`` dedup then silently discarded, capping several
+    trivial-guard shapes (empty ``intent_lexicon`` -- category_filter/
+    lookup/two_hop/value_object) at 2 accepted instead of 3. Every attempt
+    from the 2nd accepted candidate on now appends an explicit
+    "already-produced paraphrases" note (echoing back every candidate
+    accepted so far) instructing the model to produce a genuinely NEW,
+    DISTINCT paraphrase -- and the system prompt now explicitly forbids
+    reformatting any number/currency/unit or shortening any named entity,
+    to reduce the literal-reformatting faithfulness failures the same
+    regen diagnosed (mechanism 3; the residual cases are caught by
+    :func:`slot_preserving`'s own normalized filler check, never silently
+    let through). The DEFAULT client construction path (``client is
+    None``) also raises its temperature from the inherited 0.1 to 0.7 --
+    the shipped "auto-onboard any ontology" product path needs paraphrase
+    VARIETY by default, not near-deterministic near-repeats; an injected
+    *client* (offline tests / offline regeneration) is unaffected.
     """
     if client is None:
         if not os.getenv("NL2SPARQL_API_KEY"):
             return []
         from arango_sparql.nl2sparql.client import OpenAICompatibleClient
 
-        client = OpenAICompatibleClient(provider="openai", model="gpt-4o-mini")
+        client = OpenAICompatibleClient(provider="openai", model="gpt-4o-mini", temperature=0.7)
 
     accepted: list[str] = []
     seen: set[str] = {question.strip().lower()}
-    max_attempts = max(k * 3, 1)
+    max_attempts = max(k * 5, 1)
+    system_message = {
+        "role": "system",
+        "content": (
+            "Paraphrase the given natural-language question in a single "
+            "sentence. Keep every named entity, number, currency amount, "
+            "and unit EXACTLY as written in the question -- do NOT "
+            "reformat a number (e.g. do not change a decimal separator or "
+            "add/drop digits), do NOT translate, abbreviate, or drop any "
+            "currency, and do NOT shorten or rephrase any named entity. "
+            "Preserve the question's exact intent (do not drop or flip any "
+            "filter, count, ordering, or negation). Return ONLY the "
+            "paraphrased question text, no extra commentary."
+        ),
+    }
     for _attempt in range(max_attempts):
         if len(accepted) >= k:
             break
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "Paraphrase the given natural-language question in a "
-                    "single sentence. Preserve every named entity, value, "
-                    "and the question's exact intent (do not drop or flip "
-                    "any filter, count, ordering, or negation). Return ONLY "
-                    "the paraphrased question text, no extra commentary."
-                ),
-            },
-            {"role": "user", "content": question},
-        ]
+        user_content = question
+        if accepted:
+            # Force novelty (Change A): tell the model what has already
+            # been produced and ask for a genuinely NEW, distinct
+            # paraphrase -- the diagnosed failure mode is the model
+            # settling into near-repeats that the `seen` dedup below then
+            # silently discards without ever reaching k accepted.
+            already = "\n".join(f"- {p}" for p in accepted)
+            user_content = (
+                f"{question}\n\n"
+                "Already-produced paraphrases (produce a NEW, DISTINCT "
+                "paraphrase -- not a near-repeat of any of these):\n"
+                f"{already}"
+            )
+        messages = [system_message, {"role": "user", "content": user_content}]
         response = client.generate(messages)
         candidate = (response.content or "").strip()
         normalized = candidate.lower()
