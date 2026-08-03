@@ -39,6 +39,27 @@ live provider before any REQ-4/REQ-6 measurement. The secondary
 >=20-pair LLM-judge faithfulness audit (REQ-3's credentialed half) is
 also human-run in Plan 05.
 
+Plan 05 mid-plan deviation fix (discovered during Plan 05's own
+credentialed human sweep, this file): two live-LLM regen runs (temp 0.1
+then 0.9) showed ``paraphrase()``/``slot_preserving()`` were validated
+offline ONLY against a scripted echo-double that masked real-LLM
+behavior, so a live regen yielded <3 faithful paraphrases for 43/77
+CK25 examples across three mechanisms -- (1) distinctness/budget: the
+model settles into near-repeats the exact-lowercased ``seen`` dedup
+then silently discards, and the old ``k*3`` attempt budget was too
+tight to survive that; (2) two intent_lexicons (``grouped_aggregation``/
+``negation``) were too narrow, rejecting fluent synonyms; (3) the model
+reformats a filler's decimal separator/whitespace, and a handful of
+lookup/value_object questions are genuinely degenerate ("what is the
+amount of <the amount itself>?"). This fix: forces paraphrase novelty
+via the prompt + a ``k*5`` budget + a higher default temperature
+(Change A), broadens both narrow lexicons (Change B), normalizes the
+filler-substring check for decimal/whitespace ONLY -- never dropping
+the actual value/currency (Change C), and excludes degenerate
+value-literal lookup/value_object candidates at generation time
+(Change D). See ``_is_degenerate_value_label``/``_normalize_filler_text``
+below and their paired offline tests.
+
 Name-anchoring discipline (spike carry-forward #1, MUST): every entity
 slot is resolved via ``rdfs:label`` -- verified against the real CK25
 instance data that every subject carrying the vocabulary's own ``pv:name``

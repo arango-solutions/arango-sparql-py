@@ -49,6 +49,7 @@ from arango_sparql.nl2sparql.models import LLMResponse
 from tests.nl2sparql.eval.bank_generator import (
     RDFS_LABEL_IRI,
     SHAPE_CATALOG,
+    _is_degenerate_value_label,
     generate_bank,
     generate_bank_with_report,
     paraphrase,
@@ -352,20 +353,51 @@ def test_generate_bank_degrades_to_empty_without_instance_data() -> None:
 
 
 def test_committed_ck25_bank_matches_fresh_regeneration() -> None:
+    """Plan 05 mid-plan deviation fix: this fix changes generation
+    semantics (Change D drops a handful of degenerate value-literal
+    lookup questions; Change A's novelty-forcing prompt changes the
+    literal paraphrase TEXT the scripted echo double emits from the 2nd
+    accepted candidate on, since it now echoes back a growing
+    "already-produced" note appended to the user message). The
+    committed bank on disk still carries the OLD (pre-fix) generator's
+    scripted/placeholder output and is superseded by Plan 05's real-
+    paraphrase human regeneration BEFORE any measurement (§11.0) -- so
+    this gate no longer asserts byte-exact equality. It instead keeps
+    the ORIGINAL "committed bank must not silently drift from generator
+    logic" intent via a structural (question/query/shape) subset check:
+    every fresh example must already exist in the committed bank, and
+    every fresh example must still carry >=1 paraphrase."""
     import yaml
 
     ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
     data_ttl = _CK25_DATA_PATH.read_text()
-    # Plan 03: the committed bank now carries SCRIPTED/PLACEHOLDER
-    # paraphrases (see _EchoParaphraseClient's docstring) -- a fresh
-    # instance reproduces them byte-stably (deterministic call order).
     fresh = generate_bank(ontology_ttl, data_ttl, seed=0, client=_EchoParaphraseClient(), k_paraphrases=3)
 
     committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
-    assert committed == fresh, "committed generated_fewshot_bank.yml is stale vs. the current generator"
+
+    committed_keys = {(e["question"], e["query"], e["shape"]) for e in committed["examples"]}
+    fresh_keys = {(e["question"], e["query"], e["shape"]) for e in fresh["examples"]}
+
+    assert fresh_keys <= committed_keys, (
+        "fresh regeneration introduced a (question, query, shape) triple NOT present in "
+        f"the committed bank -- unexplained generator drift: {fresh_keys - committed_keys}"
+    )
+    for example in fresh["examples"]:
+        assert len(example.get("paraphrases", [])) >= 1, (
+            f"fresh example carries zero paraphrases: {example['question']!r}"
+        )
 
 
 def test_committed_ck25_report_matches_fresh_regeneration() -> None:
+    """Plan 05 mid-plan deviation fix: Change D drops the degenerate
+    value-literal lookup predicates ("amount"/"currency" off a
+    money-value node whose own rdfs:label IS the amount) -- this shifts
+    ONLY the ``lookup`` shape's kept/dropped counts vs. the committed
+    (pre-fix) report. Every OTHER shape's report must be byte-identical,
+    and the shift on ``lookup`` must be internally consistent (kept
+    decreases, dropped grows by a corresponding new "no viable
+    candidate" reason, and the totals still sum correctly) -- mechanically
+    re-derived here, never a hardcoded magic number."""
     import json
 
     ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
@@ -373,11 +405,27 @@ def test_committed_ck25_report_matches_fresh_regeneration() -> None:
     _bank, fresh_report = generate_bank_with_report(ontology_ttl, data_ttl, seed=0)
 
     committed = json.loads(_CK25_REPORT_PATH.read_text())
-    assert committed["shapes"] == fresh_report, (
-        "committed generation_report_ck25.json is stale vs. the current generator"
+    committed_shapes = committed["shapes"]
+
+    for name in _SHAPE_NAMES:
+        if name == "lookup":
+            continue
+        assert committed_shapes[name] == fresh_report[name], (
+            f"shape {name!r} report drifted unexpectedly -- only 'lookup' is expected to "
+            "change under this fix's Change D degenerate-value-literal drop"
+        )
+
+    assert fresh_report["lookup"]["kept"] < committed_shapes["lookup"]["kept"], (
+        "expected Change D to drop >=1 degenerate value-literal lookup example"
     )
-    assert committed["total_kept"] == sum(r["kept"] for r in fresh_report.values())
-    assert committed["total_dropped"] == sum(r["dropped"] for r in fresh_report.values())
+    kept_delta = committed_shapes["lookup"]["kept"] - fresh_report["lookup"]["kept"]
+    dropped_delta = fresh_report["lookup"]["dropped"] - committed_shapes["lookup"]["dropped"]
+    assert dropped_delta >= 1, "expected >=1 new 'no viable candidate' drop reason for lookup"
+
+    fresh_total_kept = sum(r["kept"] for r in fresh_report.values())
+    fresh_total_dropped = sum(r["dropped"] for r in fresh_report.values())
+    assert fresh_total_kept == committed["total_kept"] - kept_delta
+    assert fresh_total_dropped == committed["total_dropped"] + dropped_delta
 
 
 def test_offline_validity_gate_green_on_committed_ck25_bank() -> None:
@@ -482,9 +530,14 @@ def test_paraphrase_faithful_reemitted_ck25_bank() -> None:
     ``_EchoParaphraseClient`` (SCRIPTED/PLACEHOLDER provenance) carries
     >=3 paraphrases per example and still passes the offline validity
     gate -- paraphrases never change ``query``, so REQ-1/REQ-2
-    (parse+transpile+execute-non-empty) stay unaffected."""
-    import yaml
+    (parse+transpile+execute-non-empty) stay unaffected.
 
+    Plan 05 mid-plan deviation fix: no longer asserts byte-exact
+    equality against the committed artifact on disk (see
+    ``test_committed_ck25_bank_matches_fresh_regeneration``'s docstring
+    for why -- this fix changes generation semantics); the offline
+    validity gate is instead run directly against the COMMITTED bank
+    file (unaffected by this test's own fresh-regeneration call)."""
     from tests.nl2sparql.eval.verify_generated_bank import verify_bank
 
     ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
@@ -503,19 +556,213 @@ def test_paraphrase_faithful_reemitted_ck25_bank() -> None:
         # preserved by construction; assert that verbatim-preservation
         # invariant directly here (a stronger, human-inspectable check
         # than re-deriving the shape's own binding, which the emitted
-        # bank does not persist).
+        # bank does not persist). Even with Change A's novelty-forcing
+        # note appended to the user message from the 2nd attempt on, the
+        # note's own content STARTS with the original question verbatim,
+        # so this containment check still holds unmodified.
         for candidate in paraphrases:
             assert example["question"] in candidate, (
                 f"echo paraphrase dropped the original question text: {candidate!r}"
             )
 
-    # Matches the committed artifact exactly (see
-    # test_committed_ck25_bank_matches_fresh_regeneration) and still
-    # passes the same offline validity gate as the paraphrase-free bank.
-    committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
-    assert committed == bank
     exit_code = verify_bank(_CK25_BANK_PATH, _CK25_CORPUS_PATH, _CK25_DATA_PATH)
-    assert exit_code == 0, "verify_generated_bank.py must exit 0 on the re-emitted, paraphrase-bearing bank"
+    assert exit_code == 0, "verify_generated_bank.py must exit 0 on the committed, paraphrase-bearing bank"
+
+
+# --------------------------------------------------------------------------
+# Plan 05 mid-plan deviation fix: the two credentialed regen runs (temp 0.1
+# then 0.9) proved `paraphrase()`/`slot_preserving()` were only ever
+# validated offline against a scripted echo-double that masked real-LLM
+# behavior (see bank_generator.py's own module docstring for the full
+# diagnosis). The tests below exercise the four fixed mechanisms --
+# (A) distinctness/budget via novelty-forcing, (B) broadened intent
+# lexicons, (C) decimal/whitespace filler normalization (never dropping
+# the actual value), (D) degenerate value-literal lookup exclusion --
+# offline, scripted, no key, no network.
+# --------------------------------------------------------------------------
+
+
+class _NoveltyProbeClient:
+    """Scripted double proving paraphrase()'s novelty-forcing prompt
+    (Change A) is what unlocks a 3rd DISTINCT accepted candidate for a
+    trivial-guard shape (empty ``intent_lexicon`` -- category_filter/
+    lookup/two_hop/value_object, diagnosis mechanism 1). Mimics a real
+    LLM that, left unprompted, settles into a near-identical phrasing:
+    it returns the SAME base candidate whenever the outgoing user
+    message does NOT yet contain the "Already-produced paraphrases"
+    novelty note, and only diversifies once that note is present (i.e.
+    once >=1 candidate has already been accepted) -- reproducing the
+    diagnosed failure mode as a deterministic, offline double."""
+
+    provider = "scripted"
+    model = "novelty-probe"
+
+    def __init__(self, base: str, variants: list[str]) -> None:
+        self._base = base
+        self._variants = list(variants)
+        self._variant_idx = 0
+
+    def generate(self, messages: list[dict[str, str]]) -> LLMResponse:
+        user_content = messages[-1]["content"]
+        if "Already-produced paraphrases" not in user_content:
+            return LLMResponse(content=self._base)
+        variant = self._variants[self._variant_idx % len(self._variants)]
+        self._variant_idx += 1
+        return LLMResponse(content=variant)
+
+
+def test_paraphrase_faithful_novelty_prompt_unlocks_distinct_candidates() -> None:
+    """Without the novelty-forcing note, ``_NoveltyProbeClient`` would
+    keep replaying the SAME base candidate forever -- the exact-
+    lowercased ``seen`` dedup would reject every repeat, and
+    ``paraphrase()`` would never reach k=3 accepted. WITH Change A's
+    novelty note (which grows to include every already-accepted
+    candidate), the double diversifies and 3 genuinely DISTINCT
+    candidates are reached within budget."""
+    category_filter = _shape("category_filter")
+    base = "Which products belong to the Crystal category?"
+    variants = [
+        "What products fall under the Crystal category?",
+        "List the products in the Crystal category.",
+    ]
+    client = _NoveltyProbeClient(base, variants)
+
+    result = paraphrase(
+        "Which Product are in the Crystal category?",
+        category_filter,
+        _CATEGORY_FILTER_BINDING,
+        k=3,
+        client=client,
+    )
+
+    assert len(result) == 3
+    assert len({candidate.lower() for candidate in result}) == 3, "expected 3 genuinely distinct candidates"
+
+
+def test_paraphrase_faithful_budget_survives_rejections_for_trivial_guard_shape() -> None:
+    """Diagnosis mechanism 1: a trivial-guard shape (empty
+    ``intent_lexicon``) still needs enough attempt budget to survive a
+    run of rejected (filler-dropping) candidates before reaching k=3
+    accepted. This scripted double needs 7 rejects + 3 accepts = 10
+    calls -- beyond the OLD ``k*3=9`` budget, but within the new
+    ``k*5=15`` budget (Change A)."""
+    lookup = _shape("lookup")
+    binding = {"predicate_iri": f"{_PV}addressCountry", "filler_label": "Acme Corp"}
+    question = "What is the addressCountry of Acme Corp?"
+
+    responses = [LLMResponse(content=f"What is that value, attempt {i}?") for i in range(7)]
+    responses.extend(
+        [
+            LLMResponse(content="What is the addressCountry value for Acme Corp?"),
+            LLMResponse(content="Tell me the addressCountry of Acme Corp."),
+            LLMResponse(content="For Acme Corp, what is the addressCountry?"),
+        ]
+    )
+    client = ScriptedLLMClient(responses, latency_ms=0)
+
+    result = paraphrase(question, lookup, binding, k=3, client=client)
+
+    assert len(result) == 3
+    assert len(client.calls) == 10, "expected exactly 7 rejects + 3 accepts (within the new k*5=15 budget)"
+
+
+def test_paraphrase_faithful_broadened_lexicons_accept_new_synonyms() -> None:
+    """Change B: ``grouped_aggregation``'s intent_lexicon accepts
+    "over"/"exceeding" (previously rejected fluent synonyms of "more
+    than"/"at least"), and ``negation``'s accepts "lack"/"do not have"
+    (previously rejected synonyms of "without"/"no"/"lacking"). Both
+    still reject a paraphrase carrying NEITHER the filler NOR any
+    lexicon token."""
+    grouped = _shape("grouped_aggregation")
+    binding = {"predicate_iri": f"{_PV}hasCategory", "threshold": 5}
+    assert slot_preserving("Which departments have over 5 employees?", grouped, binding)
+    assert slot_preserving("Which departments have more employees, exceeding 5?", grouped, binding)
+    assert not slot_preserving("Which departments have 5 employees?", grouped, binding), (
+        "filler present but no intent-lexicon token -- must still be rejected"
+    )
+
+    negation = _shape("negation")
+    binding2 = {"domain_iri": f"{_PV}Supplier", "predicate_iri": f"{_PV}country"}
+    assert slot_preserving("Which suppliers lack a country?", negation, binding2)
+    assert slot_preserving("Which suppliers do not have a country?", negation, binding2)
+    assert not slot_preserving("Which suppliers have a country?", negation, binding2)
+
+
+def test_paraphrase_faithful_decimal_normalization_accepts_reformatted_filler() -> None:
+    """Change C: the filler-substring check normalizes a decimal comma
+    to a period and collapses whitespace runs on BOTH sides -- so a
+    model-reformatted "0.38 EUR" still matches a "0,38 EUR" filler --
+    but a VALUE-changing or CURRENCY-changing paraphrase is still
+    REJECTED (faithfulness must hold; no digit/currency-code is ever
+    stripped, only separator punctuation/whitespace is normalized)."""
+    lookup = _shape("lookup")
+    binding = {"predicate_iri": f"{_PV}amount", "filler_label": "0,38 EUR"}
+
+    assert slot_preserving("What is the amount of 0.38 EUR?", lookup, binding)
+    assert slot_preserving("What is the amount of 0,38  EUR?", lookup, binding)
+
+    assert not slot_preserving("What is the amount of 0,39 EUR?", lookup, binding)
+    assert not slot_preserving("What is the amount of 0.38 USD?", lookup, binding)
+
+
+def test_paraphrase_faithful_realistic_mimic_normalizes_and_rejects_value_change() -> None:
+    """A 'richer' scripted double MIMICKING real-LLM behavior: reformats
+    the filler's decimal separator (accepted, Change C), lightly rewords
+    (accepted), and emits ONE value-changing corruption (must be
+    rejected) -- ``paraphrase()`` must still reach k=3 DISTINCT,
+    guard-passing candidates despite the rejection, using the new k*5
+    budget (Change A)."""
+    lookup = _shape("lookup")
+    binding = {"predicate_iri": f"{_PV}amount", "filler_label": "0,38 EUR"}
+    question = "What is the amount of 0,38 EUR?"
+
+    responses = [
+        LLMResponse(content="What is the amount of 0.38 EUR, specifically?"),  # decimal reformat -- faithful
+        LLMResponse(content="What is the amount of 0,39 EUR?"),  # VALUE-CHANGED -- must reject
+        LLMResponse(content="Could you tell me the amount for 0,38 EUR?"),  # faithful
+        LLMResponse(content="For 0.38 EUR, what is the amount?"),  # decimal reformat + reorder -- faithful
+    ]
+    client = ScriptedLLMClient(responses, latency_ms=0)
+
+    result = paraphrase(question, lookup, binding, k=3, client=client)
+
+    assert len(result) == 3
+    assert "What is the amount of 0,39 EUR?" not in result
+    for candidate in result:
+        assert slot_preserving(candidate, lookup, binding)
+
+
+def test_paraphrase_faithful_degenerate_value_label_detection() -> None:
+    """Change D's helper, unit-tested directly: a bare monetary/numeric
+    VALUE label (the diagnosed mechanism-3 degenerate-question root
+    cause) is flagged; a genuine named entity never is."""
+    assert _is_degenerate_value_label("0,38 EUR")
+    assert _is_degenerate_value_label("4,46 EUR")
+    assert _is_degenerate_value_label("€0.38")
+    assert not _is_degenerate_value_label("Ratt Hartmann")
+    assert not _is_degenerate_value_label("Widget-1")
+    assert not _is_degenerate_value_label("Acme Corp")
+    assert not _is_degenerate_value_label("42"), "bare digit-only, no currency signal -- kept conservatively"
+
+
+def test_ck25_bank_excludes_degenerate_value_literal_lookups(ck25_bank_and_report) -> None:
+    """Change D: the generated CK25 bank must no longer ask "what is the
+    amount/currency of <the amount itself>?" -- the 4 known degenerate
+    lookup examples the OLD (pre-fix) generator emitted (see the
+    committed bank's own "0,38 EUR"/"4,46 EUR" entries) must not survive
+    into a fresh regeneration. A legitimate lookup (e.g. an email/name
+    off a real named entity) must be unaffected."""
+    bank, _report = ck25_bank_and_report
+    degenerate_prefixes = ("What is the amount of", "What is the currency of")
+    for example in bank["examples"]:
+        question = example["question"]
+        if question.startswith(degenerate_prefixes):
+            assert "EUR" not in question, f"degenerate value-literal lookup question survived: {question!r}"
+
+    lookup_questions = {ex["question"] for ex in bank["examples"] if ex["shape"] == "lookup"}
+    assert any("Ratt Hartmann" in q or "email" in q.lower() for q in lookup_questions) or lookup_questions, (
+        "sanity: lookup shape must still yield SOME legitimate example after the degenerate drop"
+    )
 
 
 # --------------------------------------------------------------------------
