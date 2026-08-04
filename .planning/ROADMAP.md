@@ -99,6 +99,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > **Scope narrowed by 04-CONTEXT (D-01..D-09):** SC1 (Foxx parity) is retired via ADR-0003 — see plan 04-03; SC3 is reframed as our own-half `/mapping` OWL-roundtrip contract test (no live AOE); SC4 enforcement is tiered (3 CI-gated in-process rows + 8 report-only rows).
 
 **Plans**: 8 plans (2 waves)
+
 - Wave 1:
   - [x] 04-01-PLAN.md — Wave-0 foundation: perf marker + SPARQLWrapper dep, tests/perf scaffolding, vendored cosmic_coffee.rdf fixture, docs/howto anchor
   - [x] 04-02-PLAN.md — RDF/XML (+JSON-LD/N-Triples) format-dispatch production-code fix in owl.py + mapping.py (unblocks RDF/XML test rows)
@@ -109,6 +110,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   - [x] 04-06-PLAN.md — CI-gated perf tier: /translate cold+warm, /execute overhead p95 gate + baseline.json
   - [x] 04-07-PLAN.md — Report-only perf tier: 8 advisory rows → LATENCY_REPORT.md (human-run)
   - [x] 04-08-PLAN.md — Documented-manual recipes: Protégé/YASGUI/rsparql/SPARQLWrapper/Playground + recorded transcript
+
 **Status**: Planned
 
 ### Phase 5: UI workbench parity completion
@@ -246,21 +248,33 @@ Plans:
 **Goal:** At build time for any new ontology, auto-generate a **query-first** `(question, gold-SPARQL)` few-shot bank from the TBox, and load it through the existing BM25 `FewShotIndex` seam so NL→SPARQL specializes to any new ontology without hand-curation. Query-first construction (hand-written ontology-agnostic compositional SPARQL templates — lookup / value-object / category-filter / COUNT / top-N / OFFSET / negation / 2-hop — whose predicate/class slots fill from the 07.4 TBox walker; data-bound and execution-filtered to be non-empty; paired question templates + K LLM paraphrases for faithful, natural questions). This **consciously re-opens Phase 07.1's "synthetic generator out-of-scope" fence** in a narrower, safer form — query-first for a few-shot *pool*, not question-first for *eval* (dodging 07.1's oracle/external-validity reasons) — and follows 07.4's documented-null follow-up ("try selective/targeted surfacing, not a full dump"). Measured **mechanistically + directionally, not significance-gated** (the CK25 anchor is underpowered at n=49 and QALD's floor is an orthogonal entity-grounding bottleneck): shape-coverage of held-out failures + CK25 directional lift + QALD non-regression, overlap-audited, with the **same generator run across both CK25 and QALD** as the generalization signal. Full design: `.planning/research/query-first-synthetic-fewshot-bank-design.md`.
 **Requirements**: NL-GEN-01 (query-first synthetic few-shot bank generation; per-ontology adaptation, directionally-graded).
 **Depends on:** Phase 07.4 (TBox walker + predicate shape classification — reused for query construction), Phase 7 (few-shot seam / BM25 `FewShotIndex`).
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
+
 - [x] 07.5-01-PLAN.md — Walker signals (orderable + optional-relation) + ShapeTemplate catalog scaffold + promote verify_bank.py -> verify_generated_bank.py [NL-GEN-01]
+
 **Wave 2**
+
 - [x] 07.5-02-PLAN.md — Generator core (9 name-anchored templates + slot-fill + data-bind + execution non-empty filter + strict-extremum) -> CK25 bank + per-shape yield report (REQ-1/REQ-2) [NL-GEN-01]
+
 **Wave 3**
+
 - [x] 07.5-03-PLAN.md — K=3 paraphrases (OpenAICompatibleClient) + offline primary slot-preservation faithfulness guard (REQ-3) [NL-GEN-01]
+
 **Wave 4**
+
 - [x] 07.5-04-PLAN.md — Same generator on QALD TBox (structural-only, D-04) + generator_no_ontology_branch proof (REQ-5) [NL-GEN-01]
+
 **Wave 5** *(human-run, credentialed)*
-- [ ] 07.5-05-PLAN.md — Shape+entity overlap audit + additive config arms + run_generated_sweep.py + human-run CK25/QALD adopt/kill sweep + baseline.json fold-in (REQ-4/REQ-6) [NL-GEN-01]
+
+- [x] 07.5-05-PLAN.md — Shape+entity overlap audit + additive config arms + run_generated_sweep.py + human-run CK25/QALD adopt/kill sweep + baseline.json fold-in (REQ-4/REQ-6) [NL-GEN-01]
+
 **Wave 6** *(CONDITIONAL — only if the SPEC adopt bar clears)*
+
 - [ ] 07.5-06-PLAN.md — Stage 2 engine promotion: pure construction core -> arango_query_core seam + pyproject.toml git-pin bump (D-01, OQ-2) [NL-GEN-01]
+
 **Status**: Planned
 
 ### Phase 07.4: NL→SPARQL predicate/schema-convention grounding (INSERTED)
@@ -272,16 +286,27 @@ Plans:
 
 Plans:
 **Wave 1**
+
 - [x] 07.4-01-PLAN.md — Engine-side seam 7 in arango-query-core (GroundedPredicate/PredicateIndex + shared scorer + seam 7 Protocol + engine composition) + author NL-ACC-02 [NL-ACC-02]
+
 **Wave 2** *(atomic: pin bump never precedes adapters — Pitfall 1)*
+
 - [x] 07.4-02-PLAN.md — Seam 7 on BOTH SPARQL adapters + NlPipeline passthrough + PREDICATE_DUMP_THRESHOLD, then bump arango-query-core pin (both extras) + uv lock [NL-ACC-02]
+
 **Wave 3**
+
 - [x] 07.4-03-PLAN.md — Eval-only build_predicate_index() TBox walk + corrected 3-way shape rule + shape precision/purity tests (Price/ProductCategory/Manager/literal) [NL-ACC-02]
+
 **Wave 4**
+
 - [x] 07.4-04-PLAN.md — runner.py predicate_grounding read + build-once + D-05 query capture + configs.yml entries + predicate SC-gate/parity/recall guards [NL-ACC-02]
+
 **Wave 5** *(human-run, credentialed)*
+
 - [x] 07.4-05-PLAN.md — README §10 runbook + live CK25 hard-gate McNemar sweep + first live QALD directional run + baseline.json fold-in + close NL-ACC-02 [NL-ACC-02]
+
 **Wave 6** *(gap-closure: CR-01 code-review fix + re-fold)*
+
 - [x] 07.4-06-PLAN.md — Real PredicateIndex dump mode upstream (CR-01 fix, pin b669320) + both adapters wired + re-fold: credentialed human RE-RAN the live CK25 sweep on the fixed dump mode, overwrote the confounded 07.4-05 numbers with valid ones, re-closed NL-ACC-02 as a VALID documented-null [NL-ACC-02]
 
 **Status**: Complete (2026-07-27) — NL-ACC-02 closed via the documented-null path (standalone predicate-alone 7/49 vs a fresh 12/49 entity-alone arm, p=0.1250; additive 10/49 vs the same arm, p=0.6875 — the phase's actual hard-gate test), re-confirmed valid after the 07.4-06 CR-01 dump-mode fix and live re-sweep superseded the original 07.4-05 confounded numbers; see 07.4-06-SUMMARY.md "Re-fold" section for the full before/after.

@@ -2,15 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
+current_phase: 07.5
+current_phase_name: nl-sparql-query-first-synthetic-few-shot-bank
 status: paused
-last_updated: "2026-07-31T23:19:43.661Z"
-last_activity: 2026-07-31
+stopped_at: Completed 07.5-05-PLAN.md (NL-GEN-01 closed via ADOPT); 07.5-06 (engine promotion) awaiting explicit user confirmation before starting
+last_updated: "2026-08-04T22:18:27.045Z"
+last_activity: 2026-08-04
 progress:
-  total_phases: 15
+  total_phases: 10
   completed_phases: 9
   total_plans: 49
-  completed_plans: 49
-  percent: 60
+  completed_plans: 48
 ---
 
 # Project State
@@ -25,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — EXECUTING
-Plan: 5 of 6
-Status: PAUSED at 07.5-05 Task 3 (human-action checkpoint: credentialed CK25+QALD sweep)
-Last activity: 2026-07-31
+Plan: 6 of 6
+Status: 07.5-05 COMPLETE (NL-GEN-01 closed via ADOPT). PAUSED before 07.5-06 (conditional Stage 2 engine promotion) pending explicit user confirmation to proceed.
+Last activity: 2026-08-04
 
 Progress: [██████████] 98%
 
@@ -93,6 +95,11 @@ Progress: [██████████] 98%
 | Phase 07.5 P02 | 32min | 2 tasks | 4 files |
 | Phase 07.5 P03 | 25min | 2 tasks | 3 files |
 | Phase 07.5 P04 | ~12min | 2 tasks | 3 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 07.5 P05 | 40min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -210,6 +217,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-05]: chose the additive few_shot.bank: runner.py config key (RESEARCH OQ-3) over monkeypatch isolation for the generated-bank arms — a committed scripted-ck25-generated-fewshot plumbing arm must be reachable via the standard test_eval.py path -- verified byte-identical for every existing few_shot arm (705 passed/1 skipped)
 - [Phase 07.5-05 DEVIATION FIX, mid-plan, discovered during the human's Task-3 credentialed sweep]: two live regen runs (temp 0.1 then 0.9) found paraphrase()/slot_preserving() were only ever offline-validated against a scripted echo-double that masked real-LLM behavior, yielding <3 faithful paraphrases for 43/77 CK25 examples across three mechanisms. Fixed (TDD, offline-only, no live LLM call): (A) paraphrase() now forces novelty via a growing "already-produced" prompt note + raises the attempt budget k*3->k*5 + bumps the DEFAULT client temperature 0.1->0.7; (B) broadened grouped_aggregation ("over"/"greater than"/"exceeding"/"at minimum") and negation ("lack"/"lacks"/"do not have"/"have no"/"not have") intent lexicons; (C) slot_preserving's filler check now normalizes a decimal comma<->period and whitespace runs (never stripping digits/currency codes -- a value- or currency-changing paraphrase is still rejected); (D) _is_degenerate_value_label excludes lookup/value_object candidates whose subject's own rdfs:label is a bare monetary/numeric value (e.g. "0,38 EUR") -- 4 such degenerate CK25 examples dropped, 73/77 remain, zero unrelated drift (filtering happens AFTER the per-predicate shuffle so every other predicate's sampling stays byte-identical). test_committed_ck25_bank_matches_fresh_regeneration/test_committed_ck25_report_matches_fresh_regeneration updated from byte-exact equality to structural (question/query/shape subset + kept/dropped-delta) checks, since the committed bank still carries the OLD generator's scripted output pending the human's real regeneration. Committed vendored/ck25/generated_fewshot_bank.yml was NOT touched. See .planning/phases/07.5-nl-sparql-query-first-synthetic-few-shot-bank/07.5-05-DEVIATION-FIX-SUMMARY.md.
 - [Phase 07.5-05 DEVIATION FIX #2, mid-plan, discovered during the human's credentialed faithfulness judge + manual domain/range adjudication]: the two_hop shape's query chains TWO predicates (a near hop off the name-anchored entity, then a FAR hop whose value IS `?result`), but `question_template` named only the near predicate ("Which {far_type} is linked to {entity} via {near_predicate}?") -- a reader could not tell the answer came from the far predicate. Fixed (TDD, offline-only, no live LLM call, query text unchanged): rewrote the template to "What is the {far_predicate} of the {member_type} whose {near_predicate} is {entity}?" and added a new `member_type=pred.domain` slot (the intermediate node's shared domain class) to `_candidates_two_hop`. `test_committed_ck25_bank_matches_fresh_regeneration`'s structural subset check narrowed from `(question, query, shape)` to `(query, shape)` since the committed (pre-fix) bank's two_hop question text now legitimately differs; query-text equality is still checked byte-for-byte. Committed `vendored/ck25/generated_fewshot_bank.yml` was NOT touched (the human's uncommitted real-paraphrase regeneration on disk is untouched). See .planning/phases/07.5-nl-sparql-query-first-synthetic-few-shot-bank/07.5-05-DEVIATION-FIX-2-SUMMARY.md.
+- [Phase 07.5-05]: NL-GEN-01 CLOSED via ADOPT path: credentialed 3-run CK25 sweep (gpt-4o-mini, corpus_sha 814d227) shows generated-fewshot beats a fresh zero arm on all 3 runs (paired McNemar p<0.05 raw and overlap-excluded); zero-regression bar met via the SPEC's documented 'b>c on every run' alternative clause (c==0 only on run 3); QALD non-regression trivially met (generated QALD bank is empty). REQ-3 faithfulness recorded as DOCUMENTED-PARTIAL (gpt-4o-mini judge unreliable, manual adjudication ~88-96%) -- non-blocking since paraphrases are unused by FewShotIndex retrieval.
 
 ### Pending Todos
 
@@ -236,6 +244,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-08-04T21:45:00.000Z
-Stopped at: 07.5-05 Tasks 1-2 complete + mid-plan paraphrase-harness deviation fix + mid-plan two_hop faithfulness deviation fix (#2) complete, still PAUSED at Task 3 (human-action checkpoint: credentialed CK25+QALD sweep)
-Resume file: tests/nl2sparql/eval/README.md#11-generated-bank-paraphrase-regeneration--generalization-adoptkill-sweep--nl-gen-01-phase-075-plan-05
+Last session: 2026-08-04T22:18:27.034Z
+Stopped at: Completed 07.5-05-PLAN.md (NL-GEN-01 closed via ADOPT); 07.5-06 (engine promotion) awaiting explicit user confirmation before starting
+Resume file: None
