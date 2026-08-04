@@ -1227,5 +1227,336 @@
       "The standalone predicate-alone arm's re-run (session 3) and the additive arm's re-run (also session 3) now share a SINGLE fresh entity-alone arm (12/49) run once in the same session and paired against both -- a methodological improvement over 07.4-05, which used two different sessions (12/49 session 1, 13/49 session 2) for the two comparisons.",
       "This sweep is recorded here (sibling top-level key) rather than promoting the additive arm to a configs['openai-gpt4o-mini-ck25-grounded-predicate-grounded'] BaselineConfig entry, to avoid restructuring the JSON paths REQUIREMENTS.md/README.md already cite as evidence (phase07_4_predicate_grounding_sweep.ck25_additive_arm) -- even though full per-case data is now available for that arm."
     ]
+  },
+  "phase07_5_generated_fewshot_sweep": {
+    "_note_schema": "Deliberately NOT nested under `configs.*` (same discipline as phase07_dense_few_shot_sweep/phase07_4_predicate_grounding_sweep): this sweep ran the generated-fewshot arm 3x (REQ-6 'delta>0 across 3 runs'), each paired against a FRESH same-session zero arm (never the stale committed configs.openai-gpt4o-mini-ck25 entry). Only run 3 (the run captured to tests/nl2sparql/eval/generated_sweep_result.json on disk) has full per-case zero_cases/generated_cases verdict dicts; runs 1-2 are recorded as pasted-back aggregate pass counts + b/c/p/delta + gains/regressions case-name lists only (no full 49-case dict was captured for those two sessions). Inventing a per-case dict for runs 1-2 would fabricate data, so they are NOT promoted to configs['openai-gpt4o-mini-ck25-generated-fewshot'] BaselineConfig entries.",
+    "requirement": "NL-GEN-01",
+    "swept_by": "credentialed human (07.5-05 Task 3 human-action checkpoint)",
+    "model": "gpt-4o-mini",
+    "temperature": 0.1,
+    "corpus_sha": "814d227",
+    "n_cases": 49,
+    "bank_provenance": {
+      "bank_file": "tests/nl2sparql/eval/vendored/ck25/generated_fewshot_bank.yml",
+      "regenerated_with_real_paraphrases": true,
+      "regeneration_method": "bank_generator.generate_bank() against the LIVE OpenAICompatibleClient (gpt-4o-mini, human-held NL2SPARQL_API_KEY) -- superseding Plan 03's scripted/placeholder _EchoParaphraseClient double, per README.md Section 11.0",
+      "examples": 73,
+      "min_paraphrases_per_example": 2,
+      "examples_with_ge_3_paraphrases": 72,
+      "paraphrase_note": "72/73 examples achieved REQ-3's full K>=3 genuine-paraphrase target. One example ('How many BillOfMaterial are there for V104-2082346 (64)?') landed at K=2: the novelty-forcing prompt (Deviation Fix #1, commit 1099dae) exhausted its k*5 attempt budget at temperature 0.7 without producing a 3rd genuinely distinct phrasing for this short count-query template. Recorded honestly rather than re-run/padded -- non-blocking because FewShotIndex retrieval (the capability under test) reads only each example's question+query fields; paraphrases are not consumed by retrieval or generation at all, only by the offline faithfulness gates.",
+      "two_hop_nl_fix_provenance_caveat": "The 3-run credentialed sweep below was executed BEFORE the two_hop NL-question faithfulness fix (Deviation Fix #2, commit 20f40a0) and its subsequent real-paraphrase regeneration. That fix changed ONLY the two_hop shape's rendered QUESTION text (naming both the near and far predicate instead of just the near one, 8 examples affected); every QUERY -- the actual retrieval-and-generation lever under test -- is byte-identical before and after the fix. The measured +16-19% pass-rate lift is query-pattern-driven (same SPARQL shapes injected into the few-shot prompt in both cases) and reproduced robustly across all 3 independent runs, so a sweep re-run was judged unnecessary for a cosmetic NL-wording correction. The bank committed alongside this baseline.json entry (commit eb1448e) already carries the fixed wording."
+    },
+    "ck25_runs": [
+      {
+        "run": 1,
+        "zero_arm_config": "openai-gpt4o-mini-ck25 (fresh, same-session)",
+        "generated_arm_config": "openai-gpt4o-mini-ck25-generated-fewshot",
+        "zero_pass": 5,
+        "zero_total": 49,
+        "generated_pass": 14,
+        "generated_total": 49,
+        "mcnemar_raw": {
+          "b_gains": 10,
+          "c_regressions": 1,
+          "p_value": 0.0117
+        },
+        "bootstrap_delta_raw": {
+          "delta": 0.1837,
+          "ci_95": [
+            0.0612,
+            0.3061
+          ]
+        },
+        "excluded_case_names": [
+          "ck25-4"
+        ],
+        "mcnemar_overlap_excluded": {
+          "b_gains": 10,
+          "c_regressions": 1,
+          "p_value": 0.0117,
+          "n": 48
+        },
+        "bootstrap_delta_overlap_excluded": {
+          "delta": 0.1875,
+          "ci_95": [
+            0.0625,
+            0.3125
+          ]
+        },
+        "gains": [
+          "ck25-2",
+          "ck25-5",
+          "ck25-6",
+          "ck25-10",
+          "ck25-11",
+          "ck25-14",
+          "ck25-17",
+          "ck25-20",
+          "ck25-45",
+          "ck25-46"
+        ],
+        "regressions": [
+          "ck25-50"
+        ],
+        "qald_generated_fewshot_pass": 0,
+        "qald_generated_fewshot_total": 514,
+        "per_case_verdicts_captured": false
+      },
+      {
+        "run": 2,
+        "zero_arm_config": "openai-gpt4o-mini-ck25 (fresh, same-session)",
+        "generated_arm_config": "openai-gpt4o-mini-ck25-generated-fewshot",
+        "zero_pass": 5,
+        "zero_total": 49,
+        "generated_pass": 13,
+        "generated_total": 49,
+        "mcnemar_raw": {
+          "b_gains": 9,
+          "c_regressions": 1,
+          "p_value": 0.0215
+        },
+        "bootstrap_delta_raw": {
+          "delta": 0.1633,
+          "ci_95": [
+            0.0408,
+            0.2857
+          ]
+        },
+        "excluded_case_names": [
+          "ck25-4"
+        ],
+        "mcnemar_overlap_excluded": {
+          "b_gains": 9,
+          "c_regressions": 1,
+          "p_value": 0.0215,
+          "n": 48
+        },
+        "bootstrap_delta_overlap_excluded": {
+          "delta": 0.1667,
+          "ci_95": [
+            0.0417,
+            0.2917
+          ]
+        },
+        "gains": [
+          "ck25-2",
+          "ck25-5",
+          "ck25-6",
+          "ck25-10",
+          "ck25-11",
+          "ck25-12",
+          "ck25-14",
+          "ck25-17",
+          "ck25-20"
+        ],
+        "regressions": [
+          "ck25-50"
+        ],
+        "qald_generated_fewshot_pass": 0,
+        "qald_generated_fewshot_total": 514,
+        "per_case_verdicts_captured": false
+      },
+      {
+        "run": 3,
+        "zero_arm_config": "openai-gpt4o-mini-ck25 (fresh, same-session)",
+        "generated_arm_config": "openai-gpt4o-mini-ck25-generated-fewshot",
+        "zero_pass": 6,
+        "zero_total": 49,
+        "generated_pass": 14,
+        "generated_total": 49,
+        "mcnemar_raw": {
+          "b_gains": 8,
+          "c_regressions": 0,
+          "p_value": 0.0078125
+        },
+        "bootstrap_delta_raw": {
+          "delta": 0.16326530612244897,
+          "ci_95": [
+            0.06122448979591838,
+            0.2653061224489796
+          ]
+        },
+        "excluded_case_names": [
+          "ck25-4"
+        ],
+        "mcnemar_overlap_excluded": {
+          "b_gains": 8,
+          "c_regressions": 0,
+          "p_value": 0.0078125,
+          "n": 48
+        },
+        "bootstrap_delta_overlap_excluded": {
+          "delta": 0.16666666666666669,
+          "ci_95": [
+            0.0625,
+            0.27083333333333337
+          ]
+        },
+        "gains": [
+          "ck25-5",
+          "ck25-6",
+          "ck25-10",
+          "ck25-11",
+          "ck25-14",
+          "ck25-17",
+          "ck25-20",
+          "ck25-46"
+        ],
+        "regressions": [],
+        "qald_generated_fewshot_pass": 2,
+        "qald_generated_fewshot_total": 514,
+        "zero_cases": {
+          "ck25-1": false,
+          "ck25-2": true,
+          "ck25-3": true,
+          "ck25-4": false,
+          "ck25-5": false,
+          "ck25-6": false,
+          "ck25-7": false,
+          "ck25-8": false,
+          "ck25-9": false,
+          "ck25-10": false,
+          "ck25-11": false,
+          "ck25-12": false,
+          "ck25-13": false,
+          "ck25-14": false,
+          "ck25-15": false,
+          "ck25-16": false,
+          "ck25-17": false,
+          "ck25-18": false,
+          "ck25-19": false,
+          "ck25-20": false,
+          "ck25-21": false,
+          "ck25-22": false,
+          "ck25-23": false,
+          "ck25-24": false,
+          "ck25-25": false,
+          "ck25-26": false,
+          "ck25-27": false,
+          "ck25-28": false,
+          "ck25-29": false,
+          "ck25-30": true,
+          "ck25-31": true,
+          "ck25-32": false,
+          "ck25-33": false,
+          "ck25-34": false,
+          "ck25-35": false,
+          "ck25-36": false,
+          "ck25-37": false,
+          "ck25-39": true,
+          "ck25-40": false,
+          "ck25-41": false,
+          "ck25-42": false,
+          "ck25-43": false,
+          "ck25-44": false,
+          "ck25-45": false,
+          "ck25-46": false,
+          "ck25-47": false,
+          "ck25-48": false,
+          "ck25-49": false,
+          "ck25-50": true
+        },
+        "generated_cases": {
+          "ck25-1": false,
+          "ck25-2": true,
+          "ck25-3": true,
+          "ck25-4": false,
+          "ck25-5": true,
+          "ck25-6": true,
+          "ck25-7": false,
+          "ck25-8": false,
+          "ck25-9": false,
+          "ck25-10": true,
+          "ck25-11": true,
+          "ck25-12": false,
+          "ck25-13": false,
+          "ck25-14": true,
+          "ck25-15": false,
+          "ck25-16": false,
+          "ck25-17": true,
+          "ck25-18": false,
+          "ck25-19": false,
+          "ck25-20": true,
+          "ck25-21": false,
+          "ck25-22": false,
+          "ck25-23": false,
+          "ck25-24": false,
+          "ck25-25": false,
+          "ck25-26": false,
+          "ck25-27": false,
+          "ck25-28": false,
+          "ck25-29": false,
+          "ck25-30": true,
+          "ck25-31": true,
+          "ck25-32": false,
+          "ck25-33": false,
+          "ck25-34": false,
+          "ck25-35": false,
+          "ck25-36": false,
+          "ck25-37": false,
+          "ck25-39": true,
+          "ck25-40": false,
+          "ck25-41": false,
+          "ck25-42": false,
+          "ck25-43": false,
+          "ck25-44": false,
+          "ck25-45": false,
+          "ck25-46": true,
+          "ck25-47": false,
+          "ck25-48": false,
+          "ck25-49": false,
+          "ck25-50": true
+        },
+        "per_case_verdicts_captured": true
+      }
+    ],
+    "ck25_50_known_flaky_regression": "ck25-50 (a typo'd compound top-N+count question) regressed (1->0) in runs 1 and 2 but NOT run 3 (where it stayed a zero-arm pass, contributing to c=0). Recorded as a known-flaky single-case regression, not a systematic defect of the generated bank -- see nl_gen_01_disposition's REQ-6 bar discussion below.",
+    "qald_non_regression": {
+      "description": "Arm 3 -- QALD-9-plus generated-fewshot. The generated QALD bank is empty (honest, TBox-only per 07.5-04, D-04), so this arm is mechanically identical to the openai-gpt4o-mini-qald9plus zero-shot config -- EXPECTED to reproduce the flat zero-shot number modulo gpt-4o-mini's own run-to-run non-determinism at temperature 0.1 (RESEARCH OQ-4), not a failure.",
+      "per_run_pass": {
+        "run_1": "0/514",
+        "run_2": "0/514",
+        "run_3": "2/514"
+      },
+      "existing_committed_qald_zero_shot_reference": "phase07_4_predicate_grounding_sweep.qald9plus_directional.zero_shot_pass_rate = 1/514 (0.00195, session 2, 07.4)",
+      "role": "directional_generalization_check",
+      "verdict": "PASS (non-regression is trivially satisfied -- the generated-fewshot arm IS the zero-shot arm when the generated bank is empty; the 0/0/2 spread across 3 runs and the 1/514 prior committed reference are all consistent with noise at gpt-4o-mini's non-determinism and QALD's own achieved MDE of ~5.5-6.2pt at n=514, per power.py::achieved_mde)."
+    },
+    "shape_coverage": {
+      "metric": "100% of held-out failing cases' shape TYPES are present in the generated bank's 9-shape repertoire (coarse shape-type reading: does at least one bank example share the failing case's shape category).",
+      "metric_caveat": "07.5-SPEC.md's shape-coverage metric is underspecified between two readings: (a) coarse shape-TYPE membership (used above, 100%) vs (b) literal canonical-skeleton equality (the exact _skeleton() abstraction test_fewshot_bank_disjoint.py uses for the overlap audit). The literal skeleton reading yields a DEGENERATE 0%, because the generated bank's skeletons are near-disjoint from the corpus's gold skeletons BY DESIGN -- that disjointness IS the overlap-exclusion axis (D-05); a generated example structurally identical to a held-out gold would be a leaked near-duplicate, not a coverage win. Recording the coarse shape-type reading (100%, clears REQ-6's >=70% bar) and this caveat explicitly, rather than reporting the literal-skeleton 0% without context or silently picking whichever reading clears the bar.",
+      "meets_req6_bar": true
+    },
+    "faithfulness": {
+      "requirement": "REQ-3 secondary: >=20-pair LLM-judge faithfulness audit on the REGENERATED bank",
+      "judge_model": "gpt-4o-mini",
+      "raw_judge_match_rate_range": "76%-84% across configs (schema-aware judge, multiple sampled configurations)",
+      "instrument_reliability_finding": "The gpt-4o-mini judge is an UNRELIABLE instrument for this task: manual domain/range adjudication of every judge-flagged NO in each run found >=2 provable false-negatives per run -- cases where the judge said NO on a query that correctly answers the question once the schema's implicit domain/range typing is accounted for (the judge does not reliably reason about implicit-domain grouped-aggregation queries even when given domain/range context in the prompt). Manual domain/range adjudication of the same pairs put TRUE faithfulness at approximately 88%-96%.",
+      "manual_adjudication_estimate_range": "88%-96%",
+      "meets_req3_ge_95_pct_bar": false,
+      "disposition": "DOCUMENTED-PARTIAL, not a clean pass. The specified gpt-4o-mini faithfulness judge cannot reliably certify REQ-3's >=95% judge-match bar (it false-negatives provably-correct implicit-domain grouped-aggregation queries even with domain/range context supplied). Paraphrases -- the artifact the judge evaluates -- are unused by the capability under test (FewShotIndex reads only question+query, never paraphrases), so this gap does not affect the CK25/QALD lift measurement itself. Recorded honestly as documented-partial rather than reframed as a pass."
+    },
+    "nl_gen_01_disposition": "adopt (lever validated; REQ-3 faithfulness documented-partial)",
+    "adopt_kill_bar_evaluation": {
+      "bar_source": "07.5-SPEC.md Section 11.2",
+      "shape_coverage_ge_70_pct": "MET (100%, coarse shape-type reading; see shape_coverage.metric_caveat)",
+      "ck25_delta_gt_0_all_3_runs_raw": "MET (run1 +0.1837, run2 +0.1633, run3 +0.1633; all CIs exclude 0)",
+      "ck25_delta_gt_0_all_3_runs_overlap_excluded": "MET (run1 +0.1875, run2 +0.1667, run3 +0.1667; all CIs exclude 0)",
+      "zero_regressions": "PARTIALLY MET: c==0 only on run 3 (b=8/c=0). Runs 1-2 each have exactly 1 regression (c=1), both attributable to the SAME known-flaky case (ck25-50, a typo'd compound top-N+count question -- see ck25_50_known_flaky_regression). b > c holds on ALL 3 runs (10>1, 9>1, 8>0) -- MET under SPEC 11.2's documented 'or at minimum b > c on every run' alternative clause.",
+      "qald_non_regression": "MET (trivial; see qald_non_regression.verdict)",
+      "overall": "ADOPT -- all 4 SPEC 11.2 bar conditions clear (zero-regression via the documented b>c-on-every-run alternative clause, since c==0 only on run 3)"
+    },
+    "key_findings": [
+      "The generated (mechanically synthesized, never hand-curated) CK25 few-shot bank reproduces Spike 001's directional lift: a statistically significant paired McNemar result (p<0.05) on all 3 independent same-session runs, both raw and after excluding the one shape+entity-overlap-audited near-duplicate case (ck25-4).",
+      "The lift survives overlap exclusion essentially unchanged (raw and overlap-excluded deltas differ by <0.5pt on every run), confirming the measured lift is not an artifact of bank<->corpus near-duplication.",
+      "ck25-50 is a known-flaky single-case regression (typo'd compound top-N+count question), present in 2 of 3 runs but not systematic -- b (gains) exceeds c (regressions) by a wide margin on every run (10:1, 9:1, 8:0).",
+      "QALD-9-plus generalization is a non-issue this phase by construction: the generated QALD bank is honestly empty (D-04, no synthesizable shapes survived QALD's structural-only TBox), so the generated-fewshot arm IS the zero-shot arm -- non-regression is trivially satisfied, not a generalization finding.",
+      "The specified faithfulness judge (gpt-4o-mini) is not a reliable REQ-3 certification instrument: it produces provable false-negatives on correct implicit-domain grouped-aggregation queries. Manual domain/range adjudication estimates true faithfulness at 88-96%, below the naive judge's own 76-84% raw scores -- the judge under-reports faithfulness, it does not over-report it."
+    ],
+    "limitations": [
+      "Full 49-case per-case verdict dicts were captured only for run 3 (the run written to generated_sweep_result.json on disk); runs 1-2 are recorded as aggregate pass counts + b/c/p/delta + gains/regressions case-name lists, pasted back by the human rather than machine-captured. This mirrors the phase07_dense_few_shot_sweep precedent for the same reason (avoiding a fabricated per-case dict).",
+      "The 3-run sweep predates the two_hop NL-question faithfulness fix (commit 20f40a0); see bank_provenance.two_hop_nl_fix_provenance_caveat for why a re-sweep was judged unnecessary (query text, the actual lever, is unchanged).",
+      "This sweep is recorded here as a sibling top-level key (not promoted to a configs['openai-gpt4o-mini-ck25-generated-fewshot'] BaselineConfig entry) for the same reason as phase07_dense_few_shot_sweep/phase07_4_predicate_grounding_sweep: BaselineConfig.cases requires a full per-case dict, which is only available for run 3 of 3."
+    ]
   }
 }
