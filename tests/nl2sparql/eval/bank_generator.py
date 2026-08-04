@@ -580,8 +580,20 @@ _register(
         name="two_hop",
         applies=_applies_two_hop,
         build_sparql=_build_two_hop_sparql,
-        question_template="Which {far_type} is linked to {entity} via {near_predicate}?",
-        semantic_slots=("entity", "near_predicate", "far_predicate", "far_type"),
+        # Plan 05 mid-plan deviation fix #2 (credentialed faithfulness judge
+        # + manual domain/range adjudication): the query chains TWO
+        # predicates -- ?x <near_predicate> ?c (the name-anchored entity),
+        # then ?x <far_predicate> ?result -- so ?result is reached via the
+        # FAR predicate, not the near one. The OLD template ("Which
+        # {far_type} is linked to {entity} via {near_predicate}?") named
+        # only the near predicate, so a reader could not tell the answer
+        # was the far predicate's value. This wording names both hops
+        # explicitly: the far_predicate of the (shared-domain) member_type
+        # instance whose near_predicate is the entity.
+        question_template=(
+            "What is the {far_predicate} of the {member_type} whose {near_predicate} is {entity}?"
+        ),
+        semantic_slots=("entity", "near_predicate", "far_predicate", "far_type", "member_type"),
         intent_lexicon=(),
     )
 )
@@ -954,6 +966,11 @@ def _candidates_two_hop(pred: Any, index: Any, class_iri_map: dict[str, str], st
                 entity=label,
                 near_predicate=pred.label,
                 far_predicate=hop_pred.label,
+                # ``member_type`` is the shared domain of BOTH predicates
+                # (the intermediate ?x's class) -- ``partners`` above is
+                # already filtered to ``other.domain == pred.domain``, so
+                # ``pred.domain`` == ``hop_pred.domain`` always holds here.
+                member_type=pred.domain,
             )
             out.append((binding, question, None))
     return out

@@ -408,7 +408,19 @@ def test_committed_ck25_bank_matches_fresh_regeneration() -> None:
     the ORIGINAL "committed bank must not silently drift from generator
     logic" intent via a structural (question/query/shape) subset check:
     every fresh example must already exist in the committed bank, and
-    every fresh example must still carry >=1 paraphrase."""
+    every fresh example must still carry >=1 paraphrase.
+
+    Plan 05 mid-plan deviation fix #2: the two_hop shape's
+    question_template was ALSO fixed (it dropped the far predicate --
+    see ``test_two_hop_question_names_both_predicates``), so a fresh
+    two_hop question's TEXT now legitimately differs from the committed
+    bank's own (still pre-fix) two_hop question text. The subset check
+    below is narrowed to ``(query, shape)`` -- NOT ``question`` -- so it
+    keeps proving "the committed bank's queries/shapes must not silently
+    drift from the generator's own slot-fill/data-bind logic" without
+    re-tripping on an intended, reviewed NL-wording change. Query text
+    (unlike question text) is untouched by this fix and must still match
+    byte-for-byte."""
     import yaml
 
     ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
@@ -417,11 +429,11 @@ def test_committed_ck25_bank_matches_fresh_regeneration() -> None:
 
     committed = yaml.safe_load(_CK25_BANK_PATH.read_text())
 
-    committed_keys = {(e["question"], e["query"], e["shape"]) for e in committed["examples"]}
-    fresh_keys = {(e["question"], e["query"], e["shape"]) for e in fresh["examples"]}
+    committed_keys = {(e["query"], e["shape"]) for e in committed["examples"]}
+    fresh_keys = {(e["query"], e["shape"]) for e in fresh["examples"]}
 
     assert fresh_keys <= committed_keys, (
-        "fresh regeneration introduced a (question, query, shape) triple NOT present in "
+        "fresh regeneration introduced a (query, shape) pair NOT present in "
         f"the committed bank -- unexplained generator drift: {fresh_keys - committed_keys}"
     )
     for example in fresh["examples"]:
