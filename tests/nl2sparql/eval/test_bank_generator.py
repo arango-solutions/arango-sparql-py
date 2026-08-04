@@ -38,6 +38,7 @@ Three complementary test styles, matching the plan's own tasks:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -303,6 +304,47 @@ def test_ck25_bank_examples_are_valid_and_name_anchored(ck25_bank_and_report) ->
     for example in bank["examples"]:
         assert _canonical(example["query"]) is not None, f"failed to parse: {example['query']}"
         assert _PRODI not in example["query"], f"instance-namespace IRI leaked: {example['query']}"
+
+
+def test_two_hop_question_names_both_predicates(ck25_bank_and_report) -> None:
+    """Plan 05 mid-plan deviation fix #2 (credentialed faithfulness judge +
+    manual domain/range adjudication): the two_hop shape's query chains
+    TWO predicates -- a near hop off the name-anchored entity, then a far
+    hop off the intermediate node (the ``?result`` binding actually
+    returned) -- but the OLD question_template named only the near
+    predicate, so a reader could not tell the answer was reached via the
+    far predicate. Every generated two_hop example's ``question`` must
+    name BOTH the near_predicate label AND the far_predicate label,
+    mechanically re-derived here from the query's own predicate IRIs (in
+    the fixed ``_build_two_hop_sparql`` slot order: range_iri, rdfs:label,
+    predicate_iri (near), hop_predicate_iri (far)) via the real CK25
+    predicate index -- never a hardcoded label string, so this stays
+    faithful to a future generator change (e.g. a different partner
+    predicate) without needing an update."""
+    from tests.nl2sparql.eval.grounding_index_builder import build_predicate_index
+
+    bank, _report = ck25_bank_and_report
+    ontology_ttl = _CK25_ONTOLOGY_PATH.read_text()
+    index = build_predicate_index(ontology_ttl)
+    label_by_iri = {p.iri: p.label for p in index._predicates}
+
+    two_hop_examples = [ex for ex in bank["examples"] if ex["shape"] == "two_hop"]
+    assert two_hop_examples, "sanity: two_hop must yield >=1 example on the real CK25 data"
+
+    for example in two_hop_examples:
+        iris = re.findall(r"<([^>]+)>", example["query"])
+        # Fixed _build_two_hop_sparql slot order: [range_iri, rdfs:label,
+        # near predicate_iri, far hop_predicate_iri].
+        near_iri, far_iri = iris[2], iris[3]
+        near_label = label_by_iri[near_iri].lower()
+        far_label = label_by_iri[far_iri].lower()
+        question = example["question"].lower()
+        assert near_label in question, (
+            f"two_hop question missing near_predicate label {near_label!r}: {example['question']!r}"
+        )
+        assert far_label in question, (
+            f"two_hop question missing far_predicate label {far_label!r}: {example['question']!r}"
+        )
 
 
 def test_ck25_bank_version_and_examples_only_shape() -> None:
