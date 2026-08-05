@@ -57,13 +57,14 @@ nl = [
   # pipeline and the shared-engine _core/adapter (nl-engine-extraction, PRD
   # §12.3). Sourced from the ArthurKeen upstream (dev'd first; arango-solutions
   # is the synced mirror), git-pinned to an exact commit (deterministic; bump
-  # deliberately — CC-9: consumers re-run goldens). 8adc0de is the ArthurKeen
-  # HEAD and a superset of the prior c6ae5e1 pin — it carries the Phase-7.4
-  # predicate/schema-convention grounding seam (arango_query_core.nl.grounding.
-  # {GroundedPredicate,PredicateIndex}, QueryLanguageAdapter.predicate_index()/
-  # predicate_prompt_section() (seam 7), NLQueryEngine.predicate_k) the
-  # predicate-grounding workstream imports.
-  "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@b66932046a102898e8fff205a7ddcbedfb2c896e",
+  # deliberately — CC-9: consumers re-run goldens). 3438305 is the ArthurKeen
+  # HEAD (pushed to both remotes, ls-remote-verified before this bump) and a
+  # superset of the prior b669320 pin — it adds the Phase-7.5 synthbank
+  # query-shape template catalog (arango_query_core.nl.synthbank.{ShapeTemplate,
+  # SHAPE_CATALOG}), the pure ontology-agnostic few-shot construction core the
+  # eval-side bank_generator now delegates to (data-binding/paraphrase stay
+  # test-side; pyoxigraph never enters the engine).
+  "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@3438305025d35b4fb6a4c9adab0b3b1f8b6c1d1c",
 ]
 # Torch-free-by-default packaging (D-05 packaging discretion, Phase 7 07-03):
 # a plain `pip install '.[nl]'` never pulls sentence-transformers/torch — the
@@ -73,7 +74,7 @@ nl = [
 # extra (sentence-transformers) on top of `[nl]`'s deps.
 dense = [
   "arango-sparql-py[nl]",
-  "arango-query-core[dense] @ git+https://github.com/ArthurKeen/arango-query-core@b66932046a102898e8fff205a7ddcbedfb2c896e",
+  "arango-query-core[dense] @ git+https://github.com/ArthurKeen/arango-query-core@3438305025d35b4fb6a4c9adab0b3b1f8b6c1d1c",
 ]
 dev = [
   "pytest>=8.0.0",
