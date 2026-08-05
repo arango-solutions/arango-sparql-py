@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 06.2: NL→SPARQL harder corpus + genuine live-model baseline** - Grow corpus to real difficulty + capture a live-model baseline so a few-shot lift is measurable (INSERTED) (NEXT ACTIVE) (completed 2026-07-21)
 - [x] **Phase 7: NL→SPARQL dense few-shot retrieval** - Dense/embedding ≤3-shot index via the shared engine's few-shot seam; prove pass-rate lift over the live baseline (completed 2026-07-21)
 - [x] **Phase 07.1: NL→SPARQL eval via public benchmarks** - Adopt public NL→SPARQL benchmark test sets (QALD-9-plus = powered capability gate; CK25 = corporate-domain anchor) + a small refusal supplement, reaching ~5–8pt MDE with real vetted questions; synthetic generation retired (INSERTED; pivoted via grill-me, former 07.2 folded in) (completed 2026-07-22)
-- [ ] **Phase 07.5: NL→SPARQL query-first synthetic few-shot bank** - Build-time per-ontology few-shot bank generated query-first from the TBox (compositional templates + data-binding + paraphrase), loaded via the BM25 few-shot seam so NL→SPARQL adapts to any new ontology; re-opens 07.1's synthetic fence in a query-first/few-shot-pool form; measured mechanistically + directionally on held-out CK25+QALD (INSERTED)
+- [x] **Phase 07.5: NL→SPARQL query-first synthetic few-shot bank** - Build-time per-ontology few-shot bank generated query-first from the TBox (compositional templates + data-binding + paraphrase), loaded via the BM25 few-shot seam so NL→SPARQL adapts to any new ontology; re-opens 07.1's synthetic fence in a query-first/few-shot-pool form; measured mechanistically + directionally on held-out CK25+QALD (INSERTED)
 - [ ] **Phase 8: Public release readiness** - Public repo, CI matrix, license/docs/runbook, SBOM on v1.0 tag
 
 ## Phase Details
@@ -273,7 +273,7 @@ Plans:
 
 **Wave 6** *(CONDITIONAL — only if the SPEC adopt bar clears)*
 
-- [ ] 07.5-06-PLAN.md — Stage 2 engine promotion: pure construction core -> arango_query_core seam + pyproject.toml git-pin bump (D-01, OQ-2) [NL-GEN-01]
+- [x] 07.5-06-PLAN.md — Stage 2 engine promotion: pure construction core -> arango_query_core seam + pyproject.toml git-pin bump (D-01, OQ-2) [NL-GEN-01]
 
 **Status**: Planned
 
