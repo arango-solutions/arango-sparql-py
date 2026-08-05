@@ -41,6 +41,13 @@ from arango_query_core.nl import FewShotIndex, cached_few_shot_index
 from arango_query_core.nl.grounding import LabelIndex
 from arango_query_core.nl.seams import GuardrailVerdict, ValidationResult
 
+if TYPE_CHECKING:
+    # Seam 6/7 index types exist only in query-core >= ccfe56c. They are used
+    # solely in (lazy, __future__) annotations here, so importing them at
+    # runtime would break `[nl]` against the pinned acb60ae — guard behind
+    # TYPE_CHECKING so the adapter loads on either query-core version.
+    from arango_query_core.nl import LabelIndex, PredicateIndex
+
 from ..api import translate as _api_translate
 from ..errors import SparqlError, UnsupportedSparqlError
 from ..translate.resolver import SchemaResolver

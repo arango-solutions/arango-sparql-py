@@ -74,6 +74,11 @@ references/arango-cypher-py
 references/arango-sparql
 references/arango-schema-mapper
 
-# Dark-factory drift mode (personal agent infrastructure; see AGENTS.md)
+# Dark-factory drift mode (personal agent infrastructure; see AGENTS.md).
+# CLAUDE.md is intentionally NOT ignored here — in this repo it is a tracked
+# symlink to the shared AGENTS.md contract, not a private per-dev file.
 .prd-drift-queue/
+.pattern-capture-queue/
 .claude/
+.cursor/rules/workflow.mdc
+.no-drift-gate

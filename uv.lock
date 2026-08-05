@@ -81,7 +81,7 @@ dependencies = [
 
 [package.optional-dependencies]
 analyzer = [
-    { name = "arangodb-schema-analyzer", extra = ["anthropic"] },
+    { name = "arangodb-schema-analyzer", extra = ["anthropic", "openai"] },
 ]
 cli = [
     { name = "rich" },
@@ -95,7 +95,7 @@ dense = [
     { name = "rank-bm25" },
 ]
 dev = [
-    { name = "arangodb-schema-analyzer", extra = ["anthropic"] },
+    { name = "arangodb-schema-analyzer", extra = ["anthropic", "openai"] },
     { name = "httpx" },
     { name = "mypy" },
     { name = "pyoxigraph" },
@@ -114,7 +114,7 @@ nl = [
     { name = "rank-bm25" },
 ]
 service = [
-    { name = "arangodb-schema-analyzer", extra = ["anthropic"] },
+    { name = "arangodb-schema-analyzer", extra = ["anthropic", "openai"] },
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "typer" },
@@ -128,7 +128,7 @@ requires-dist = [
     { name = "arango-sparql-py", extras = ["analyzer"], marker = "extra == 'dev'" },
     { name = "arango-sparql-py", extras = ["analyzer"], marker = "extra == 'service'" },
     { name = "arango-sparql-py", extras = ["nl"], marker = "extra == 'dense'" },
-    { name = "arangodb-schema-analyzer", extras = ["anthropic"], marker = "extra == 'analyzer'", specifier = ">=0.9.0,<0.10.0" },
+    { name = "arangodb-schema-analyzer", extras = ["anthropic", "openai"], marker = "extra == 'analyzer'", specifier = ">=0.9.0,<0.10.0" },
     { name = "fastapi", specifier = ">=0.100.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.24.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
@@ -171,6 +171,9 @@ wheels = [
 [package.optional-dependencies]
 anthropic = [
     { name = "anthropic" },
+]
+openai = [
+    { name = "openai" },
 ]
 
 [[package]]

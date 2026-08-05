@@ -1828,6 +1828,15 @@ class AlgebraVisitor:
             existing = self.state.var_to_doc_alias.get(str(subject))
             if existing is not None:
                 return existing
+            if self.resolver.strict_subject_resolution:
+                raise SchemaResolutionError(
+                    f"cannot route subject variable {str(subject)!r} to a "
+                    f"collection: it has no rdf:type constraint to map it to a "
+                    f"class, and strict subject resolution is enabled (no "
+                    f"default-collection fallback). Add a type pattern such as "
+                    f"'{str(subject)} a :YourClass' so the translator knows "
+                    f"which collection to scan."
+                )
             alias = self._open_collection(self.resolver.default_collection)
             # Enforce the implicit join the SPARQL spec demands: if the
             # variable was already bound to an AQL expression by an
@@ -1841,6 +1850,14 @@ class AlgebraVisitor:
             self._bind_subject(subject, alias)
             return alias
         if isinstance(subject, URIRef):
+            if self.resolver.strict_subject_resolution:
+                raise SchemaResolutionError(
+                    f"cannot route subject IRI {str(subject)!r} to a collection: "
+                    f"no owl:Class with a phys:collectionName covers it, and "
+                    f"strict subject resolution is enabled (no default-collection "
+                    f"fallback). Give the subject a type pattern ('{str(subject)} "
+                    f"a :YourClass'), or map its collection in the ontology."
+                )
             alias = self._open_collection(self.resolver.default_collection)
             bind = self.builder.bind(str(subject), hint="uri")
             self.builder.filter_eq(f"{alias}._uri", bind)

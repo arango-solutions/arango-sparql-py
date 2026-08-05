@@ -180,6 +180,21 @@ class SchemaResolver:
 
     ontology: Graph
     default_collection: str = "Document"
+    strict_subject_resolution: bool = False
+    """When ``True``, a triple-pattern subject that cannot be routed to a
+    mapped collection raises :class:`SchemaResolutionError` instead of
+    silently falling back to :attr:`default_collection`.
+
+    Off by default so the legacy / W3C-harness behaviour (a real
+    ``Document`` catch-all collection) is preserved. The live service
+    turns it **on** (see ``service.mapping._resolver_from_request``): a
+    customer database has no ``Document`` collection, so the fallback
+    emits ``FOR doc IN @@…_Document`` that only fails at execution time
+    with an opaque ``ERR 1203`` — exactly the "never emit silently wrong
+    AQL" case AGENTS.md hard-rule #5 forbids. Surfacing it as a typed
+    translate-time error lets the UI point the user at the real fix (add a
+    ``?s a :Class`` type pattern, or map the subject's collection).
+    """
     graph_field: str = "_graph"
     """Document attribute that carries the RDF named-graph IRI for
     the SPARQL ``GRAPH <iri> { … }`` / ``GRAPH ?g { … }`` constructs.

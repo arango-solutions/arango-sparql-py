@@ -350,6 +350,21 @@ _DEFAULT_ANALYZER_MODEL: dict[str, str] = {
 }
 
 
+def _analyzer_timeout_ms() -> int:
+    """Per-call LLM budget for the analyzer, in milliseconds.
+
+    Overridable via ``SCHEMA_ANALYZER_TIMEOUT_MS``; defaults to 180s (the
+    library default of 60s times out on large schemas, silently degrading
+    to baseline). Garbage / non-positive values fall back to the default.
+    """
+    raw = os.getenv("SCHEMA_ANALYZER_TIMEOUT_MS", "")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return 180_000
+    return value if value > 0 else 180_000
+
+
 def _provider_sdk_available(provider: str) -> bool:
     """True iff the client SDK the analyzer needs for *provider* can be
     imported. Uses :func:`importlib.util.find_spec` so we probe without
@@ -459,7 +474,14 @@ def _acquire_via_analyzer(db: Any, *, include_owl: bool) -> MappingBundle:
             "intelligent classification)"
         )
     analyzer = AgenticSchemaAnalyzer(llm_provider=provider, model=model)
-    analysis_result = analyzer.analyze_physical_schema(db)
+    # The analyzer's per-call LLM budget defaults to 60s, which is not enough
+    # for a large schema (a 50+ collection database can need 2-3 minutes for
+    # the model to emit a full mapping) — the request times out and the whole
+    # classification silently degrades to the deterministic baseline. Give it
+    # a generous default and let deployments tune it; the result is cached by
+    # the route layer, so this cost is paid once per schema, not per request.
+    timeout_ms = _analyzer_timeout_ms()
+    analysis_result = analyzer.analyze_physical_schema(db, timeout_ms=timeout_ms)
 
     analysis_dict = {
         "conceptualSchema": analysis_result.conceptual_schema,

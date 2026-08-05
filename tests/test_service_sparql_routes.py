@@ -345,6 +345,56 @@ def test_translate_malformed_ontology_returns_422(client: TestClient) -> None:
     assert detail["code"] == "E_SCHEMA_RESOLVE"
 
 
+def test_translate_untyped_iri_subject_returns_422(client: TestClient) -> None:
+    # Regression: a fixed-IRI subject with no rdf:type pattern (the shape
+    # the NL pipeline produced for "what is the mapping style for the
+    # Person class?" — ``:Person phys:mappingStyle ?x``) cannot be routed
+    # to a collection. The service runs with strict subject resolution, so
+    # it must fail up front with a typed E_SCHEMA_RESOLVE rather than emit
+    # ``FOR doc IN @@…_Document`` that dies at execution time on ERR 1203
+    # (AGENTS.md hard-rule #5: never emit silently wrong AQL).
+    sparql = """
+    PREFIX : <http://ex.org/>
+    SELECT ?x WHERE { :Person :unmappedPredicate ?x }
+    """
+    resp = client.post(
+        "/translate",
+        json={"sparql": sparql, "ontology_ttl": ONTOLOGY_TTL},
+    )
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["code"] == "E_SCHEMA_RESOLVE"
+    # The message points at the fix rather than a phantom collection.
+    assert "type pattern" in detail["error"]
+
+
+def test_translate_untyped_variable_subject_returns_422(client: TestClient) -> None:
+    # A subject variable that never receives an rdf:type constraint is
+    # likewise unroutable under strict resolution.
+    sparql = """
+    PREFIX : <http://ex.org/>
+    SELECT ?s ?o WHERE { ?s :unmappedPredicate ?o }
+    """
+    resp = client.post(
+        "/translate",
+        json={"sparql": sparql, "ontology_ttl": ONTOLOGY_TTL},
+    )
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["code"] == "E_SCHEMA_RESOLVE"
+
+
+def test_translate_typed_subject_still_succeeds(client: TestClient) -> None:
+    # Guard the happy path: a properly typed subject (``?s a :Person``)
+    # routes to the mapped collection and is unaffected by strict subject
+    # resolution.
+    resp = client.post(
+        "/translate",
+        json={"sparql": SELECT_QUERY, "ontology_ttl": ONTOLOGY_TTL},
+    )
+    assert resp.status_code == 200, resp.text
+    assert "Person" in resp.json()["aql"]
+
+
 def test_translate_oversized_sparql_rejected_at_pydantic(client: TestClient) -> None:
     # _MAX_SPARQL_LENGTH is 100k; a 200k payload should be rejected by
     # the Pydantic field bound before the parser ever sees it.

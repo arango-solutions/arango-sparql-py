@@ -250,7 +250,9 @@ def _make_analyzer_mock(
             self.llm_provider = llm_provider
             self.model = model
 
-        def analyze_physical_schema(self, _db: Any) -> _AnalysisResult:
+        def analyze_physical_schema(self, _db: Any, **_kwargs: Any) -> _AnalysisResult:
+            # Accept timeout_ms (and any future kwargs) the acquire layer
+            # now passes through to the real analyzer.
             return _AnalysisResult()
 
     def fake_export_mapping(analysis: dict[str, Any], target: str = "cypher") -> dict[str, Any]:
@@ -384,9 +386,9 @@ def test_analyzer_path_passes_db_to_analyze_physical_schema(
     cls, fn = _make_analyzer_mock()
 
     class TracingAnalyzer(cls):  # type: ignore[misc, valid-type]
-        def analyze_physical_schema(self, db: Any) -> Any:
+        def analyze_physical_schema(self, db: Any, **kwargs: Any) -> Any:
             seen.append(db)
-            return super().analyze_physical_schema(db)
+            return super().analyze_physical_schema(db, **kwargs)
 
     _install_analyzer_mock(monkeypatch, analyzer_cls=TracingAnalyzer, export_fn=fn)
     db = _empty_db()
@@ -458,8 +460,8 @@ def test_analyzer_metadata_dict_shape_is_supported(
     )
 
     class DictMetaAnalyzer(cls):  # type: ignore[misc, valid-type]
-        def analyze_physical_schema(self, db: Any) -> Any:
-            res = super().analyze_physical_schema(db)
+        def analyze_physical_schema(self, db: Any, **kwargs: Any) -> Any:
+            res = super().analyze_physical_schema(db, **kwargs)
             res.metadata = {"source": "dict-shape"}
             return res
 
