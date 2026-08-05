@@ -177,7 +177,7 @@ flowchart TB
         RPT["detect_rpt_pattern<br/>(RDF triple-store extension)"]
         CACHE["ArangoSchemaCache<br/>(L1 in-process + L2 ArangoDB)"]
         FP["fingerprint shape / counts"]
-        ANA["arangodb-schema-analyzer<br/>(in-process library, ≥0.6.1)"]
+        ANA["arangodb-schema-analyzer<br/>(in-process library, ≥0.9.0)"]
     end
 
     subgraph nlpipe["NL pipeline (arango_sparql.nl2sparql.*)"]
@@ -600,14 +600,14 @@ tags `PG_ENTITY_COLLECTION`, `LPG_LABEL`, `RPT_TRIPLES`,
 > **Hard dependency contract.** The
 > [`arangodb-schema-analyzer`](https://github.com/ArthurKeen/arango-schema-mapper)
 > package (PyPI name `arangodb-schema-analyzer`, import name
-> `schema_analyzer`, ≥ 0.6.1) is a **first-class dependency** of
+> `schema_analyzer`, ≥ 0.9.0) is a **first-class dependency** of
 > `arango-sparql-py`, not an optional extra. Heuristic detection
 > (§6.3.1) exists as a **diagnostic / dev-loop fallback only**; the
 > production posture is "analyzer is installed and is the source of
 > truth for all entity styles, relationship styles, statistics,
 > tenancy scope, sharding profile, and OWL emission". The startup
 > guard in §6.3.4 enforces this. The shipped `[analyzer]` extra in
-> `pyproject.toml` pins `arangodb-schema-analyzer >= 0.6.1, < 0.7.0`,
+> `pyproject.toml` pins `arangodb-schema-analyzer >= 0.9.0, < 0.10.0`,
 > matching the sister project's pinning policy.
 
 Module: `arango_sparql.schema.acquire`
@@ -622,7 +622,7 @@ def acquire_mapping_bundle(
 ) -> MappingBundle: ...
 ```
 
-Wraps `arangodb-schema-analyzer ≥ 0.6.1`'s `AgenticSchemaAnalyzer.analyze_physical_schema`,
+Wraps `arangodb-schema-analyzer ≥ 0.9.0`'s `AgenticSchemaAnalyzer.analyze_physical_schema`,
 then post-processes:
 
 1. Normalise the analyzer's `conceptualSchema + physicalMapping +
@@ -1470,7 +1470,7 @@ in the UI's connection-status footer:
   "uptime_seconds": 12345,
   "checks": {
     "arangodb": {"status": "ok", "latency_ms": 4.1},
-    "analyzer": {"status": "ok", "latency_ms": 12.3, "version": "0.6.1"},
+    "analyzer": {"status": "ok", "latency_ms": 12.3, "version": "0.9.0"},
     "llm_provider": {"status": "skipped", "reason": "NL_DISABLED"}
   }
 }
@@ -2011,7 +2011,7 @@ the ArangoDB semantic stack either depend on it or feed it:
                     ┌─────────────────────────────┐
                     │ arangodb-schema-analyzer    │
                     │ (PyPI: arangodb-schema-     │
-                    │  analyzer ≥ 0.6.1)          │
+                    │  analyzer ≥ 0.9.0)          │
                     └──────────────┬──────────────┘
                                    │ MappingBundle + OWL
                                    ▼
@@ -2028,7 +2028,7 @@ the ArangoDB semantic stack either depend on it or feed it:
 
 Already covered in §6.3; restated here for the integration map:
 
-- **Pinned dependency**: `arangodb-schema-analyzer >= 0.6.1, < 0.7.0`
+- **Pinned dependency**: `arangodb-schema-analyzer >= 0.9.0, < 0.10.0`
   (`pyproject.toml` extra `[analyzer]`, included in `[service]`).
 - **Consumed contracts**:
   - `AgenticSchemaAnalyzer.analyze_physical_schema(db, ...)` →
@@ -3159,7 +3159,7 @@ See §12.1 — the analyzer pin is a hard dependency. Upgrade order:
 | **ArangoDB** | 3.11 LTS, 3.12 (default), 3.13 (when GA) | CI matrix includes 3.11 and 3.12 |
 | **Python** | 3.11, 3.12 (default), 3.13 | CI matrix on all three |
 | **Node.js** (UI build only) | 20 LTS, 22 LTS | UI build artefact is what ships |
-| **`arangodb-schema-analyzer`** | `>=0.6.1,<0.7.0` | See §12.1 |
+| **`arangodb-schema-analyzer`** | `>=0.9.0,<0.10.0` | See §12.1 |
 | **`rdflib`** | `>=7.0,<8.0` | |
 | **`pyoxigraph`** | `>=0.3.20,<0.5.0` (test-only) | |
 
