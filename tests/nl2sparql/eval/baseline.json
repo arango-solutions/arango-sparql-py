@@ -1557,6 +1557,64 @@
       "Full 49-case per-case verdict dicts were captured only for run 3 (the run written to generated_sweep_result.json on disk); runs 1-2 are recorded as aggregate pass counts + b/c/p/delta + gains/regressions case-name lists, pasted back by the human rather than machine-captured. This mirrors the phase07_dense_few_shot_sweep precedent for the same reason (avoiding a fabricated per-case dict).",
       "The 3-run sweep predates the two_hop NL-question faithfulness fix (commit 20f40a0); see bank_provenance.two_hop_nl_fix_provenance_caveat for why a re-sweep was judged unnecessary (query text, the actual lever, is unchanged).",
       "This sweep is recorded here as a sibling top-level key (not promoted to a configs['openai-gpt4o-mini-ck25-generated-fewshot'] BaselineConfig entry) for the same reason as phase07_dense_few_shot_sweep/phase07_4_predicate_grounding_sweep: BaselineConfig.cases requires a full per-case dict, which is only available for run 3 of 3."
-    ]
+    ],
+    "confirmatory_resweep_2026_08": {
+      "_note": "Confirmatory re-sweep (2026-08-06) on the EXACT shipped artifact: the final committed CK25 bank (eb1448e, post two_hop-wording fix) + the PROMOTED engine (arango_query_core.nl.synthbank, pin 3438305, Stage-2 07.5-06). Single credentialed run, gpt-4o-mini @ temp 0.1, corpus_sha 814d227, n=49. RECONFIRMS ADOPT (significant, zero regressions, delta survives overlap-exclusion). Point estimate is SOFTER than the original 07.5-05 3-run sweep (generated 11/49 here vs 13-14/49 then; zero arm identical at 5/49) -- a single run cannot separate LLM run-to-run variance, gpt-4o-mini snapshot drift (~2 weeks later, snapshot ids uncaptured), and a small retrieval shift from the two_hop question-wording change (BM25 keys on question text). Decision-level equivalence holds; magnitude landed at the lower end (+12.2pt vs +16-18pt).",
+      "swept_by": "credentialed human (2026-08-06)",
+      "model": "gpt-4o-mini",
+      "temperature": 0.1,
+      "corpus_sha": "814d227",
+      "n_cases": 49,
+      "engine_pin": "3438305025d35b4fb6a4c9adab0b3b1f8b6c1d1c",
+      "bank_commit": "eb1448e",
+      "zero_pass": 5,
+      "generated_pass": 11,
+      "mcnemar_raw": {
+        "b_gains": 6,
+        "c_regressions": 0,
+        "p_value": 0.0312
+      },
+      "bootstrap_delta_raw": {
+        "delta": 0.1224,
+        "ci_95": [
+          0.0408,
+          0.2245
+        ]
+      },
+      "excluded_case_names": [
+        "ck25-4"
+      ],
+      "mcnemar_overlap_excluded": {
+        "b_gains": 6,
+        "c_regressions": 0,
+        "p_value": 0.0312,
+        "n": 48
+      },
+      "bootstrap_delta_overlap_excluded": {
+        "delta": 0.125,
+        "ci_95": [
+          0.0417,
+          0.2292
+        ]
+      },
+      "gains": [
+        "ck25-2",
+        "ck25-5",
+        "ck25-11",
+        "ck25-12",
+        "ck25-17",
+        "ck25-45"
+      ],
+      "regressions": [],
+      "qald_pass": 2,
+      "qald_total": 514,
+      "verdict": "ADOPT (b>0, c==0, delta>0 surviving overlap-exclusion) -- reconfirmed on final artifact",
+      "failure_analysis": {
+        "generated_fail": 38,
+        "beyond_catalog_constructs": 21,
+        "within_catalog_but_failed": 17,
+        "note": "21/38 remaining failures require SPARQL constructs the 9-shape synthbank catalog cannot express (multi-column projection x11, AVG/SUM x4, top-K K>1 x3, GROUP-BY-project x6, deep multi-hop >=4tp x13); the catalog only ever emits a single ?result column with COUNT-only aggregation and top-1 ranking. The other 17 are within-catalog cases (simple lookups/1-2-hop/top-1/negation) that still fail -- the grounding/context-shaping headroom. Catalog expansion targets the 21; composing entity-grounding+few-shot targets the 17."
+      }
+    }
   }
 }
