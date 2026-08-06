@@ -76,6 +76,20 @@ Because it surfaces **one path between two already-anchored classes**, not a cla
 - **vs fine-tuning:** FT could bake these paths in but is **schema-specific** (breaks CDF transfer). Path grounding is mechanical + transfer-preserving; FT is the fallback only if in-context path-teaching plateaus.
 - **vs judge fixes:** verified to recover only ~5 pts (ASK-relaxation + IRI/number normalization) — worth doing opportunistically, not the main lever.
 
-## 9. First action
+## 9. Step 0 results (2026-08-06) — GREENLIGHT
 
-Run **Step 0** (offline path-recall spike) — no key, ~an afternoon — to confirm the class graph actually contains the 16 gold paths before committing to a phase. Then formalize as a ROADMAP phase and plan it.
+Ran the offline path-recall spike over the 16 empty-result golds against a class-connectivity graph built from the CK25 TBox (`build_predicate_index`, 14 object properties). Result: **12/16 gold nav-paths recovered** by naive exact-class, depth-≤3, inverse-allowed shortest-path (top-8). **Inverse edges confirmed necessary** — ck25-12 and ck25-26 recover *only* via an inverse edge (D-2 validated with data). The 4 misses each surfaced a concrete, addressable design requirement — and one is the canonical case, which a naive build would silently drop:
+
+| miss | cause | required refinement |
+|---|---|---|
+| **ck25-7** (`memberOf`,`hasManager`) | `memberOf` domain=`Agent`, `hasManager` domain=`Employee`; exact-class graph treats them as disconnected though `Employee ⊑ Agent` | **D-9 subclass-aware nodes** (walk `rdfs:subClassOf`; unify/link sub↔super). Highest priority — it's the canonical failure. |
+| ck25-35 (`compatibleProduct`,`price`) | `compatibleProduct: Product→Product` self-loop; simple-path DFS forbids revisiting | **D-10 bounded self-revisit** for self-referential relations |
+| ck25-47, ck25-48 | genuine 4-hop chain `BOM→BomPart→Product→Supplier→Country` | **D-1 relax depth cap to 4** (weigh vs distraction) |
+
+With D-9 + D-10 + depth-4, projected recall → ~16/16. Verdict: **the lever is viable; formalize as a phase.** The spike also paid for itself — the naive exact-class design would have shipped missing exactly the `manager-of-a-department` case the lever is named for.
+
+**Note for design:** ck25-7 and ck25-35 are also *join/star* patterns (two predicates sharing a subject variable), not pure chains — the subclass-aware, self-revisit-tolerant path model captures them here, but the renderer should present them as a join (`?p memberOf <D> . ?p hasManager ?m`), not a directed A→B→C walk.
+
+## 10. Next action
+
+Formalize as a ROADMAP phase (`gsd-phase`), carrying D-9/D-10 (surfaced by the spike) into the design, and plan it. The offline path-recall spike becomes the phase's Step-0 gate (already GREEN at 12/16 → ~16/16 with refinements).
