@@ -85,7 +85,14 @@ def dry_run() -> int:
     idx = cached_few_shot_index(str(GENERATED_CK25_BANK), "bm25")
     n = len(idx.examples)
     print(f"\nGenerated bank loaded via BM25 FewShotIndex: {n} examples")
-    assert n == 77, f"expected 77 examples, got {n}"
+    # Track the committed bank's own example count rather than a magic number
+    # (the bank moved 77 -> 73 after the Change-D degenerate-value exclusion,
+    # 07.5-05; a hardcoded literal silently goes stale). This still catches a
+    # partial/failed load — the real point of the assertion.
+    import yaml
+
+    expected = len(yaml.safe_load(GENERATED_CK25_BANK.read_text())["examples"])
+    assert n == expected, f"index loaded {n} examples but {GENERATED_CK25_BANK.name} declares {expected}"
     assert type(idx.retriever).__name__ == "BM25Retriever", (
         f"expected BM25Retriever, got {type(idx.retriever).__name__} — install .[nl]"
     )
