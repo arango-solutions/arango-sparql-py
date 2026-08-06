@@ -295,6 +295,90 @@ configs:
       k: 20
       bank: vendored/ck25/generated_fewshot_bank.yml
 
+  # ===== Composed-lever arms (2026-08 "real evaluation") =====
+  # Every lever above was only ever measured IN ISOLATION (entity grounding
+  # 14/49, few-shot 11-14/49, predicate grounding 7/49). These arms measure
+  # the COMPOSITION — runner.py passes few_shot_index + grounding_index +
+  # predicate_index into ONE NlPipeline, so a config carrying multiple seam
+  # blocks activates them all. scripted-* twins are no-network plumbing gates
+  # (same discipline as the isolated arms); the openai-* arms are human-run,
+  # RUN_EVAL=1 + NL2SPARQL_API_KEY, never CI.
+
+  scripted-ck25-grounded-generated-fewshot:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
+  # Entity grounding (seam 6) + query-first few-shot bank — the two CONFIRMED
+  # levers composed. THE composed-ceiling arm.
+  openai-gpt4o-mini-ck25-grounded-generated-fewshot:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
+  scripted-ck25-all-levers:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    predicate_grounding:
+      k: 40
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
+  # Everything: entity grounding + predicate grounding + few-shot bank. Tests
+  # whether predicate grounding's documented distraction (07.4, net-negative
+  # alone) re-emerges or is absorbed when few-shot examples are also present.
+  openai-gpt4o-mini-ck25-all-levers:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    predicate_grounding:
+      k: 40
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
   # Live QALD-9-plus generated-fewshot sweep — non-regression arm (Plan 05
   # Task 3 step 2). QALD's generated bank is empty (0 examples, Plan 04
   # honest TBox-only finding), so BM25 retrieval trivially returns nothing
