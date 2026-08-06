@@ -248,3 +248,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 Last session: 2026-08-05T21:58:07.317Z
 Stopped at: Completed 07.5-06-PLAN.md — Stage-2 engine promotion shipped (synthbank seam pushed to both remotes, pin bumped 3438305, bank_generator shim). Phase 07.5 COMPLETE (6/6). Reconciled local main with origin/main via merge (3abb116) before executing.
 Resume file: None
+
+## Pending (non-blocking) human action
+
+- **Confirmatory CK25 re-sweep on the FINAL committed bank + promoted engine** (NL-GEN-01 already ADOPTED via the 07.5-05 3-run sweep; this only closes the "measured numbers predate the final artifact / engine promotion" gap). Staged and dry-run-verified (commit 3468f34): `tests/nl2sparql/eval/run_generated_sweep.py --dry-run` green against the promoted engine + 73-example bank. Human runs (key never held by agent): `RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python tests/nl2sparql/eval/run_generated_sweep.py --sweep` (gpt-4o-mini, temp 0.1, corpus_sha 814d227; run 1x for a quick confirm or 3x for parity with the original protocol). Paste back per-run: zero_pass/generated_pass, McNemar b/c/p (raw + overlap-excluded), bootstrap delta+CI, gains/regressions, QALD non-regression. A continuation folds the result into baseline.json (update phase07_5_generated_fewshot_sweep with a `confirmatory_resweep_2026-08` entry) — expected to reproduce ~13-14/49 generated vs ~5-6/49 zero, b>c, p<0.05.
