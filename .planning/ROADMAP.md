@@ -246,7 +246,7 @@ Plans:
 ### Phase 07.6: NL→SPARQL relationship-path grounding (INSERTED)
 
 **Goal:** Close the dominant CK25 NL→SPARQL failure mode — *right-entity, wrong-path*. Root-caused from the 07.5 composed-lever evaluation (entity grounding + few-shot ceiling = 16/49; every failure is valid, executable SPARQL — 0 malformed): **16 of 31 failures ground the named entity correctly but navigate the wrong predicate-path and execute to empty** (e.g. "manager of Data Services" — the model used `responsibleFor` off the Department instead of the inverse `memberOf`←Person→`hasManager`). Add an engine **seam-8** that, given the question's anchor class (from seam-6 entity grounding) and its target (from seam-7's token scorer), retrieves the *specific* shortest predicate path connecting them from a mechanically-built, **subclass-aware, inverse-edged** TBox class-connectivity graph, and injects it as a compact navigation hint — surfacing *one path between two anchored classes*, NOT a schema dump (the distraction that sank 07.4's full predicate grounding). Mechanical / TBox-only → transfers to CDF; Cypher inherits. Full design + Step-0 offline recall spike (GREEN: 12/16 → ~16/16 with D-9 subclass-aware nodes + D-10 self-revisit + inverse edges): `.planning/research/relationship-path-grounding-scope.md`.
-**Requirements**: TBD (candidate NL-ACC-03: relationship-path grounding — assign at plan time)
+**Requirements**: NL-ACC-03
 **Depends on:** Phase 07.3 (seam-6 entity grounding → anchor class), Phase 07.4 (seam-7 `PredicateIndex` → domain/range substrate + token scorer), Phase 07.5 (composed-lever sweep + candidate-dump diagnostics harness)
 **Plans:** 0 plans (run `/gsd-plan-phase 07.6`)
 
