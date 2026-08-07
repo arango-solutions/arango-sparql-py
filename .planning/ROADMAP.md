@@ -248,11 +248,20 @@ Plans:
 **Goal:** Close the dominant CK25 NL→SPARQL failure mode — *right-entity, wrong-path*. Root-caused from the 07.5 composed-lever evaluation (entity grounding + few-shot ceiling = 16/49; every failure is valid, executable SPARQL — 0 malformed): **16 of 31 failures ground the named entity correctly but navigate the wrong predicate-path and execute to empty** (e.g. "manager of Data Services" — the model used `responsibleFor` off the Department instead of the inverse `memberOf`←Person→`hasManager`). Add an engine **seam-8** that, given the question's anchor class (from seam-6 entity grounding) and its target (from seam-7's token scorer), retrieves the *specific* shortest predicate path connecting them from a mechanically-built, **subclass-aware, inverse-edged** TBox class-connectivity graph, and injects it as a compact navigation hint — surfacing *one path between two anchored classes*, NOT a schema dump (the distraction that sank 07.4's full predicate grounding). Mechanical / TBox-only → transfers to CDF; Cypher inherits. Full design + Step-0 offline recall spike (GREEN: 12/16 → ~16/16 with D-9 subclass-aware nodes + D-10 self-revisit + inverse edges): `.planning/research/relationship-path-grounding-scope.md`.
 **Requirements**: NL-ACC-03
 **Depends on:** Phase 07.3 (seam-6 entity grounding → anchor class), Phase 07.4 (seam-7 `PredicateIndex` → domain/range substrate + token scorer), Phase 07.5 (composed-lever sweep + candidate-dump diagnostics harness)
-**Plans:** 0 plans (run `/gsd-plan-phase 07.6`)
+**Plans:** 3 plans (3 waves)
 
 Plans:
+**Wave 1** *(tracer — mechanical lever proven offline, engine-first)*
 
-- [ ] TBD (run /gsd-plan-phase 07.6 to break down)
+- [ ] 07.6-01-PLAN.md — TRACER: ClassPathIndex engine seam (subclass-aware+inverse+self-revisit+≤5 bounded shortest-path) + execution-diff 16-case gold fixture + R4 offline recall gate ≥14/16 [NL-ACC-03]
+
+**Wave 2** *(blocked on 07.6-01 — the prompt seam)*
+
+- [ ] 07.6-02-PLAN.md — Engine Protocol seam + seam-8 composition (after entity/predicate blocks) + both SPARQL adapters (byte-identical, anchor=seam-6/target=seam-7 per D-02) + NlPipeline threading + 3rd parity test [NL-ACC-03]
+
+**Wave 3** *(blocked on 07.6-02 — eval arm + promotion + credentialed sweep; human checkpoints)*
+
+- [ ] 07.6-03-PLAN.md — Additive `path_grounding:` config arm + scripted twin + `--dry-run` 49/49; D-01 engine promotion (two-remote push + pin bump, recall-green-gated); human-run credentialed CK25 paired sweep + baseline.json adopt/kill fold-in [NL-ACC-03]
 
 ### Phase 07.5: NL→SPARQL query-first synthetic few-shot bank (INSERTED)
 
