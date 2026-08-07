@@ -6,10 +6,10 @@ current_phase: 07.5
 current_phase_name: nl-sparql-query-first-synthetic-few-shot-bank
 status: complete
 stopped_at: Completed 07.5-06-PLAN.md (Stage-2 engine promotion shipped; synthbank seam pushed to both remotes, pin bumped 3438305). Phase 07.5 COMPLETE (6/6).
-last_updated: "2026-08-05T21:58:07.317Z"
+last_updated: "2026-08-07T15:11:07.548Z"
 last_activity: 2026-08-05
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 10
   total_plans: 49
   completed_plans: 49
@@ -110,6 +110,7 @@ Progress: [██████████] 100%
 - Phase 07.1 inserted after Phase 7: NL→SPARQL synthetic eval-corpus growth to reach statistical power (MDE ≤ 5pt); corpus+bank only, heavy levers deferred to v1.1 (URGENT)
 - Phase 07.2 inserted after Phase 7: Execution-based (answer-set) eval judging for adopted benchmarks; CK25 first, QALD later — surfaced by 07.1 live-eval finding that the canonical judge floors real LLM output at 0% (URGENT)
 - Phase 07.4 inserted after Phase 7: NL→SPARQL predicate/schema-convention grounding — next grounding lever after 07.3 entity grounding, targeting the 17 convention-bound CK25 failures (URGENT)
+- Phase 07.6 inserted after Phase 7: NL→SPARQL relationship-path grounding (seam-8): retrieve the specific TBox path connecting the question's anchor class (seam-6) to its target; targets the 16 empty-result right-entity-wrong-path CK25 failures. Step-0 recall spike GREEN (12/16 -> ~16/16 with subclass-aware nodes + inverse edges). Scope: .planning/research/relationship-path-grounding-scope.md (URGENT)
 
 ### Decisions
 
