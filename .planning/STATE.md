@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 07.5
 current_phase_name: nl-sparql-query-first-synthetic-few-shot-bank
 status: complete
-stopped_at: Completed 07.5-06-PLAN.md (Stage-2 engine promotion shipped; synthbank seam pushed to both remotes, pin bumped 3438305). Phase 07.5 COMPLETE (6/6).
-last_updated: "2026-08-07T15:11:07.548Z"
+stopped_at: Phase 07.6 context gathered
+last_updated: "2026-08-07T19:57:25.923Z"
 last_activity: 2026-08-05
 progress:
   total_phases: 11
@@ -246,9 +246,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-08-05T21:58:07.317Z
-Stopped at: Completed 07.5-06-PLAN.md — Stage-2 engine promotion shipped (synthbank seam pushed to both remotes, pin bumped 3438305, bank_generator shim). Phase 07.5 COMPLETE (6/6). Reconciled local main with origin/main via merge (3abb116) before executing.
-Resume file: None
+Last session: 2026-08-07T19:57:25.905Z
+Stopped at: Phase 07.6 context gathered
+Resume file: .planning/phases/07.6-nl-sparql-relationship-path-grounding/07.6-CONTEXT.md
 
 ## Pending (non-blocking) human action
 
