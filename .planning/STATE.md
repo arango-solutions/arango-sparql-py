@@ -6,12 +6,13 @@ current_phase: 07.5
 current_phase_name: nl-sparql-query-first-synthetic-few-shot-bank
 status: complete
 stopped_at: Phase 07.6 context gathered
-last_updated: "2026-08-07T19:57:25.923Z"
-last_activity: 2026-08-05
+last_updated: "2026-08-07T22:10:51.339Z"
+last_activity: 2026-08-07
+last_activity_desc: Phase 07.6 planning complete
 progress:
   total_phases: 11
   completed_phases: 10
-  total_plans: 49
+  total_plans: 52
   completed_plans: 49
 ---
 
@@ -29,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — COMPLETE
 Plan: 6 of 6 — all complete
 Status: 07.5-06 COMPLETE. Stage-2 engine promotion shipped: pure query-shape template catalog promoted to arango_query_core.nl.synthbank (engine commit 3438305, pushed to both remotes), pin bumped b669320->3438305, bank_generator.py refactored into a thin eval-side shim. NL-GEN-01 closed (ADOPT, Plan 05). Phase 07.5 COMPLETE.
-Last activity: 2026-08-05
+Last activity: 2026-08-07 — Phase 07.6 planning complete
 
 Progress: [██████████] 100%
 
