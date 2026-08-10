@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.6
 current_phase_name: nl-sparql-relationship-path-grounding
 status: executing
-stopped_at: Completed 07.6-01-PLAN.md
-last_updated: "2026-08-10T16:42:32.222Z"
+stopped_at: Completed 07.6-02-PLAN.md
+last_updated: "2026-08-10T16:58:27.330Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 07.6 execution started
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 52
-  completed_plans: 50
+  completed_plans: 51
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 ## Current Position
 
 Phase: 07.6 (nl-sparql-relationship-path-grounding) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-10 — Phase 07.6 execution started
 
-Progress: [██████████] 96%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Progress: [██████████] 96%
 |------|----------|-------|-------|
 | Phase 07.5 P05 | 40min | 3 tasks | 3 files |
 | Phase 07.6 P01 | 50min | 3 tasks | 8 files |
+| Phase 07.6 P02 | ~40min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -225,6 +226,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: [07.6-01]: shortest_paths targets accept either a predicate local name or a class local name -- lets terminal-datatype-attribute questions target the connecting OBJECT-property hop, since ClassPathIndex only models object-property connectivity
 - [Phase ?]: [07.6-01]: path-enumeration visited-tracking uses the LITERAL class name, not the D-9 merged component id -- an earlier component-level design broke the canonical ck25-7 case by blocking the legitimate Agent->Manager narrowing hop; reverted before commit
 - [Phase ?]: [07.6-01]: R4 recall gate measured 14/16, matching SPEC.md's floor exactly (the only misses are the 2 accepted depth-4 supply-chain cases, ck25-47/48); engine committed locally in arango-query-core but NOT pushed and pin NOT bumped (deferred to Plan 03 per D-01)
+- [Phase ?]: [Phase 07.6-02]: path_prompt_section is the ONE seam-8 adapter method that does more than delegate (D-02/Pitfall 4) -- it reads the adapter's OWN injected seam-6/7 indexes (GroundedEntity.type for anchors, GroundedPredicate.iri local names via the shared private grounding._local_name helper for targets) and feeds pre-resolved identifiers into ClassPathIndex.shortest_paths, never a third scorer
+- [Phase ?]: [Phase 07.6-02]: reused the private grounding._local_name helper directly (cross-module underscore-prefixed reuse) rather than reimplementing IRI-tail extraction -- same precedent as 07.4-02's direct PredicateIndex._predicates access (no public accessor exists for either)
+- [Phase ?]: [Phase 07.6-02]: NLQueryEngine composes the seam-8 path block after seam-7 (predicates) using the identical index-not-None -> render -> append-if-non-empty gate as seams 6/7; both SPARQL adapters' path_index()/path_prompt_section() verified byte-identical (parity test + direct diff); NlPipeline threads path_k/path_index end-to-end (Pitfall 5 resolved); engine still local-editable, unpushed, pin still 3438305 (Plan 03 owns push + bump per D-01)
 
 ### Pending Todos
 
@@ -251,8 +255,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-08-10T16:42:32.209Z
-Stopped at: Completed 07.6-01-PLAN.md
+Last session: 2026-08-10T16:58:27.317Z
+Stopped at: Completed 07.6-02-PLAN.md
 Resume file: None
 
 ## Pending (non-blocking) human action
