@@ -333,6 +333,71 @@ def build_predicate_index(ontology_ttl: str):
     return PredicateIndex.from_items(items)
 
 
+def build_path_index(ontology_ttl: str):
+    """Build a ``ClassPathIndex`` (seam 8) from a Turtle TBox (D-01/D-02,
+    mechanical only).
+
+    ``ontology_ttl`` is the same Turtle TBox text ``build_predicate_index``
+    consumes (a corpus's ``ontology:`` block, ``shared_ontology`` in
+    ``runner.py``). Two simple queries, same "one clear query per pass,
+    function-local pyoxigraph import" discipline as
+    ``build_label_index``/``build_predicate_index`` above (D-08 packaging
+    boundary):
+
+    - every declared ``owl:ObjectProperty`` with its own
+      ``rdfs:domain``/``rdfs:range`` (an edge triple: predicate/domain/
+      range, all LOCAL NAMES per ``_local_name`` -- Pitfall 3), and
+    - every ``rdfs:subClassOf`` pair (sub/super, also local names).
+
+    Both are fed, unmodified, into
+    ``arango_query_core.nl.pathindex.ClassPathIndex.from_items(...)``,
+    which owns the actual subclass-aware/inverse-edged graph build and
+    bounded shortest-path retrieval (R1). This function performs NO
+    graph-connectivity reasoning itself -- it is a pure TBox-to-tuples
+    walk, mirroring ``build_predicate_index``'s own division of labor
+    (mechanical extraction here, retrieval/scoring logic in the engine
+    seam). Never hand-authors a per-schema class/predicate hint (D-02):
+    this file must never special-case any single vocabulary term's own
+    name anywhere in the walk below, or the lever stops transferring to
+    a new schema (e.g. CDF).
+    """
+    from tests.helpers.oxi import load_store_from_string, oxi_query
+
+    store = load_store_from_string(ontology_ttl)
+
+    edges_query = """
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?p ?domain ?range WHERE {
+      ?p a owl:ObjectProperty .
+      OPTIONAL { ?p rdfs:domain ?domain }
+      OPTIONAL { ?p rdfs:range ?range }
+    }"""
+    edges: list[tuple[str, str, str]] = []
+    for row in oxi_query(store, edges_query).rows or []:
+        pred_local = _local_name(row.get("p"))
+        dom_local = _local_name(row.get("domain"))
+        rng_local = _local_name(row.get("range"))
+        if pred_local and dom_local and rng_local:
+            edges.append((pred_local, dom_local, rng_local))
+
+    subclass_query = """
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?sub ?super WHERE {
+      ?sub rdfs:subClassOf ?super .
+    }"""
+    subclass_of: list[tuple[str, str]] = []
+    for row in oxi_query(store, subclass_query).rows or []:
+        sub_local = _local_name(row.get("sub"))
+        super_local = _local_name(row.get("super"))
+        if sub_local and super_local:
+            subclass_of.append((sub_local, super_local))
+
+    from arango_query_core.nl.pathindex import ClassPathIndex
+
+    return ClassPathIndex.from_items(edges, subclass_of)
+
+
 # --------------------------------------------------------------------------
 # Phase 07.5 Wave 0 (D-02): orderable-literal + optional-relation signals.
 #
