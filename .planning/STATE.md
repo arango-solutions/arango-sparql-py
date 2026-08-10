@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 07.6
 current_phase_name: nl-sparql-relationship-path-grounding
 status: executing
-stopped_at: Completed 07.6-02-PLAN.md
-last_updated: "2026-08-10T16:58:27.330Z"
+stopped_at: "07.6-03 Task 1 committed (efd8636); paused at Task 2 checkpoint:human-verify (gate=blocking-human, engine promotion)"
+last_updated: "2026-08-10T17:04:41.623Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 07.6 execution started
 progress:
@@ -244,6 +244,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04-07] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (7 report-only perf test files) committed (901ed75). Human must: (1) docker compose up -d arangodb (host 8532, DB sparql-to-aql), (2) RUN_INTEGRATION=1 pytest tests/perf -m perf -k "not translate_latency and not execute_overhead and not nl_latency" -q to populate the 6 Docker-gated rows in tests/perf/LATENCY_REPORT.md, (3) optionally RUN_INTEGRATION=1 NL2SPARQL_API_KEY=... pytest tests/perf/test_nl_latency.py -m perf -q for the live-LLM row (never paste the key into any file), (4) confirm LATENCY_REPORT.md is populated and secret-free, (5) reply approved or describe issues. Continuation folds in the final SUMMARY once approved.
 - [Phase 04-08] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking): Task 1 (5 docs/howto recipes) committed (f149998). Human must: (1) docker compose up -d arangodb + uv run python main.py so /sparql is reachable, (2) run SELECT+ASK+Service-Description via rsparql --service / Protege SPARQL panel per docs/howto/protege.md and paste the real output into protege.md's transcript block, (3) point a YASGUI instance at /sparql per docs/howto/yasgui.md, run the same SELECT+ASK+Service Description, paste real output into yasgui.md's transcript block, (4) confirm both transcripts are secret-free, (5) reply approved or describe issues. Continuation completes the plan, writes 04-08-SUMMARY.md, and runs the final metadata commit once approved.
 - [Phase 07.5-05] AWAITING HUMAN CHECKPOINT (Task 3, checkpoint:human-verify, gate=blocking-human): Tasks 1-2 (overlap audit c677193, additive config arms + run_generated_sweep.py 3a5bcc2, README runbook fbe2069) committed. A mid-plan DEVIATION FIX (paraphrase harness -- see the 07.5-05 DEVIATION FIX decision entry above and 07.5-05-DEVIATION-FIX-SUMMARY.md) has since landed, fixing the root cause that made step 0's live regeneration fall short of REQ-3 (<3 paraphrases for 43/77 examples). A second mid-plan DEVIATION FIX (07.5-05 DEVIATION FIX #2 -- see the decision entry above and 07.5-05-DEVIATION-FIX-2-SUMMARY.md) has since landed too, fixing the ONE real bank-faithfulness defect the credentialed judge + manual domain/range adjudication found: two_hop's NL question now names both the near AND far predicate. Human must (0) regenerate CK25 bank paraphrases for real via the live OpenAICompatibleClient (README.md Section 11.0, BLOCKER) -- now expected to reach K>=3 for all non-degenerate examples with the fixed harness AND a faithful two_hop wording, (1) re-run verify_generated_bank.py, (2) test_committed_ck25_bank_matches_fresh_regeneration/test_committed_ck25_report_matches_fresh_regeneration are ALREADY updated to structural checks (no further test edit needed), (3) run RUN_EVAL=1 NL2SPARQL_API_KEY=... uv run python tests/nl2sparql/eval/run_generated_sweep.py --sweep x3 + the QALD non-regression arm + the >=20-pair faithfulness judge, (4) paste back aggregate + per-case verdicts + McNemar/bootstrap (raw and overlap-excluded) + coverage% + faithfulness% + corpus_sha. Continuation folds results into baseline.json (new sibling key), records the adopt/kill decision, updates REQUIREMENTS.md NL-GEN-01, and completes the plan.
+- [Phase 07.6-03] AWAITING HUMAN CHECKPOINT (Task 2, checkpoint:human-verify, gate=blocking-human): Task 1 (path_grounding: config read + composed g+f+path arm + scripted twin, commit efd8636) committed; --dry-run scripted g+f+path arm is 49/49, no crash, no regression on the other 5 scripted arms. Human must perform D-01 engine promotion in ~/dev/arango-query-core: (1) confirm engine unit tests green (uv run pytest tests/test_nl_pathindex.py tests/test_nl_engine.py -x), (2) git push arthur <branch> AND git push origin <branch> for the seam-8 commit (1ec6789, includes 30ac7f5+74a8f54), (3) git ls-remote arthur / git ls-remote origin verify the SHA on BOTH before any uv lock, (4) bump pyproject.toml's arango-query-core pin (both [nl]/[dense] extras, off 3438305) to the pushed SHA + uv lock, (5) re-run R4 (uv pip install -e . && uv run pytest tests/nl2sparql/eval/test_path_recall.py -x) >=14/16 against the pinned install, (6) confirm git diff --stat arango_sparql/translate/ is empty. Reply 'promoted <SHA>' or describe any gap. Continuation then proceeds to Task 3 (credentialed CK25 paired sweep, human-held NL2SPARQL_API_KEY).
 
 ## Deferred Items
 
@@ -255,9 +256,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-08-10T16:58:27.317Z
-Stopped at: Completed 07.6-02-PLAN.md
-Resume file: None
+Last session: 2026-08-10T17:04:41.605Z
+Stopped at: 07.6-03 Task 1 committed (efd8636); paused at Task 2 checkpoint:human-verify (gate=blocking-human, engine promotion)
+Resume file: .planning/phases/07.6-nl-sparql-relationship-path-grounding/07.6-03-PLAN.md
 
 ## Pending (non-blocking) human action
 
