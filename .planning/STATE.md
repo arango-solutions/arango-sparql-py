@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07.5
-current_phase_name: nl-sparql-query-first-synthetic-few-shot-bank
-status: complete
-stopped_at: Phase 07.6 context gathered
-last_updated: "2026-08-07T22:10:51.339Z"
-last_activity: 2026-08-07
-last_activity_desc: Phase 07.6 planning complete
+current_phase: 07.6
+current_phase_name: nl-sparql-relationship-path-grounding
+status: executing
+stopped_at: Completed 07.6-01-PLAN.md
+last_updated: "2026-08-10T16:42:32.222Z"
+last_activity: 2026-08-10
+last_activity_desc: Phase 07.6 execution started
 progress:
   total_phases: 11
   completed_phases: 10
   total_plans: 52
-  completed_plans: 49
+  completed_plans: 50
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-15)
 
 **Core value:** Deterministic W3C SPARQL→AQL correctness stays sacred (never regress); NL→SPARQL quality becomes measurable and improvable.
-**Current focus:** Phase 07.5 — nl-sparql-query-first-synthetic-few-shot-bank
+**Current focus:** Phase 07.6 — nl-sparql-relationship-path-grounding
 
 ## Current Position
 
-Phase: 07.5 (nl-sparql-query-first-synthetic-few-shot-bank) — COMPLETE
-Plan: 6 of 6 — all complete
-Status: 07.5-06 COMPLETE. Stage-2 engine promotion shipped: pure query-shape template catalog promoted to arango_query_core.nl.synthbank (engine commit 3438305, pushed to both remotes), pin bumped b669320->3438305, bank_generator.py refactored into a thin eval-side shim. NL-GEN-01 closed (ADOPT, Plan 05). Phase 07.5 COMPLETE.
-Last activity: 2026-08-07 — Phase 07.6 planning complete
+Phase: 07.6 (nl-sparql-relationship-path-grounding) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-10 — Phase 07.6 execution started
 
-Progress: [██████████] 100%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: [██████████] 100%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 07.5 P05 | 40min | 3 tasks | 3 files |
+| Phase 07.6 P01 | 50min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -221,6 +222,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07.5-05 DEVIATION FIX #2, mid-plan, discovered during the human's credentialed faithfulness judge + manual domain/range adjudication]: the two_hop shape's query chains TWO predicates (a near hop off the name-anchored entity, then a FAR hop whose value IS `?result`), but `question_template` named only the near predicate ("Which {far_type} is linked to {entity} via {near_predicate}?") -- a reader could not tell the answer came from the far predicate. Fixed (TDD, offline-only, no live LLM call, query text unchanged): rewrote the template to "What is the {far_predicate} of the {member_type} whose {near_predicate} is {entity}?" and added a new `member_type=pred.domain` slot (the intermediate node's shared domain class) to `_candidates_two_hop`. `test_committed_ck25_bank_matches_fresh_regeneration`'s structural subset check narrowed from `(question, query, shape)` to `(query, shape)` since the committed (pre-fix) bank's two_hop question text now legitimately differs; query-text equality is still checked byte-for-byte. Committed `vendored/ck25/generated_fewshot_bank.yml` was NOT touched (the human's uncommitted real-paraphrase regeneration on disk is untouched). See .planning/phases/07.5-nl-sparql-query-first-synthetic-few-shot-bank/07.5-05-DEVIATION-FIX-2-SUMMARY.md.
 - [Phase 07.5-05]: NL-GEN-01 CLOSED via ADOPT path: credentialed 3-run CK25 sweep (gpt-4o-mini, corpus_sha 814d227) shows generated-fewshot beats a fresh zero arm on all 3 runs (paired McNemar p<0.05 raw and overlap-excluded); zero-regression bar met via the SPEC's documented 'b>c on every run' alternative clause (c==0 only on run 3); QALD non-regression trivially met (generated QALD bank is empty). REQ-3 faithfulness recorded as DOCUMENTED-PARTIAL (gpt-4o-mini judge unreliable, manual adjudication ~88-96%) -- non-blocking since paraphrases are unused by FewShotIndex retrieval.
 - [Phase 07.5-06]: Stage-2 engine promotion SHIPPED (conditional on Plan 05 ADOPT, user-confirmed). OQ-2 boundary = promote-template-core-only: the pure ontology-agnostic query-shape template catalog (ShapeTemplate + SHAPE_CATALOG + 9 applies/build_sparql closures + render/index helpers) promoted VERBATIM to a new arango_query_core.nl.synthbank engine seam (stdlib-only, no pyoxigraph), pushed to BOTH remotes (engine commit 3438305), ls-remote-verified on both BEFORE uv lock (07.3-02 precedent). bank_generator.py refactored into a thin eval-side shim (-530 lines) keeping data-binding + execution-filter + paraphrase test-side. Pin bumped b669320->3438305 (both [nl]+[dense]). Behavior-identity proven mechanically by the committed CK25+QALD fresh-regeneration-equivalence tests (not asserted). Non-regression: W3C DAWG >=96.4% green, no pyoxigraph on engine import path, transpiler package unchanged. Consumer verified against a local-editable engine BEFORE the push (arango-cypher-py package-extraction pattern). Cypher inherits ShapeTemplate + applies gates (build_sparql is the SPARQL-specific half).
+- [Phase ?]: [07.6-01]: shortest_paths targets accept either a predicate local name or a class local name -- lets terminal-datatype-attribute questions target the connecting OBJECT-property hop, since ClassPathIndex only models object-property connectivity
+- [Phase ?]: [07.6-01]: path-enumeration visited-tracking uses the LITERAL class name, not the D-9 merged component id -- an earlier component-level design broke the canonical ck25-7 case by blocking the legitimate Agent->Manager narrowing hop; reverted before commit
+- [Phase ?]: [07.6-01]: R4 recall gate measured 14/16, matching SPEC.md's floor exactly (the only misses are the 2 accepted depth-4 supply-chain cases, ck25-47/48); engine committed locally in arango-query-core but NOT pushed and pin NOT bumped (deferred to Plan 03 per D-01)
 
 ### Pending Todos
 
@@ -247,9 +251,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-08-07T19:57:25.905Z
-Stopped at: Phase 07.6 context gathered
-Resume file: .planning/phases/07.6-nl-sparql-relationship-path-grounding/07.6-CONTEXT.md
+Last session: 2026-08-10T16:42:32.209Z
+Stopped at: Completed 07.6-01-PLAN.md
+Resume file: None
 
 ## Pending (non-blocking) human action
 
