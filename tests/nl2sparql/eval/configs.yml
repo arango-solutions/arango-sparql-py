@@ -379,6 +379,47 @@ configs:
       k: 20
       bank: vendored/ck25/generated_fewshot_bank.yml
 
+  # Entity grounding (seam 6) + query-first few-shot bank + relationship-path
+  # grounding (seam 8, Phase 07.6) — proves all three seams stack into ONE
+  # NlPipeline (R3). path_grounding.k mirrors R1's <=5 global-pool budget as
+  # the config's own knob.
+  scripted-ck25-grounded-generated-fewshot-path:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+    path_grounding:
+      k: 5
+
+  openai-gpt4o-mini-ck25-grounded-generated-fewshot-path:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+    path_grounding:
+      k: 5
+
   # Live QALD-9-plus generated-fewshot sweep — non-regression arm (Plan 05
   # Task 3 step 2). QALD's generated bank is empty (0 examples, Plan 04
   # honest TBox-only finding), so BM25 retrieval trivially returns nothing

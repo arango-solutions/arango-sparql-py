@@ -15,6 +15,7 @@ Arms (same session, gpt-4o-mini @ temp per provider default, judge=execution):
   fewshot   openai-gpt4o-mini-ck25-generated-fewshot           (query-first bank)
   g+f       openai-gpt4o-mini-ck25-grounded-generated-fewshot  (the two confirmed levers)
   all       openai-gpt4o-mini-ck25-all-levers                  (+ seam 7 predicate)
+  g+f+path  openai-gpt4o-mini-ck25-grounded-generated-fewshot-path (+ seam 8 relationship-path, Phase 07.6)
 
 Reports, for the key contrasts, paired McNemar (b=gains, c=regressions) +
 a bootstrap CI on the pass-rate delta:
@@ -22,16 +23,19 @@ a bootstrap CI on the pass-rate delta:
   * g+f vs ground and g+f vs fewshot  -> the STACKING question
   * all vs g+f                         -> does predicate grounding help or
                                           distract once few-shot is present?
+  * g+f+path vs g+f                    -> does the relationship-path hint
+                                          help once grounding+few-shot are
+                                          present?
 
 Two modes
 ---------
 --dry-run   (default; NO key, NO network)
     Runs the scripted plumbing twins to prove the composed configs build all
-    three seams (grounding + predicate + few_shot indices) into one
+    four seams (grounding + predicate + few_shot + path indices) into one
     NlPipeline without crashing.
 
 --sweep     (HUMAN-run: RUN_EVAL=1 + NL2SPARQL_API_KEY)
-    Runs all 5 live arms back-to-back in one session, prints the pass table +
+    Runs all 6 live arms back-to-back in one session, prints the pass table +
     the paired-McNemar matrix, and writes composed_sweep_result.json.
 """
 
@@ -55,6 +59,11 @@ ARMS = [
     ("fewshot", "openai-gpt4o-mini-ck25-generated-fewshot", "scripted-ck25-generated-fewshot"),
     ("g+f", "openai-gpt4o-mini-ck25-grounded-generated-fewshot", "scripted-ck25-grounded-generated-fewshot"),
     ("all", "openai-gpt4o-mini-ck25-all-levers", "scripted-ck25-all-levers"),
+    (
+        "g+f+path",
+        "openai-gpt4o-mini-ck25-grounded-generated-fewshot-path",
+        "scripted-ck25-grounded-generated-fewshot-path",
+    ),
 ]
 
 # Contrasts to report: (name, baseline_label, treatment_label)
@@ -66,6 +75,7 @@ CONTRASTS = [
     ("g+f vs ground  (does few-shot add to grounding?)", "ground", "g+f"),
     ("g+f vs fewshot (does grounding add to few-shot?)", "fewshot", "g+f"),
     ("all vs g+f     (does predicate grounding help/distract?)", "g+f", "all"),
+    ("g+f+path vs g+f (does the path hint help?)", "g+f", "g+f+path"),
 ]
 
 
@@ -74,7 +84,7 @@ def dry_run() -> int:
 
     print("=" * 68)
     print("DRY RUN — no LLM, no network. Proving the composed configs build")
-    print("all seams (grounding + predicate + few_shot) into one NlPipeline.")
+    print("all seams (grounding + predicate + few_shot + path) into one NlPipeline.")
     print("=" * 68)
     for _label, _live, scripted in ARMS:
         r = run(scripted)

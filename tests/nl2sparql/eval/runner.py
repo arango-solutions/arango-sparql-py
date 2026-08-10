@@ -593,6 +593,27 @@ def run(config_name: str) -> Report:
 
         predicate_index = build_predicate_index(shared_ontology)
 
+    # Additive `path_grounding:` config read (Phase 07.6 seam 8 / R3):
+    # relationship-path grounding mirrors the `predicate_grounding:` (seam 7)
+    # precedent exactly, including the gate — this builds from the corpus's
+    # TBox (`shared_ontology`, always present) not its instance graph
+    # (`data_ttl`, CK25-only; QALD has no `data_path`), since the class-
+    # connectivity graph is TBox-only (domain/range + subClassOf). Absent
+    # `path_grounding:` == today's ungrounded behavior (`path_index=None` is
+    # the honest no-op NlPipeline already understands).
+    path_cfg = config.get("path_grounding", {})
+    path_k = path_cfg.get("k", 0)
+    path_index = None
+    if path_cfg and shared_ontology:
+        # Build the ClassPathIndex ONCE here, outside the per-case loop below
+        # (same build-once discipline as few_shot_index/grounding_index/
+        # predicate_index above). Imported function-locally so pyoxigraph
+        # stays off runner.py's module import path (mirrors the
+        # grounding_index_builder import above).
+        from tests.nl2sparql.eval.grounding_index_builder import build_path_index
+
+        path_index = build_path_index(shared_ontology)
+
     cases: list[CaseResult] = []
     for case in corpus["cases"]:
         ontology_ttl = case.get("ontology", shared_ontology)
@@ -609,6 +630,8 @@ def run(config_name: str) -> Report:
             grounding_index=grounding_index,
             predicate_k=predicate_k,
             predicate_index=predicate_index,
+            path_k=path_k,
+            path_index=path_index,
         )
 
         t0 = time.perf_counter()
