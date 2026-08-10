@@ -69,6 +69,15 @@ if TYPE_CHECKING:
     # the still-old pin between Task 1 (this file) and Task 2 (the pin bump).
     from arango_query_core.nl.grounding import PredicateIndex
 
+if TYPE_CHECKING:
+    # Seam 8 (relationship-path grounding, 07.6) — ClassPathIndex is only
+    # added to arango_query_core.nl.pathindex at Plan 01's still-unpushed,
+    # still-unpinned engine commit (30ac7f5). Guard the import so this module
+    # still loads cleanly against the still-old 3438305 pin, which this plan
+    # deliberately does NOT bump (Plan 03 owns push + pin bump, D-01) —
+    # mirrors the PredicateIndex guard above for the identical reason.
+    from arango_query_core.nl.pathindex import ClassPathIndex
+
 from ..api import TranslateResult
 from ..api import translate as _translate
 from ..errors import SparqlError
@@ -121,6 +130,12 @@ class NlPipeline:
     explicit-injection-only (no production-default TBox predicate index
     exists yet), so callers that omit ``predicate_index`` get the same
     honest degraded no-op.
+    Relationship-path grounding (seam 8, 07.6) follows the exact same
+    pattern one level up the stack again: this pipeline threads
+    ``path_k``/``path_index`` through to the ``SparqlAdapter``/
+    ``NLQueryEngine`` construction in :meth:`run`, explicit-injection-only
+    (no production-default path-connectivity index exists yet), so
+    callers that omit ``path_index`` get the same honest degraded no-op.
     The pipeline shape exposed here will absorb the remaining hooks via
     constructor args without breaking the API contract.
     """
@@ -138,6 +153,8 @@ class NlPipeline:
         grounding_index: LabelIndex | None = None,
         predicate_k: int = 20,
         predicate_index: PredicateIndex | None = None,
+        path_k: int = 5,
+        path_index: ClassPathIndex | None = None,
     ) -> None:
         self.client = client
         self.resolver = resolver
@@ -161,6 +178,12 @@ class NlPipeline:
         # returns as-is (ungrounded, no-op).
         self.predicate_k = predicate_k
         self.predicate_index = predicate_index
+        # Relationship-path grounding (seam 8, 07.6) — explicit-injection-only
+        # this phase (mirrors predicate_index's injection branch); production
+        # callers that omit path_index get path_index=None, which
+        # SparqlAdapter.path_index() returns as-is (ungrounded, no-op).
+        self.path_k = path_k
+        self.path_index = path_index
 
     # ------------------------------------------------------------------
     # Public surface
@@ -188,6 +211,7 @@ class NlPipeline:
             few_shot_index=self.few_shot_index,
             grounding_index=self.grounding_index,
             predicate_index=self.predicate_index,
+            path_index=self.path_index,
         )
         engine = NLQueryEngine(
             provider=bridge,
@@ -195,6 +219,7 @@ class NlPipeline:
             few_shot_k=self.few_shot_k,
             grounding_k=self.grounding_k,
             predicate_k=self.predicate_k,
+            path_k=self.path_k,
             max_retries=self.repair_loop.max_repairs,
         )
         t0 = time.perf_counter()
