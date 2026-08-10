@@ -32,6 +32,7 @@ from arango_sparql.nl2sparql.client import ScriptedLLMClient
 from arango_sparql.nl2sparql.cost import estimate_llm_cost_usd
 from arango_sparql.nl2sparql.engine_adapter import EngineProviderBridge, SparqlAdapter
 from arango_sparql.nl2sparql.models import LLMResponse
+from arango_sparql.nl2sparql.pipeline import NlPipeline
 from arango_sparql.translate.resolver import SchemaResolver
 from tests.nl2sparql.eval.runner import EVAL_DIR, _canonical
 
@@ -265,6 +266,31 @@ class TestSparqlAdapterSeams:
             grounding_index=grounding,
         )
         assert adapter.path_prompt_section("find Alice", path_index, k=5) == ""
+
+
+# ---------------------------------------------------------------------------
+# Pipeline threading (Pitfall 5) — path_k/path_index reach the engine
+# ---------------------------------------------------------------------------
+
+
+class TestPipelinePathThreading:
+    def test_pipeline_threads_path_index_without_typeerror(self) -> None:
+        """Constructing NlPipeline with path_index= and calling .run() must
+        not raise TypeError -- the offline structural proof that Plan 03's
+        --dry-run will exercise (Pitfall 5)."""
+        from arango_query_core.nl.pathindex import ClassPathIndex
+
+        path_index = ClassPathIndex(edges=[], subclass_of=[])
+        client = ScriptedLLMClient([_resp(_wrap(GOOD_QUERY))], latency_ms=0)
+        pipeline = NlPipeline(
+            client=client,
+            resolver=SchemaResolver.from_turtle(ONTOLOGY),
+            ontology_ttl=ONTOLOGY,
+            path_k=5,
+            path_index=path_index,
+        )
+        outcome = pipeline.run("find Person")
+        assert outcome.aql
 
 
 # ---------------------------------------------------------------------------
