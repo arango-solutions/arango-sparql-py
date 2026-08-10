@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07.6
-current_phase_name: nl-sparql-relationship-path-grounding
-status: verifying
+current_phase: 8
+current_phase_name: Public release readiness
+status: planning
 stopped_at: Completed 07.6-03-PLAN.md (NL-ACC-03 closed via documented-null; phase 07.6 ready for verification)
-last_updated: "2026-08-10T20:43:56.751Z"
+last_updated: "2026-08-10T20:53:21.229Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 07.6 execution started
+last_activity_desc: Phase 07.6 complete, transitioned to Phase 8
 progress:
   total_phases: 11
   completed_phases: 11
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-15)
 
 ## Current Position
 
-Phase: 07.6 (nl-sparql-relationship-path-grounding) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-08-10 — Phase 07.6 execution started
+Phase: 8 — Public release readiness
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-10 — Phase 07.6 complete, transitioned to Phase 8
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 41 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
+- Total plans completed: 44 (Phases 1–3 shipped pre-GSD, outside GSD tracking)
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | 07.3 | 6 | - | - |
 | 07.4 | 6 | - | - |
 | 04 | 8 | - | - |
+| 07.6 | 3 | - | - |
 
 **Recent Trend:**
 
