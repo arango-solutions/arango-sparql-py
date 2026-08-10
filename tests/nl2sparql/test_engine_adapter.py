@@ -210,6 +210,62 @@ class TestSparqlAdapterSeams:
         adapter = SparqlAdapter(resolver=SchemaResolver.from_turtle(ONTOLOGY), ontology_ttl=ONTOLOGY)
         assert adapter.grounding_index() is None
 
+    def test_path_index_returns_injected_index(self) -> None:
+        from arango_query_core.nl.pathindex import ClassPathIndex
+
+        path_index = ClassPathIndex(edges=[], subclass_of=[])
+        adapter = SparqlAdapter(
+            resolver=SchemaResolver.from_turtle(ONTOLOGY),
+            ontology_ttl=ONTOLOGY,
+            path_index=path_index,
+        )
+        assert adapter.path_index() is path_index
+
+    def test_path_index_defaults_to_none(self) -> None:
+        adapter = SparqlAdapter(resolver=SchemaResolver.from_turtle(ONTOLOGY), ontology_ttl=ONTOLOGY)
+        assert adapter.path_index() is None
+
+    def test_path_prompt_section_empty_when_anchor_unresolved(self) -> None:
+        """No grounding_index injected -> no anchor classes -> '' (D-02 honest no-op)."""
+        from arango_query_core.nl.grounding import GroundedPredicate, PredicateIndex
+        from arango_query_core.nl.pathindex import ClassPathIndex
+
+        predicates = PredicateIndex.from_items(
+            [
+                GroundedPredicate(
+                    iri="http://ex.org/hasWidgetTarget",
+                    label="hasWidgetTarget",
+                    kind="object",
+                    domain="Widget",
+                    range="Gadget",
+                    shape="linked_entity",
+                )
+            ]
+        )
+        path_index = ClassPathIndex(edges=[("hasWidgetTarget", "Widget", "Gadget")], subclass_of=[])
+        adapter = SparqlAdapter(
+            resolver=SchemaResolver.from_turtle(ONTOLOGY),
+            ontology_ttl=ONTOLOGY,
+            predicate_index=predicates,
+        )
+        assert adapter.path_prompt_section("find hasWidgetTarget", path_index, k=5) == ""
+
+    def test_path_prompt_section_empty_when_target_unresolved(self) -> None:
+        """No predicate_index injected -> no targets -> '' (D-02 honest no-op)."""
+        from arango_query_core.nl.grounding import GroundedEntity, LabelIndex
+        from arango_query_core.nl.pathindex import ClassPathIndex
+
+        grounding = LabelIndex.from_items(
+            [GroundedEntity(id="http://ex.org/w1", labels=("Alice",), type="Widget")]
+        )
+        path_index = ClassPathIndex(edges=[("hasWidgetTarget", "Widget", "Gadget")], subclass_of=[])
+        adapter = SparqlAdapter(
+            resolver=SchemaResolver.from_turtle(ONTOLOGY),
+            ontology_ttl=ONTOLOGY,
+            grounding_index=grounding,
+        )
+        assert adapter.path_prompt_section("find Alice", path_index, k=5) == ""
+
 
 # ---------------------------------------------------------------------------
 # Resolver parity — the mapping-JSON blocker

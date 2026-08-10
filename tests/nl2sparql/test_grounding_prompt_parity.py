@@ -26,6 +26,7 @@ from arango_query_core.nl.grounding import (  # noqa: E402
     LabelIndex,
     PredicateIndex,
 )
+from arango_query_core.nl.pathindex import ClassPathIndex  # noqa: E402
 
 from arango_sparql.nl2sparql.adapter import SparqlLanguageAdapter  # noqa: E402
 from arango_sparql.nl2sparql.engine_adapter import SparqlAdapter  # noqa: E402
@@ -97,3 +98,54 @@ def test_predicate_prompt_section_byte_identical_across_adapters() -> None:
     # Sanity: the fixture actually rendered something (not two empty strings
     # that happen to be equal) -- a real retrieval hit for the sentinel.
     assert _SENTINEL_PREDICATE_LABEL in language_output
+
+
+_SENTINEL_PATH_TARGET = "sentinelPathPredicateXYZ123"
+
+
+def _path_predicate_index() -> PredicateIndex:
+    return PredicateIndex.from_items(
+        [
+            GroundedPredicate(
+                iri=f"http://ex.org/{_SENTINEL_PATH_TARGET}",
+                label=_SENTINEL_PATH_TARGET,
+                kind="object",
+                domain="Widget",
+                range="Gadget",
+                shape="linked_entity",
+            )
+        ]
+    )
+
+
+def _path_index() -> ClassPathIndex:
+    return ClassPathIndex(edges=[(_SENTINEL_PATH_TARGET, "Widget", "Gadget")], subclass_of=[])
+
+
+def test_path_prompt_section_byte_identical_across_adapters() -> None:
+    resolver = SchemaResolver.from_turtle(ONTOLOGY_TTL)
+    grounding = _index()  # entity type="Widget" (the anchor class, D-02)
+    predicates = _path_predicate_index()
+    paths = _path_index()
+    question = f"find the {_SENTINEL_LABEL} {_SENTINEL_PATH_TARGET}"
+
+    language_adapter = SparqlLanguageAdapter(
+        resolver=resolver,
+        ontology_ttl=ONTOLOGY_TTL,
+        _grounding_index=grounding,
+        _predicate_index=predicates,
+    )
+    engine_adapter = SparqlAdapter(
+        resolver=resolver,
+        ontology_ttl=ONTOLOGY_TTL,
+        grounding_index=grounding,
+        predicate_index=predicates,
+    )
+
+    language_output = language_adapter.path_prompt_section(question, paths, k=5)
+    engine_output = engine_adapter.path_prompt_section(question, paths, k=5)
+
+    assert language_output == engine_output
+    # Sanity: the fixture actually rendered something (not two empty strings
+    # that happen to be equal) -- a real path retrieval hit for the sentinel.
+    assert _SENTINEL_PATH_TARGET in language_output
