@@ -1,0 +1,151 @@
+golds:
+- name: ck25-4
+  anchor_classes:
+  - Department
+  targets:
+  - memberOf
+  gold_edges:
+  - memberOf^-1
+  note: Department -> the person (Agent) who belongs to it; email itself is a datatype
+    hop out of seam-8's scope.
+- name: ck25-7
+  anchor_classes:
+  - Department
+  targets:
+  - hasManager
+  gold_edges:
+  - memberOf^-1
+  - hasManager
+  note: 'Canonical case: Employee subClassOf Agent (D-9) + inverse memberOf (D-2)
+    recover the manager join.'
+- name: ck25-12
+  anchor_classes:
+  - ProductCategory
+  targets:
+  - hasSupplier
+  gold_edges:
+  - hasCategory^-1
+  - hasSupplier
+  note: Anchor on the RANGE side of hasCategory (D-2 inverse required to reach Product,
+    then hasSupplier).
+- name: ck25-24
+  anchor_classes:
+  - ProductCategory
+  targets:
+  - hasCategory
+  gold_edges:
+  - hasCategory^-1
+  note: Single inverse hop to the Hardware/Product instance itself; remaining datatype
+    filters are out of scope.
+- name: ck25-25
+  anchor_classes:
+  - ProductCategory
+  targets:
+  - hasCategory
+  gold_edges:
+  - hasCategory^-1
+  note: Same shape as ck25-24 (a different category).
+- name: ck25-26
+  anchor_classes:
+  - ProductCategory
+  targets:
+  - hasSupplier
+  gold_edges:
+  - hasCategory^-1
+  - hasSupplier
+  note: Same 2-hop shape as ck25-12; the terminal addressLocality/country datatype
+    hops are out of seam-8's scope.
+- name: ck25-27
+  anchor_classes:
+  - Employee
+  targets:
+  - hasManager
+  gold_edges:
+  - hasManager
+  note: hasManager is Employee's own direct edge; the case's real defect is FILTER
+    NOT EXISTS direction (out of seam-8's scope), but the connecting predicate is
+    mechanically surfaced regardless.
+- name: ck25-35
+  anchor_classes:
+  - Product
+  targets:
+  - compatibleProduct
+  gold_edges:
+  - compatibleProduct
+  note: 'D-10''s own worked example: a genuine self-loop (domain == range == Product)
+    surviving one traversal.'
+- name: ck25-36
+  anchor_classes:
+  - Hardware
+  targets:
+  - hasCategory
+  gold_edges:
+  - hasCategory
+  note: Candidate invented areaOfExpertise (Agent->ProductCategory) instead of the
+    real hasCategory (Product->ProductCategory).
+- name: ck25-37
+  anchor_classes:
+  - BillOfMaterial
+  targets:
+  - hasBomPart
+  gold_edges:
+  - hasBomPart
+  note: Direct declared edge; quantity itself is a datatype hop on BomPart.
+- name: ck25-40
+  anchor_classes:
+  - Hardware
+  targets:
+  - hasProductManager
+  gold_edges:
+  - hasProductManager
+  note: Direct declared edge (Product -> Employee, inherited by Hardware via D-9).
+- name: ck25-42
+  anchor_classes:
+  - BillOfMaterial
+  targets:
+  - hasPart
+  gold_edges:
+  - hasBomPart
+  - hasPart
+  note: Candidate collapsed/reversed the 2-hop BillOfMaterial->BomPart->Product chain.
+- name: ck25-46
+  anchor_classes:
+  - Hardware
+  targets:
+  - hasSupplier
+  gold_edges:
+  - hasSupplier
+  note: Direct declared edge (Product -> Supplier, inherited by Hardware via D-9).
+- name: ck25-47
+  anchor_classes:
+  - BillOfMaterial
+  targets:
+  - country
+  gold_edges:
+  - hasBomPart
+  - hasPart
+  - hasSupplier
+  - country
+  note: 'KNOWN LIMITATION (SPEC.md): a genuine 4-hop chain, beyond the locked depth<=3
+    budget (D-1). Expected miss.'
+- name: ck25-48
+  anchor_classes:
+  - BillOfMaterial
+  targets:
+  - country
+  gold_edges:
+  - hasBomPart
+  - hasPart
+  - hasSupplier
+  - country
+  note: 'KNOWN LIMITATION (SPEC.md): the same 4-hop supply-chain shape as ck25-47.
+    Expected miss.'
+- name: ck25-50
+  anchor_classes:
+  - Department
+  targets:
+  - responsibleFor
+  gold_edges:
+  - responsibleFor
+  note: Candidate reversed the direction of responsibleFor (Department -> Product,
+    not Product -> Department).
