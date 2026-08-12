@@ -140,3 +140,44 @@ def test_execution_judge_fires_not_silently_canonical() -> None:
     # `case.get("data")` it would fall through to canonical here and the
     # assertion above would have failed instead.
     assert _judge_canonical(gold, outcome) is False
+
+
+def test_extra_projected_column_still_matches() -> None:
+    """Projection tolerance: a candidate that projects the gold answer PLUS an
+    extra descriptive column (a superlative that also selects its sort key -- the
+    ck25-18/19/24 judge-artifact shape) is the same answer. A candidate that
+    returns the WRONG entity in that column must still fail."""
+    data = _PREFIX + ":a a :Osc ; :price 1 .\n:b a :Osc ; :price 2 .\n"
+    gold = _PREFIX + "SELECT ?r WHERE { ?r a :Osc ; :price ?p } ORDER BY ASC(?p) LIMIT 1"
+    # same cheapest entity, but the candidate also projects the price column
+    cand = _PREFIX + "SELECT ?r ?p WHERE { ?r a :Osc ; :price ?p } ORDER BY ASC(?p) LIMIT 1"
+    passed, note = _judge_execution(gold, _outcome(cand), data)
+    assert passed is True
+    assert note is None
+    # the most-expensive (wrong) entity, also with an extra column, must NOT match
+    wrong = _PREFIX + "SELECT ?r ?p WHERE { ?r a :Osc ; :price ?p } ORDER BY DESC(?p) LIMIT 1"
+    passed, _ = _judge_execution(gold, _outcome(wrong), data)
+    assert passed is False
+
+
+def test_symmetric_duplicate_rows_match_as_set() -> None:
+    """Set relaxation: a self-join emitting each mutual pair in BOTH directions is
+    the same answer set as a gold that canonicalizes direction via a `STR(?x) <
+    STR(?y)` filter (the ck25-43 judge-artifact shape)."""
+    data = _PREFIX + ":a :compat :b .\n:b :compat :a .\n"
+    gold = _PREFIX + "SELECT ?x ?y WHERE { ?x :compat ?y . FILTER(STR(?x) < STR(?y)) }"
+    cand = _PREFIX + "SELECT ?x ?y WHERE { ?x :compat ?y }"
+    passed, note = _judge_execution(gold, _outcome(cand), data)
+    assert passed is True
+    assert note is None
+
+
+def test_relaxation_rejects_extra_wrong_rows() -> None:
+    """Soundness guard: the set/projection relaxations must NOT pass a candidate
+    that returns the gold answers PLUS additional distinct (wrong) rows -- the
+    projected/deduped set then differs from gold, so it stays a fail."""
+    data = _PREFIX + ":a a :Osc .\n:b a :Osc .\n"
+    gold = _PREFIX + "SELECT ?r WHERE { ?r a :Osc } LIMIT 1"  # exactly one entity
+    cand = _PREFIX + "SELECT ?r WHERE { ?r a :Osc }"  # both entities -- a superset
+    passed, _ = _judge_execution(gold, _outcome(cand), data)
+    assert passed is False

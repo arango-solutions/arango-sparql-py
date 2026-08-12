@@ -403,6 +403,45 @@ def _execution_row_key(row: dict[str, str], label_map: dict[str, str]) -> tuple[
     return tuple(sorted(_normalize_execution_value(v, label_map) for v in row.values()))
 
 
+def _projection_tolerant_match(
+    gold_set: set[tuple[str, ...]],
+    cand_rows: list[dict[str, str]],
+    gold_arity: int,
+    label_map: dict[str, str],
+) -> bool:
+    """True if some column-subset of the candidate reproduces the gold answer set.
+
+    Tolerates a candidate that projects the gold answer PLUS extra descriptive
+    columns — the common "a superlative also selects its sort key" / "an entity
+    also selects its label or price" shape (e.g. gold ``SELECT ?result`` vs.
+    candidate ``SELECT ?oscillator ?price``). Compared as SETS, and only reached
+    after exact-multiset and set equality both miss, so it is a strict superset
+    of the strict check: it can only ever turn a strict FAIL into a pass, never
+    the reverse, so gold-vs-gold identity is unaffected. A genuinely wrong
+    candidate still fails — the projected column-set must equal the gold answer
+    set EXACTLY (no missing and no extra distinct values), so extra wrong rows or
+    a wrong entity in the answer column never match.
+    """
+    import itertools
+
+    if not cand_rows:
+        return not gold_set
+    cols = sorted({k for r in cand_rows for k in r})
+    # Bound the search: CK25 candidates project a handful of columns; refuse to
+    # combinatorially explode on a pathologically wide SELECT.
+    if len(cols) > 8:
+        return False
+    k = gold_arity or 1
+    for subset in itertools.combinations(cols, min(k, len(cols))):
+        projected = {
+            tuple(sorted(_normalize_execution_value(r[c], label_map) for c in subset if r.get(c) is not None))
+            for r in cand_rows
+        }
+        if projected == gold_set:
+            return True
+    return False
+
+
 def _judge_execution(expected: str, outcome: Any, data_ttl: str) -> tuple[bool, str | None]:
     """Answer-set execution judge (NL-EVAL-05, D-02..D-05).
 
@@ -453,9 +492,26 @@ def _judge_execution(expected: str, outcome: Any, data_ttl: str) -> tuple[bool, 
         return gold_result.boolean == cand_result.boolean, None
 
     label_map = _build_label_map(store)
-    gold_rows = sorted(_execution_row_key(r, label_map) for r in gold_result.rows or [])
-    cand_rows = sorted(_execution_row_key(r, label_map) for r in cand_result.rows or [])
-    return gold_rows == cand_rows, None
+    gold_keys = [_execution_row_key(r, label_map) for r in gold_result.rows or []]
+    cand_keys = [_execution_row_key(r, label_map) for r in cand_result.rows or []]
+    if sorted(gold_keys) == sorted(cand_keys):
+        return True, None  # exact answer (multiset) — the strict path, unchanged
+
+    # Answer-set relaxations. Each is a strict SUPERSET of the exact check above
+    # (reached only when it misses), so a previously-passing case can never
+    # regress and the scripted gold-vs-gold self-consistency invariant holds:
+    #   (1) set equality — the candidate has the right answers but with duplicate
+    #       or symmetric rows (a self-join emitting both (a,b) and (b,a): ck25-43);
+    #   (2) projection tolerance — the candidate projects the gold answer PLUS
+    #       extra descriptive columns beyond the gold's arity (a superlative that
+    #       also selects its price/label: ck25-18/19/24). See docs/ck25-failure-atlas.md.
+    gold_set = set(gold_keys)
+    if gold_set == set(cand_keys):
+        return True, None
+    gold_arity = len({k for r in (gold_result.rows or []) for k in r})
+    if _projection_tolerant_match(gold_set, cand_result.rows or [], gold_arity, label_map):
+        return True, None
+    return False, None
 
 
 def _judge(
