@@ -49,19 +49,25 @@ def _dump(arm: str) -> int:
     rep = run(arm)
     records = []
     for c in rep.cases:
-        records.append({
-            "name": c.name,
-            "passed": c.passed,
-            "judge_note": c.judge_note,
-            "gold": c.expected,
-            "candidate": c.actual,
-        })
+        records.append(
+            {
+                "name": c.name,
+                "passed": c.passed,
+                "judge_note": c.judge_note,
+                "gold": c.expected,
+                "candidate": c.actual,
+            }
+        )
     npass = sum(1 for r in records if r["passed"])
-    RESULT.write_text(json.dumps({"arm": arm, "n": len(records), "passed": npass, "cases": records}, indent=2) + "\n")
+    RESULT.write_text(
+        json.dumps({"arm": arm, "n": len(records), "passed": npass, "cases": records}, indent=2) + "\n"
+    )
 
     # quick judge_note histogram over failures (the offline root-cause seed)
     from collections import Counter
+
     fails = [r for r in records if not r["passed"]]
+
     def bucket(note):
         if note is None:
             return "wrong-answer (executed, answer set mismatch)"
@@ -70,6 +76,7 @@ def _dump(arm: str) -> int:
         if note.startswith("gold_engine_limitation"):
             return "gold_engine_limitation (eval defect)"
         return note
+
     hist = Counter(bucket(r["judge_note"]) for r in fails)
     print("=" * 60)
     print(f"arm={arm}  {npass}/{len(records)} passed")
@@ -91,7 +98,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dump", action="store_true", help="run the live arm + dump candidates (needs key)")
     ap.add_argument("--arm", default=DEFAULT_ARM, help=f"config arm to dump (default: {DEFAULT_ARM})")
-    ap.add_argument("--dry-run", action="store_true", help="offline wiring proof via the scripted twin (default)")
+    ap.add_argument(
+        "--dry-run", action="store_true", help="offline wiring proof via the scripted twin (default)"
+    )
     args = ap.parse_args()
     if args.dump:
         if os.getenv("RUN_EVAL", "").strip().lower() in ("", "0", "false", "no"):

@@ -36,8 +36,8 @@ import pytest
 
 from tests.perf.conftest import (
     DEFAULT_ARANGO_DB,
-    arango_seeded_collection,
     append_report,
+    arango_seeded_collection,
     connect_session_or_skip,
     live_arango_or_skip,
     p95,

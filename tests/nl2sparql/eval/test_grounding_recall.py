@@ -53,8 +53,7 @@ def test_gold_iri_retrieval_recall_meets_spike_floor() -> None:
     assert total > 0, "no CK25 case named a gold instance IRI -- recall guard would be vacuous"
     recall = hits / total
     assert recall >= 0.90, (
-        f"grounding retrieval recall regressed: {hits}/{total} = {recall:.2f} "
-        f"(spike measured 24/25 = 0.96)"
+        f"grounding retrieval recall regressed: {hits}/{total} = {recall:.2f} (spike measured 24/25 = 0.96)"
     )
 
 

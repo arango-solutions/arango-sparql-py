@@ -37,8 +37,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.perf.conftest import (
-    arango_seeded_collection,
     append_report,
+    arango_seeded_collection,
     connect_session_or_skip,
     live_arango_or_skip,
     p95,

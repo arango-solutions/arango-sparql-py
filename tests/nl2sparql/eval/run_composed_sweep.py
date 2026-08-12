@@ -132,21 +132,36 @@ def sweep() -> int:
         b, c, p = paired_mcnemar(results[base], results[treat])
         delta, lo, hi = bootstrap_paired_delta(results[base], results[treat])
         print(f"    {name:52s} b={b:2d} c={c:2d} p={p:.4f}  Δ={delta:+.4f} [{lo:+.4f},{hi:+.4f}]")
-        contrast_rows.append({
-            "contrast": name, "baseline": base, "treatment": treat,
-            "b_gains": b, "c_regressions": c, "p_value": p,
-            "delta": delta, "ci_95": [lo, hi],
-        })
+        contrast_rows.append(
+            {
+                "contrast": name,
+                "baseline": base,
+                "treatment": treat,
+                "b_gains": b,
+                "c_regressions": c,
+                "p_value": p,
+                "delta": delta,
+                "ci_95": [lo, hi],
+            }
+        )
     print("=" * 68)
 
-    RESULT.write_text(json.dumps({
-        "eval": "composed-lever CK25 real-evaluation (2026-08)",
-        "model": "gpt-4o-mini", "judge": "execution", "n_cases": n,
-        "arms": {lab: live for lab, live, _ in ARMS},
-        "pass_counts": npass,
-        "contrasts": contrast_rows,
-        "per_case": results,
-    }, indent=2) + "\n")
+    RESULT.write_text(
+        json.dumps(
+            {
+                "eval": "composed-lever CK25 real-evaluation (2026-08)",
+                "model": "gpt-4o-mini",
+                "judge": "execution",
+                "n_cases": n,
+                "arms": {lab: live for lab, live, _ in ARMS},
+                "pass_counts": npass,
+                "contrasts": contrast_rows,
+                "per_case": results,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     print(f"\nWrote {RESULT}")
     return 0
 

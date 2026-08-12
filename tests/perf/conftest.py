@@ -32,8 +32,9 @@ import contextlib
 import json
 import os
 import statistics
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -71,14 +72,6 @@ if not (os.environ.get("ARANGO_TEST_DB") or os.environ.get("ARANGO_DB")):
 # module docstring above. ``fake_client_factory`` is a ``pytest.fixture``;
 # re-exporting it here makes it collectible by any test under
 # ``tests/perf/`` without a perf-specific copy of the ~140-line double.
-from tests.test_service_sparql_routes import (  # noqa: E402  (after the env-pollution guard above)
-    _FakeArangoClient,
-    _FakeCursor,
-    _FakeDb,
-    _connect_session,
-    fake_client_factory,
-)
-
 # Deferred so the env-pollution guard above always runs first (these
 # read/compute ``tests.integration.conftest``'s ``DEFAULT_ARANGO_*``
 # module-level constants at import time).
@@ -91,6 +84,13 @@ from tests.integration.conftest import (  # noqa: E402
     ensure_test_database,
     integration_enabled,
     try_boot_arangodb_via_compose,
+)
+from tests.test_service_sparql_routes import (  # noqa: E402  (after the env-pollution guard above)
+    _connect_session,
+    _FakeArangoClient,
+    _FakeCursor,
+    _FakeDb,
+    fake_client_factory,
 )
 
 if TYPE_CHECKING:
@@ -167,8 +167,7 @@ def append_report(row_name: str, p95_ms: float, budget_ms: float | None) -> None
         LATENCY_REPORT_PATH.write_text(
             "# Latency Report\n\n"
             "Checked-in, human-reviewed perf artifact (D-09). Report-only "
-            "rows never gate CI; see PRD §9.4 for the full SLO table.\n\n"
-            + header
+            "rows never gate CI; see PRD §9.4 for the full SLO table.\n\n" + header
         )
     if budget_ms is None:
         status = "report-only"
@@ -254,7 +253,7 @@ def arango_seeded_collection(name: str, docs: list[dict]) -> Iterator[list[dict]
         client.close()
 
 
-def connect_session_or_skip(client: "TestClient") -> str:
+def connect_session_or_skip(client: TestClient) -> str:
     """``POST /connect`` via a FastAPI ``TestClient`` and return the
     session token, or ``pytest.skip()`` if the resolved ArangoDB
     credentials/database are unreachable/unauthorized.

@@ -524,9 +524,7 @@ def run(config_name: str) -> Report:
     # file (e.g. a generated query-first-synthetic bank) without
     # monkeypatching `BANK_PATH`. Absent `bank:` == today's curated
     # `fewshot_bank.yml`, byte-identical for every existing few_shot arm.
-    few_shot_bank_path = (
-        EVAL_DIR / few_shot_cfg["bank"] if few_shot_cfg.get("bank") else BANK_PATH
-    )
+    few_shot_bank_path = EVAL_DIR / few_shot_cfg["bank"] if few_shot_cfg.get("bank") else BANK_PATH
 
     # Build the index ONCE per arm, outside the per-case loop (Pitfall 1 —
     # never per-case; a fresh FewShotIndex would reload the SentenceTransformer

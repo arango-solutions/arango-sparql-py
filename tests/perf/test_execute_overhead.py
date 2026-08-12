@@ -40,7 +40,7 @@ from fastapi.testclient import TestClient
 import arango_sparql.service as svc
 from arango_sparql.service import app
 from arango_sparql.service.security import _TokenBucket
-from tests.perf.conftest import _connect_session, fake_client_factory, load_baseline, p95
+from tests.perf.conftest import _connect_session, load_baseline, p95
 
 pytestmark = pytest.mark.perf
 
@@ -129,9 +129,7 @@ def _gate(row_key: str, measured_p95_ms: float) -> None:
         )
 
 
-def test_execute_overhead_p95(
-    monkeypatch: pytest.MonkeyPatch, fake_client_factory: type
-) -> None:
+def test_execute_overhead_p95(monkeypatch: pytest.MonkeyPatch, fake_client_factory: type) -> None:
     # fake_client_factory (session-scoped fixture from tests.perf.conftest,
     # itself re-exported from tests.test_service_sparql_routes) already
     # monkeypatches svc.ArangoClient -- /connect never touches a real DB.

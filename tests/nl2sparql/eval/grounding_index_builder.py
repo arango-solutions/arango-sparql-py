@@ -154,10 +154,7 @@ def build_label_index(
     from arango_query_core.nl.grounding import GroundedEntity, LabelIndex
 
     return LabelIndex.from_items(
-        [
-            GroundedEntity(id=iri, labels=tuple(v["labels"]), type=v["type"])
-            for iri, v in by_iri.items()
-        ]
+        [GroundedEntity(id=iri, labels=tuple(v["labels"]), type=v["type"]) for iri, v in by_iri.items()]
     )
 
 
@@ -449,9 +446,7 @@ class PredicateSignals:
     optional_relation: bool
 
 
-def build_predicate_signals(
-    ontology_ttl: str, data_ttl: str | None = None
-) -> dict[str, PredicateSignals]:
+def build_predicate_signals(ontology_ttl: str, data_ttl: str | None = None) -> dict[str, PredicateSignals]:
     """Build the eval-side ``{iri: PredicateSignals}`` map for a TBox
     (+ optional instance data), per Phase 07.5 D-02.
 
@@ -506,9 +501,7 @@ def build_predicate_signals(
         # it -- guarantees a FILTER NOT EXISTS negation example is
         # non-empty (the execute-to-drop-empties discipline).
         ask_with = f"ASK {{ ?e a <{domain_iri}> . ?e <{predicate_iri}> ?v . }}"
-        ask_without = (
-            f"ASK {{ ?e a <{domain_iri}> . FILTER NOT EXISTS {{ ?e <{predicate_iri}> ?v }} }}"
-        )
+        ask_without = f"ASK {{ ?e a <{domain_iri}> . FILTER NOT EXISTS {{ ?e <{predicate_iri}> ?v }} }}"
         has_with = bool(oxi_query(data_store, ask_with).boolean)
         has_without = bool(oxi_query(data_store, ask_without).boolean)
         return has_with and has_without
@@ -519,8 +512,6 @@ def build_predicate_signals(
         optional_relation = False
         if p["kind"] == "object" and data_store is not None and p["domain_iri"]:
             optional_relation = _has_and_lacks(p["domain_iri"], iri)
-        signals[iri] = PredicateSignals(
-            iri=iri, orderable=orderable, optional_relation=optional_relation
-        )
+        signals[iri] = PredicateSignals(iri=iri, orderable=orderable, optional_relation=optional_relation)
 
     return signals

@@ -122,6 +122,11 @@ warn_redundant_casts = true
 [tool.ruff]
 line-length = 110
 target-version = "py311"
+# Non-source trees: GSD planning artifacts + spike scripts, the session
+# scratchpad, and the read-only sibling-repo symlinks under references/
+# (broken on a fresh CI checkout). None are shipped source, so linting them
+# only produces noise and false CI failures.
+extend-exclude = [".planning", "scratchpad", "references"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

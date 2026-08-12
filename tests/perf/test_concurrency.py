@@ -47,8 +47,8 @@ import pytest
 
 from tests.perf.conftest import (
     DEFAULT_ARANGO_DB,
-    arango_seeded_collection,
     append_report,
+    arango_seeded_collection,
     connect_session_or_skip,
     live_arango_or_skip,
     p95,
@@ -70,7 +70,9 @@ _ONTOLOGY_TTL = """
 
 # Pinned, cheap SELECT query against the real ArangoDB -- see module
 # docstring for why this is a SELECT, not an ASK.
-_SELECT_QUERY = "PREFIX : <http://example.org/perf-concurrency#> SELECT ?s WHERE { ?s a :PerfConcurrencyThing }"
+_SELECT_QUERY = (
+    "PREFIX : <http://example.org/perf-concurrency#> SELECT ?s WHERE { ?s a :PerfConcurrencyThing }"
+)
 
 
 @pytest.fixture(scope="module")

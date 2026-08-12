@@ -299,9 +299,7 @@ def _query_literals(sparql: str) -> set[str]:
     return set(_QUOTED_LITERAL_RE.findall(sparql))
 
 
-def shape_overlap_indices(
-    bank: list[dict[str, Any]], corpus: list[dict[str, Any]]
-) -> set[int]:
+def shape_overlap_indices(bank: list[dict[str, Any]], corpus: list[dict[str, Any]]) -> set[int]:
     """Indices into *bank* whose canonical-algebra SKELETON (``_skeleton``,
     literals/URIs abstracted) collides with ANY held-out *corpus* gold's
     skeleton -- a near-duplicate-SHAPE example. Exported for the sweep
@@ -337,9 +335,7 @@ def entity_overlap(bank: list[dict[str, Any]], corpus: list[dict[str, Any]]) -> 
     return bank_entities & corpus_entities
 
 
-def overlapping_case_names(
-    bank: list[dict[str, Any]], corpus: list[dict[str, Any]]
-) -> set[str]:
+def overlapping_case_names(bank: list[dict[str, Any]], corpus: list[dict[str, Any]]) -> set[str]:
     """Held-out *corpus* case NAMES that collide with the generated *bank*
     on EITHER axis (shape skeleton OR shared entity literal) -- the
     case-indexed view ``run_generated_sweep.py`` needs to exclude cases

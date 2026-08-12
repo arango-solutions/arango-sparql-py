@@ -258,7 +258,9 @@ def verify_bank(
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Offline validity gate for a generated few-shot bank.")
     parser.add_argument("--bank", required=True, type=Path, help="Path to the generated_fewshot_bank.yml")
-    parser.add_argument("--corpus", required=True, type=Path, help="Path to the corpus.yml carrying the ontology")
+    parser.add_argument(
+        "--corpus", required=True, type=Path, help="Path to the corpus.yml carrying the ontology"
+    )
     parser.add_argument(
         "--data",
         type=Path,

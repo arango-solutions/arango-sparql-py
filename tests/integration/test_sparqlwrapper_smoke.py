@@ -277,8 +277,7 @@ def test_sparqlwrapper_select_returns_seeded_bindings(
 
     sparql = _make_wrapper(_live_server, _session_token)
     sparql.setQuery(
-        "PREFIX : <http://example.org/sw#> "
-        "SELECT ?s ?n WHERE { ?s a :SparqlwrapperPerson ; :name ?n }"
+        "PREFIX : <http://example.org/sw#> SELECT ?s ?n WHERE { ?s a :SparqlwrapperPerson ; :name ?n }"
     )
     results = sparql.query().convert()
 
@@ -301,9 +300,7 @@ def test_sparqlwrapper_ask_returns_boolean(
 
     sparql = _make_wrapper(_live_server, _session_token)
 
-    sparql.setQuery(
-        'PREFIX : <http://example.org/sw#> ASK { ?s a :SparqlwrapperPerson ; :name "Frank" }'
-    )
+    sparql.setQuery('PREFIX : <http://example.org/sw#> ASK { ?s a :SparqlwrapperPerson ; :name "Frank" }')
     ask_true = sparql.query().convert()
     assert isinstance(ask_true.get("boolean"), bool)
     assert ask_true["boolean"] is True

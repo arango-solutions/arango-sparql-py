@@ -44,6 +44,7 @@ Two modes
     surviving overlap-exclusion. Writes results to
     ``generated_sweep_result.json`` next to this file.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -68,9 +69,9 @@ QALD_GENERATED_ARM = "openai-gpt4o-mini-qald9plus-generated-fewshot"
 # same held-out questions, same shapes: 2-hop / COUNT / top-N / top-N 2-hop).
 DRY_RUN_PROBES = [
     "Who is the manager of the Data Services department?",  # ck25-7 (2-hop)
-    "How many suppliers do we have in France?",             # ck25-13 (COUNT)
-    "What is the cheapest Oscillator we have?",              # ck25-18 (top-N)
-    "Which supplier delivers the most reliable Inductor?",   # ck25-45 (top-N 2-hop)
+    "How many suppliers do we have in France?",  # ck25-13 (COUNT)
+    "What is the cheapest Oscillator we have?",  # ck25-18 (top-N)
+    "Which supplier delivers the most reliable Inductor?",  # ck25-45 (top-N 2-hop)
 ]
 
 
@@ -111,10 +112,7 @@ def dry_run() -> int:
     section = idx.format_prompt_section(DRY_RUN_PROBES[0], k=3, language="sparql")
     assert section.startswith("## Examples"), "no ## Examples section produced"
     print(section)
-    print(
-        "\nDRY RUN OK — generated bank loads, retrieves same-shape examples, "
-        "injects prompt (REQ-4)."
-    )
+    print("\nDRY RUN OK — generated bank loads, retrieves same-shape examples, injects prompt (REQ-4).")
     return 0
 
 
@@ -203,24 +201,39 @@ def sweep() -> int:
     print(f"  VERDICT        : {verdict}")
     print("=" * 68)
 
-    RESULT.write_text(json.dumps({
-        "plan": "07.5-05",
-        "arms": {"zero": CK25_ZERO_ARM, "generated": CK25_GENERATED_ARM, "qald": QALD_GENERATED_ARM},
-        "model": "gpt-4o-mini", "temperature": 0.1,
-        "n_cases": len(zero_d),
-        "zero_pass": zpass, "generated_pass": gpass,
-        "mcnemar_raw": {"b_gains": b, "c_regressions": c, "p_value": p},
-        "bootstrap_delta_raw": {"delta": delta, "lo": lo, "hi": hi},
-        "excluded_case_names": sorted(excluded_names),
-        "mcnemar_overlap_excluded": {
-            "b_gains": b_ex, "c_regressions": c_ex, "p_value": p_ex, "n": len(kept_names),
-        },
-        "bootstrap_delta_overlap_excluded": {"delta": delta_ex, "lo": lo_ex, "hi": hi_ex},
-        "gains": gains, "regressions": regressions,
-        "non_null": non_null, "survives_exclusion": survives_exclusion, "adopt": adopt,
-        "qald_pass": qald_pass, "qald_total": qald_total,
-        "zero_cases": zero_d, "generated_cases": gen_d,
-    }, indent=2))
+    RESULT.write_text(
+        json.dumps(
+            {
+                "plan": "07.5-05",
+                "arms": {"zero": CK25_ZERO_ARM, "generated": CK25_GENERATED_ARM, "qald": QALD_GENERATED_ARM},
+                "model": "gpt-4o-mini",
+                "temperature": 0.1,
+                "n_cases": len(zero_d),
+                "zero_pass": zpass,
+                "generated_pass": gpass,
+                "mcnemar_raw": {"b_gains": b, "c_regressions": c, "p_value": p},
+                "bootstrap_delta_raw": {"delta": delta, "lo": lo, "hi": hi},
+                "excluded_case_names": sorted(excluded_names),
+                "mcnemar_overlap_excluded": {
+                    "b_gains": b_ex,
+                    "c_regressions": c_ex,
+                    "p_value": p_ex,
+                    "n": len(kept_names),
+                },
+                "bootstrap_delta_overlap_excluded": {"delta": delta_ex, "lo": lo_ex, "hi": hi_ex},
+                "gains": gains,
+                "regressions": regressions,
+                "non_null": non_null,
+                "survives_exclusion": survives_exclusion,
+                "adopt": adopt,
+                "qald_pass": qald_pass,
+                "qald_total": qald_total,
+                "zero_cases": zero_d,
+                "generated_cases": gen_d,
+            },
+            indent=2,
+        )
+    )
     print(f"\nWrote {RESULT}")
     return 0
 

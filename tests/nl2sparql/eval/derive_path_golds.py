@@ -284,7 +284,9 @@ def main() -> int:
         for name, expected in _EXPECTED_BUCKET_COUNTS.items():
             actual = len(buckets[name])
             if actual != expected:
-                print(f"WARN: bucket {name!r} has {actual} cases, expected {expected} (corpus/arm may have drifted)")
+                print(
+                    f"WARN: bucket {name!r} has {actual} cases, expected {expected} (corpus/arm may have drifted)"
+                )
 
     if args.emit is not None:
         empty_result_names = [c["name"] for c in buckets["empty_result"]]
