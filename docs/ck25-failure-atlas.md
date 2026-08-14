@@ -119,6 +119,42 @@ touch **either** bucket: the simple-lookup cases it *could* help already pass.
    likely-buggy golds (ck25-25 density, ck25-36, ck25-44, ck25-29, ck25-30 `?depty` typo)
    as *unwinnable-by-design* so they stop being counted against model quality.
 
+## Results — what we actually tried (2026-08-14)
+
+Recommendations 1 and 3 were built and measured on a credentialed same-session
+CK25 sweep (gpt-4o-mini, n=49). **Both moved the number** — the first levers in
+this project's NL→SPARQL work to do so cleanly:
+
+- **Rec 1 — judge answer-content relaxation** (committed `55c00c6`): grade on the
+  gold's answer values, tolerating extra descriptive columns and duplicate/symmetric
+  rows. Effect: every arm rose a few points as correct-but-mis-scored answers began
+  passing (e.g. zero 5→8, ground 12→17, g+f 16→18). Recovered ck25-18/19/43. Strict
+  superset — no previously-passing case regresses; scripted gold-vs-gold invariant holds.
+- **Rec 3 — analytic-shape few-shot bank** (committed `8aabe8f`): +11 execution-verified
+  exemplars (superlative-over-category, grouped-superlative, negation, count-with-filter,
+  nested-subquery) into the query-first bank. **`g+f-analytic` = 22/49 (0.449) — the best
+  arm in the project**, vs `g+f` 18/49. Contrast `b=5 c=1 p=0.2188 Δ+0.0816 CI[0.000,0.184]`:
+  a directional lift (wins ck25-18/19/20/50/12, mostly superlatives), one distraction
+  regression (ck25-11, a lookup). Not a clean adopt at n=49 (underpowered, p>0.05, c≠0) but
+  the strongest signal to date.
+
+**What the bank fixed vs didn't — the key learning:**
+- ✅ Fixed the **plain superlatives** (single ORDER BY … LIMIT): ck25-18/19/20/50.
+- ❌ Did NOT fix **superlative-over-a-category** (ck25-21/25 — the dropped-category bug) or
+  **negation** (ck25-27/33/40) — even though the correct-shape exemplar *is* retrieved for
+  these. So for the hard cases the wall is **conversion, not retrieval**: the model *sees*
+  a `top_n_category` / `negation` exemplar and still drops the category filter or mis-builds
+  `NOT EXISTS`. A shape-aware retrieval refinement (committed `157d9f1`, opt-in
+  `few_shot.shape_aware`) confirmed this — it only changes retrieval for 2 nested cases; the
+  enriched bank already surfaces the right shape for the rest, yet they still fail.
+- **Implication:** more/better exemplars have diminishing returns on the residual. The
+  remaining bucket-1 wall (analytic *composition*: keep-the-filter superlatives, negation,
+  nested aggregation) points at the research's #1 ceiling-mover — **fine-tuning the generator
+  on synthetic complex-query pairs** (enabled by the 07.5 synthbank generator) — not more
+  prompt context. See `.planning/research/nl-to-sparql-beyond-prompting.md`.
+
+Arms wired for re-sweep: `g+f-analytic`, `g+f-analytic-aware` (in `run_composed_sweep.py`).
+
 ## Provenance
 
 - Verdicts: `tests/nl2sparql/eval/composed_sweep_result.json` (credentialed sweep,
