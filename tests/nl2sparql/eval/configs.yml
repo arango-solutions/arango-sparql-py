@@ -381,6 +381,49 @@ configs:
       k: 20
       bank: vendored/ck25/analytic_fewshot_bank.yml
 
+  # Same enriched bank + SHAPE-AWARE retrieval (opt-in `few_shot.shape_aware`):
+  # guarantees a query-shape-appropriate exemplar for analytic questions. BM25
+  # alone ranks by wording, so "heaviest coil" retrieves lexical "coil" lookups
+  # over a superlative exemplar; this forces >=1 same-shape exemplar for
+  # analytic questions while leaving non-analytic ones unchanged. Offline
+  # shape-retrieval coverage 15/19 -> 17/19 vs the plain analytic arm. The
+  # `g+f-analytic-aware vs g+f-analytic` contrast isolates the retrieval change
+  # (identical bank + grounding). See docs/ck25-failure-atlas.md.
+  scripted-ck25-grounded-analytic-fewshot-aware:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/analytic_fewshot_bank.yml
+      shape_aware: true
+
+  openai-gpt4o-mini-ck25-grounded-analytic-fewshot-aware:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/analytic_fewshot_bank.yml
+      shape_aware: true
+
   scripted-ck25-all-levers:
     provider:
       type: scripted

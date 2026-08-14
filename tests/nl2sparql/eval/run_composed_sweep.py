@@ -63,6 +63,11 @@ ARMS = [
         "openai-gpt4o-mini-ck25-grounded-analytic-fewshot",
         "scripted-ck25-grounded-analytic-fewshot",
     ),
+    (
+        "g+f-analytic-aware",
+        "openai-gpt4o-mini-ck25-grounded-analytic-fewshot-aware",
+        "scripted-ck25-grounded-analytic-fewshot-aware",
+    ),
     ("all", "openai-gpt4o-mini-ck25-all-levers", "scripted-ck25-all-levers"),
     (
         "g+f+path",
@@ -82,6 +87,12 @@ CONTRASTS = [
     ("all vs g+f     (does predicate grounding help/distract?)", "g+f", "all"),
     ("g+f+path vs g+f (does the path hint help?)", "g+f", "g+f+path"),
     ("g+f-analytic vs g+f (do analytic-shape exemplars help?)", "g+f", "g+f-analytic"),
+    (
+        "g+f-analytic-aware vs g+f-analytic (does shape-aware retrieval help?)",
+        "g+f-analytic",
+        "g+f-analytic-aware",
+    ),
+    ("g+f-analytic-aware vs g+f (analytic bank + shape-aware, total)", "g+f", "g+f-analytic-aware"),
 ]
 
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -544,6 +545,77 @@ def _judge(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Shape-aware few-shot retrieval (opt-in) — guarantees a query-shape-appropriate
+# exemplar for analytic questions, on top of lexical BM25/dense retrieval.
+# Motivation (docs/ck25-failure-atlas.md): BM25 ranks by question WORDING, so a
+# superlative like "heaviest coil" retrieves lexical "coil" lookups instead of a
+# superlative exemplar. For a question whose wording signals an analytic shape,
+# this ensures >=1 same-shape exemplar is present; non-analytic questions
+# retrieve unchanged (so simple lookups are never displaced).
+# ---------------------------------------------------------------------------
+
+_SHAPE_FAMILY: dict[str, set[str]] = {
+    "top_n": {"SUP"},
+    "top_n_category": {"SUP"},
+    "offset": {"SUP"},
+    "grouped_top_n": {"SUP", "GRP"},
+    "grouped_aggregation": {"GRP"},
+    "scalar_count": {"CNT"},
+    "negation": {"NEG"},
+    "negation_ask": {"NEG"},
+    "nested_subquery": {"NST"},
+}
+
+
+def _analytic_families(question: str) -> set[str]:
+    """Query-shape families a question's wording signals (empty => non-analytic)."""
+    q = question.lower()
+    fams: set[str] = set()
+    if re.search(r"how many|number of", q):
+        fams.add("CNT")
+    if re.search(r"\bno\b|without|have no|not .*(manage|assigned)|no .*(manager|assigned)", q):
+        fams.add("NEG")
+    if re.search(
+        r"highest|lowest|cheapest|most expensive|heaviest|lightest|smallest|largest"
+        r"|\btop\b|best|densest|most reliable|maximum|minimum",
+        q,
+    ):
+        fams.add("SUP")
+    if re.search(r"\bper \b|for each|\beach \b|average|avg| top \d+ .*(by|over|per)|most .*among", q):
+        fams.add("GRP")
+    if re.search(r"percentage|percentile|top 10 ?%|more than the average|highest average", q):
+        fams.update({"NST", "GRP"})
+    return fams
+
+
+class _ShapeAwareFewShotIndex(FewShotIndex):
+    """Wraps a built ``FewShotIndex``; overrides ``retrieve`` to guarantee a
+    shape-appropriate exemplar for analytic questions. ``format_prompt_section``
+    (inherited) calls ``retrieve``, so the engine picks this up unchanged."""
+
+    def __init__(self, inner: FewShotIndex, shape_by_question: dict[str, str]) -> None:
+        super().__init__(inner.retriever, inner.examples)
+        self._inner = inner
+        self._shape_by_q = shape_by_question
+
+    def _fam(self, example_question: str) -> set[str]:
+        return _SHAPE_FAMILY.get(self._shape_by_q.get(example_question, ""), set())
+
+    def retrieve(self, question: str, k: int = 3) -> list[tuple[str, str]]:
+        base = self._inner.retrieve(question, k)
+        need = _analytic_families(question)
+        if not need or any(self._fam(nl) & need for nl, _q in base):
+            return base
+        # None of the top-k match the needed shape family; pull a larger pool and
+        # swap the best same-family exemplar into the last slot.
+        pool = self._inner.retrieve(question, max(k * 4, 12))
+        for nl, query in pool:
+            if self._fam(nl) & need:
+                return list(base[: max(k - 1, 0)]) + [(nl, query)]
+        return base
+
+
 def run(config_name: str) -> Report:
     configs = _load_configs()["configs"]
     config = configs[config_name]
@@ -598,6 +670,15 @@ def run(config_name: str) -> Report:
                 "installed/importable (install `.[dense]` before running this arm) — "
                 "never record this as a dense-mode measurement."
             )
+
+        # Shape-aware retrieval (opt-in via `few_shot.shape_aware: true`):
+        # guarantee a query-shape-appropriate exemplar for analytic questions on
+        # top of lexical retrieval; non-analytic questions retrieve unchanged.
+        if few_shot_cfg.get("shape_aware") and few_shot_index is not None:
+            _bank = yaml.safe_load(Path(few_shot_bank_path).read_text())
+            _bank_examples = _bank["examples"] if isinstance(_bank, dict) else _bank
+            _shape_by_q = {e["question"]: e.get("shape", "") for e in _bank_examples}
+            few_shot_index = _ShapeAwareFewShotIndex(few_shot_index, _shape_by_q)
 
     # Additive `grounding:` config read (07.3-05 / RESEARCH Pattern 3): entity/
     # instance grounding (seam 6) mirrors the `few_shot:` precedent exactly.
