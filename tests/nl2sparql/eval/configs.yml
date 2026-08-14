@@ -339,6 +339,48 @@ configs:
       k: 20
       bank: vendored/ck25/generated_fewshot_bank.yml
 
+  # Entity grounding + ENRICHED few-shot bank (generated 73 + 11 hand-authored,
+  # execution-verified analytic-shape exemplars: superlative-over-category,
+  # grouped-superlative, negation, count-with-filter, nested-subquery). The
+  # generated bank had only ~1 top_n and ~1 negation exemplar; bucket 1 (the
+  # never-pass analytic failures) needs many more. Offline shape-retrieval
+  # coverage on the 19 analytic bucket-1 questions rose 8/19 -> 15/19 with this
+  # bank. The `g+f-analytic vs g+f` contrast isolates the added exemplars'
+  # effect (identical grounding + bm25 mode; only the bank content differs).
+  # See docs/ck25-failure-atlas.md.
+  scripted-ck25-grounded-analytic-fewshot:
+    provider:
+      type: scripted
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/analytic_fewshot_bank.yml
+
+  openai-gpt4o-mini-ck25-grounded-analytic-fewshot:
+    provider:
+      type: openai
+      model: gpt-4o-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/analytic_fewshot_bank.yml
+
   scripted-ck25-all-levers:
     provider:
       type: scripted

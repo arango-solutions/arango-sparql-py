@@ -58,6 +58,11 @@ ARMS = [
     ("ground", "openai-gpt4o-mini-ck25-grounded", "scripted-ck25-grounded"),
     ("fewshot", "openai-gpt4o-mini-ck25-generated-fewshot", "scripted-ck25-generated-fewshot"),
     ("g+f", "openai-gpt4o-mini-ck25-grounded-generated-fewshot", "scripted-ck25-grounded-generated-fewshot"),
+    (
+        "g+f-analytic",
+        "openai-gpt4o-mini-ck25-grounded-analytic-fewshot",
+        "scripted-ck25-grounded-analytic-fewshot",
+    ),
     ("all", "openai-gpt4o-mini-ck25-all-levers", "scripted-ck25-all-levers"),
     (
         "g+f+path",
@@ -76,6 +81,7 @@ CONTRASTS = [
     ("g+f vs fewshot (does grounding add to few-shot?)", "fewshot", "g+f"),
     ("all vs g+f     (does predicate grounding help/distract?)", "g+f", "all"),
     ("g+f+path vs g+f (does the path hint help?)", "g+f", "g+f+path"),
+    ("g+f-analytic vs g+f (do analytic-shape exemplars help?)", "g+f", "g+f-analytic"),
 ]
 
 
