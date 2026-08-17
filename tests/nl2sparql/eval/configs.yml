@@ -381,6 +381,35 @@ configs:
       k: 20
       bank: vendored/ck25/analytic_fewshot_bank.yml
 
+  # --- gpt-5-mini CK25 sweep arms (run_composed_sweep.py --model gpt-5-mini) ---
+  # Motivated by gpt5_mini_diagnostic.py: gpt-5-mini solved 4/6 genuine-composition
+  # bucket-1 cases gpt-4o-mini fails, with ZERO extraction failures. These give it a
+  # same-session zero + g+f baseline to pair the analytic arm against. execution judge.
+  openai-gpt5-mini-ck25:
+    provider:
+      type: openai
+      model: gpt-5-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+
+  openai-gpt5-mini-ck25-grounded-generated-fewshot:
+    provider:
+      type: openai
+      model: gpt-5-mini
+    judge: execution
+    max_repairs: 2
+    corpus: vendored/ck25/corpus.yml
+    grounding:
+      k: 20
+      label_predicates:
+        - rdfs:label
+        - pv:name
+    few_shot:
+      mode: bm25
+      k: 20
+      bank: vendored/ck25/generated_fewshot_bank.yml
+
   # gpt-5-mini on the SAME enriched analytic bank + grounding — the model-swap
   # experiment. The 07-04 3-model sweep had gpt-5-mini UNDER gpt-4o-mini
   # (bm25 0.44 vs 0.568), possibly a reasoning-model output-extraction artifact

@@ -95,15 +95,38 @@ CONTRASTS = [
     ("g+f-analytic-aware vs g+f (analytic bank + shape-aware, total)", "g+f", "g+f-analytic-aware"),
 ]
 
+# --model gpt-5-mini: a focused 3-arm model-swap sweep (zero / g+f / g+f-analytic)
+# reusing the model-agnostic scripted twins. Motivated by gpt5_mini_diagnostic.py
+# (gpt-5-mini solved 4/6 composition cases gpt-4o-mini fails, 0 extraction failures).
+ARMS_GPT5MINI = [
+    ("zero", "openai-gpt5-mini-ck25", "scripted-ck25"),
+    (
+        "g+f",
+        "openai-gpt5-mini-ck25-grounded-generated-fewshot",
+        "scripted-ck25-grounded-generated-fewshot",
+    ),
+    (
+        "g+f-analytic",
+        "openai-gpt5-mini-ck25-grounded-analytic-fewshot",
+        "scripted-ck25-grounded-analytic-fewshot",
+    ),
+]
+CONTRASTS_GPT5MINI = [
+    ("g+f vs zero", "zero", "g+f"),
+    ("g+f-analytic vs g+f (do analytic-shape exemplars help?)", "g+f", "g+f-analytic"),
+    ("g+f-analytic vs zero (total, gpt-5-mini)", "zero", "g+f-analytic"),
+]
+RESULT_GPT5MINI = EVAL_DIR / "composed_sweep_result_gpt5-mini.json"
 
-def dry_run() -> int:
+
+def dry_run(arms: list = ARMS) -> int:
     from tests.nl2sparql.eval.runner import run
 
     print("=" * 68)
     print("DRY RUN — no LLM, no network. Proving the composed configs build")
     print("all seams (grounding + predicate + few_shot + path) into one NlPipeline.")
     print("=" * 68)
-    for _label, _live, scripted in ARMS:
+    for _label, _live, scripted in arms:
         r = run(scripted)
         passed = sum(1 for c in r.cases if c.passed)
         print(f"  {scripted:42s} {passed}/{len(r.cases)} (plumbing, no crash)")
@@ -111,7 +134,12 @@ def dry_run() -> int:
     return 0
 
 
-def sweep() -> int:
+def sweep(
+    arms: list = ARMS,
+    contrasts: list = CONTRASTS,
+    result: Path = RESULT,
+    model: str = "gpt-4o-mini",
+) -> int:
     if os.getenv("RUN_EVAL", "").strip().lower() in ("", "0", "false", "no"):
         print("ERROR: set RUN_EVAL=1 to run the live sweep.", file=sys.stderr)
         return 2
@@ -127,7 +155,7 @@ def sweep() -> int:
     )
 
     results: dict[str, dict[str, bool]] = {}
-    for label, live, _scripted in ARMS:
+    for label, live, _scripted in arms:
         print(f"Running arm '{label}' ({live}) ...")
         cached_few_shot_index.cache_clear()  # rebuild indices per arm (Pitfall 3)
         rep = run(live)
@@ -137,15 +165,15 @@ def sweep() -> int:
     n = len(next(iter(results.values())))
 
     print("\n" + "=" * 68)
-    print(f"  CK25 composed-lever evaluation — same session, n={n}, gpt-4o-mini")
+    print(f"  CK25 composed-lever evaluation — same session, n={n}, {model}")
     print("=" * 68)
     print("  Pass counts:")
-    for label, _live, _s in ARMS:
+    for label, _live, _s in arms:
         print(f"    {label:8s} {npass[label]:2d}/{n}  ({npass[label] / n:.3f})")
 
     print("\n  Paired contrasts (b=gains, c=regressions, treatment vs baseline):")
     contrast_rows = []
-    for name, base, treat in CONTRASTS:
+    for name, base, treat in contrasts:
         b, c, p = paired_mcnemar(results[base], results[treat])
         delta, lo, hi = bootstrap_paired_delta(results[base], results[treat])
         print(f"    {name:52s} b={b:2d} c={c:2d} p={p:.4f}  Δ={delta:+.4f} [{lo:+.4f},{hi:+.4f}]")
@@ -163,14 +191,14 @@ def sweep() -> int:
         )
     print("=" * 68)
 
-    RESULT.write_text(
+    result.write_text(
         json.dumps(
             {
                 "eval": "composed-lever CK25 real-evaluation (2026-08)",
-                "model": "gpt-4o-mini",
+                "model": model,
                 "judge": "execution",
                 "n_cases": n,
-                "arms": {lab: live for lab, live, _ in ARMS},
+                "arms": {lab: live for lab, live, _ in arms},
                 "pass_counts": npass,
                 "contrasts": contrast_rows,
                 "per_case": results,
@@ -179,7 +207,7 @@ def sweep() -> int:
         )
         + "\n"
     )
-    print(f"\nWrote {RESULT}")
+    print(f"\nWrote {result}")
     return 0
 
 
@@ -187,5 +215,17 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--sweep", action="store_true", help="run the live multi-arm sweep (needs key)")
     ap.add_argument("--dry-run", action="store_true", help="offline plumbing proof (default)")
+    ap.add_argument(
+        "--model",
+        choices=["gpt-4o-mini", "gpt-5-mini"],
+        default="gpt-4o-mini",
+        help="gpt-4o-mini = full 8-arm sweep (default); gpt-5-mini = focused 3-arm model-swap sweep",
+    )
     args = ap.parse_args()
-    sys.exit(sweep() if args.sweep else dry_run())
+    if args.model == "gpt-5-mini":
+        arms, contrasts, result = ARMS_GPT5MINI, CONTRASTS_GPT5MINI, RESULT_GPT5MINI
+    else:
+        arms, contrasts, result = ARMS, CONTRASTS, RESULT
+    if args.sweep:
+        sys.exit(sweep(arms=arms, contrasts=contrasts, result=result, model=args.model))
+    sys.exit(dry_run(arms=arms))
