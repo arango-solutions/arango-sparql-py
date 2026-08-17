@@ -155,6 +155,29 @@ this project's NL→SPARQL work to do so cleanly:
 
 Arms wired for re-sweep: `g+f-analytic`, `g+f-analytic-aware` (in `run_composed_sweep.py`).
 
+### Update (2026-08-17) — the model is the biggest lever
+
+A `--model gpt-5-mini` sweep (same CK25 corpus + execution judge) resets the ceiling:
+
+| arm | gpt-4o-mini | gpt-5-mini |
+|---|---|---|
+| zero | 8/49 | **20/49** |
+| g+f | 18/49 | **30/49 (0.61)** |
+| g+f-analytic | 22/49 | 28/49 |
+
+- **gpt-5-mini `g+f` = 30/49 is the project ceiling** (+12 on matched g+f). gpt-5-mini
+  *zero-shot* (20) ≈ gpt-4o-mini's best arm. `g+f vs zero` significant (b=13/c=3, p=0.021).
+- **The analytic bank is gpt-4o-mini-specific:** +4 on gpt-4o-mini, but a wash on gpt-5-mini
+  (`g+f-analytic vs g+f` b=3/c=5, p=0.73). gpt-5-mini composes the analytic shapes natively
+  (diagnostic: 4/6 hard bucket-1 cases, 0 extraction failures), so the exemplars are
+  redundant. **Use plain `g+f` on gpt-5-mini.**
+- The bucket-1 *composition* wall is solved by the stronger model, not prompt engineering.
+  This supersedes the "fine-tune gpt-4o-mini" recommendation for corporate/CK25-style work.
+- Caveats: cross-model sweeps were different sessions (gap dwarfs session noise, but not a
+  paired test); n=49 underpowered for fine contrasts; gpt-5-mini is pricier/slower; ~10 of
+  the 19 residual failures are benchmark contamination no model fixes (so ~30/49 is near the
+  practical ceiling). Artifact: `composed_sweep_result_gpt5-mini.json`.
+
 ## Provenance
 
 - Verdicts: `tests/nl2sparql/eval/composed_sweep_result.json` (credentialed sweep,
